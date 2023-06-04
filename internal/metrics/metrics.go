@@ -50,7 +50,7 @@ func (ms *Metrics) Set(valType, name, value string) error {
 		if err != nil {
 			return err
 		}
-		ms.Gauges[name] += Gauge(val)
+		ms.Gauges[name] = Gauge(val)
 		return nil
 	}
 	message := fmt.Sprintf("Ivalid type! Type is %s", strings.ToLower(valType))
