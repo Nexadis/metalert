@@ -39,10 +39,6 @@ func (s *httpServer) UpdateHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, `Invalid method`, http.StatusMethodNotAllowed)
 		return
 	}
-	if r.Header.Get("Content-type") != "text/plain" {
-		http.Error(w, `Invalid Content-type`, http.StatusNotImplemented)
-		return
-	}
 	q := r.URL.Path
 
 	splitted := strings.SplitN(q, "/", 5)
