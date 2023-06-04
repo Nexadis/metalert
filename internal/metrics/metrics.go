@@ -67,7 +67,7 @@ func (ms *Metrics) Get(valType, name string) (string, error) {
 		return val, nil
 	}
 
-	return "", errors.New("Invalid type")
+	return "", errors.New("invalid type")
 }
 
 func (ms *Metrics) Values() (map[string]string, error) {

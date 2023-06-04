@@ -18,8 +18,8 @@ type httpServer struct {
 	storage metrics.MemStorage
 }
 
-func (h *httpServer) Run() error {
-	return http.ListenAndServe(h.Addr, h.handler)
+func (s *httpServer) Run() error {
+	return http.ListenAndServe(s.Addr, s.handler)
 }
 
 func NewServer(addr string) Server {
