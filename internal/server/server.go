@@ -46,7 +46,6 @@ func (s *httpServer) UpdateHandler(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Path
 
 	splitted := strings.SplitN(q, "/", 5)
-	fmt.Printf("%v:%T\n", splitted[2], splitted[2])
 	if len(splitted) < 5 {
 		http.NotFound(w, r)
 		return
