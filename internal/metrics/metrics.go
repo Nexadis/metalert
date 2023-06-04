@@ -2,20 +2,21 @@ package metrics
 
 import (
 	"errors"
+	"fmt"
 	"strconv"
 	"strings"
 )
 
 type MetricsGetter interface {
-	Get(name string) (string, error)
-	Values() (map[string][]string, error)
+	Get(valType, name string) (string, error)
+	Values() (map[string]string, error)
 }
 
 type MetricsSetter interface {
-	Set(name, valType, value string) error
+	Set(valType, name, value string) error
 }
 
-type MetricsStorage interface {
+type MemStorage interface {
 	MetricsGetter
 	MetricsSetter
 }
@@ -28,23 +29,48 @@ type Metrics struct {
 	Counters map[string]Counter
 }
 
-func (ms *Metrics) Set(name, valType, value string) error {
-	switch strings.ToLower(valType) {
-	case "counter":
+func NewMetricsStorage() MemStorage {
+	m := new(Metrics)
+	m.Gauges = make(map[string]Gauge)
+	m.Counters = make(map[string]Counter)
+	return m
+}
+
+func (ms *Metrics) Set(valType, name, value string) error {
+	switch {
+	case strings.Compare(valType, `counter`) == 0:
 		val, err := strconv.Atoi(value)
 		if err != nil {
 			return err
 		}
 		ms.Counters[name] += Counter(val)
-	case "gauge":
+		return nil
+	case strings.Compare(valType, `gauge`) == 0:
 		val, err := strconv.ParseFloat(value, 64)
 		if err != nil {
 			return err
 		}
 		ms.Gauges[name] += Gauge(val)
-	default:
-		return errors.New("Invalid type")
+		return nil
+	}
+	message := fmt.Sprintf("Ivalid type! Type is %s", strings.ToLower(valType))
+	return errors.New(message)
+}
+
+func (ms *Metrics) Get(valType, name string) (string, error) {
+	switch strings.ToLower(valType) {
+	case "counter":
+		val := strconv.FormatInt(int64(ms.Counters[name]), 10)
+		return val, nil
+	case "gauge":
+		val := strconv.FormatFloat(float64(ms.Gauges[name]), 'b', 64, 64)
+		return val, nil
 	}
 
-	return nil
+	return "", errors.New("Invalid type")
+}
+
+func (ms *Metrics) Values() (map[string]string, error) {
+	m := make(map[string]string, 100)
+	return m, nil
 }
