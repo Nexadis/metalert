@@ -63,7 +63,7 @@ func (ms *Metrics) Get(valType, name string) (string, error) {
 		val := strconv.FormatInt(int64(ms.Counters[name]), 10)
 		return val, nil
 	case "gauge":
-		val := strconv.FormatFloat(float64(ms.Gauges[name]), 'b', 64, 64)
+		val := strconv.FormatFloat(float64(ms.Gauges[name]), 'f', -1, 64)
 		return val, nil
 	}
 
