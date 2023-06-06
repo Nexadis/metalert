@@ -9,6 +9,97 @@ import (
 func TestSet(t *testing.T) {
 	storage := Metrics{
 		Gauges: map[string]Gauge{
+			"positive": Gauge(0),
+			"small":    Gauge(0),
+			"neg":      Gauge(0),
+		},
+		Counters: map[string]Counter{
+			"positive": Counter(0),
+			"big":      Counter(0),
+		},
+	}
+	type setReq struct {
+		valType string
+		name    string
+		value   string
+	}
+	testCasesCounters := []struct {
+		name    string
+		request setReq
+		want    Counter
+	}{
+		{
+			name: "Counter type, positive",
+			request: setReq{
+				valType: "counter",
+				name:    "positive",
+				value:   "2",
+			},
+			want: Counter(2),
+		},
+		{
+			name: "Counter type, big num",
+			request: setReq{
+				valType: "counter",
+				name:    "big",
+				value:   "2985198054390",
+			},
+			want: Counter(2985198054390),
+		},
+	}
+
+	testCasesGauges := []struct {
+		name    string
+		request setReq
+		want    Gauge
+	}{
+		{
+			name: "Gauge type, positive",
+			request: setReq{
+				valType: "gauge",
+				name:    "positive",
+				value:   "102391",
+			},
+			want: Gauge(102391),
+		},
+		{
+			name: "Gauge type, very small",
+			request: setReq{
+				valType: "gauge",
+				name:    "small",
+				value:   "0.000000000001",
+			},
+			want: Gauge(0.000000000001),
+		},
+		{
+			name: "Gauge type, negative",
+			request: setReq{
+				valType: "gauge",
+				name:    "neg",
+				value:   "-102391",
+			},
+			want: Gauge(-102391),
+		},
+	}
+	for _, test := range testCasesCounters {
+		t.Run(test.name, func(t *testing.T) {
+			err := storage.Set(test.request.valType, test.request.name, test.request.value)
+			assert.Equal(t, storage.Counters[test.request.name], test.want)
+			assert.NoError(t, err)
+		})
+	}
+	for _, test := range testCasesGauges {
+		t.Run(test.name, func(t *testing.T) {
+			err := storage.Set(test.request.valType, test.request.name, test.request.value)
+			assert.Equal(t, storage.Gauges[test.request.name], test.want)
+			assert.NoError(t, err)
+		})
+	}
+}
+
+func TestGet(t *testing.T) {
+	storage := Metrics{
+		Gauges: map[string]Gauge{
 			"positive": Gauge(102391),
 			"small":    Gauge(0.000000000001),
 			"neg":      Gauge(-102391),
@@ -71,7 +162,6 @@ func TestSet(t *testing.T) {
 	for _, test := range testCases {
 		t.Run(test.name, func(t *testing.T) {
 			res, err := storage.Get(test.request.valType, test.request.name)
-			t.Log(res)
 			assert.Equal(t, res, test.want)
 			assert.NoError(t, err)
 		})
