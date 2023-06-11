@@ -1,4 +1,4 @@
-package metrics
+package metrx
 
 import (
 	"errors"
@@ -9,7 +9,7 @@ import (
 
 type MetricsGetter interface {
 	Get(valType, name string) (string, error)
-	Values() (map[string]string, error)
+	Values() ([]Metrica, error)
 }
 
 type MetricsSetter interface {
@@ -29,11 +29,17 @@ type Metrics struct {
 	Counters map[string]Counter
 }
 
+type Metrica struct {
+	ValType string
+	Name    string
+	Value   string
+}
+
 func NewMetricsStorage() MemStorage {
-	m := new(Metrics)
-	m.Gauges = make(map[string]Gauge)
-	m.Counters = make(map[string]Counter)
-	return m
+	ms := new(Metrics)
+	ms.Gauges = make(map[string]Gauge)
+	ms.Counters = make(map[string]Counter)
+	return ms
 }
 
 func (ms *Metrics) Set(valType, name, value string) error {
@@ -70,7 +76,24 @@ func (ms *Metrics) Get(valType, name string) (string, error) {
 	return "", errors.New("invalid type")
 }
 
-func (ms *Metrics) Values() (map[string]string, error) {
-	m := make(map[string]string, 100)
+func (ms *Metrics) Values() ([]Metrica, error) {
+	m := make([]Metrica, 0, len(ms.Gauges)+len(ms.Counters))
+	for name, value := range ms.Gauges {
+		val := strconv.FormatFloat(float64(value), 'f', -1, 64)
+		m = append(m, Metrica{
+			"gauge",
+			name,
+			val,
+		})
+	}
+	for name, value := range ms.Counters {
+		val := strconv.FormatInt(int64(value), 10)
+		m = append(m, Metrica{
+			"counter",
+			name,
+			val,
+		})
+
+	}
 	return m, nil
 }

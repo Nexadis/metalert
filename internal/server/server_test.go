@@ -5,7 +5,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/Nexadis/metalert/internal/metrics"
+	"github.com/Nexadis/metalert/internal/metrx"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -79,7 +79,7 @@ func TestUpdateHandlerURL(t *testing.T) {
 			},
 		},
 	}
-	storage := metrics.NewMetricsStorage()
+	storage := metrx.NewMetricsStorage()
 	server := httpServer{
 		"",
 		nil,

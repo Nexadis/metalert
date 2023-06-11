@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/Nexadis/metalert/internal/metrics"
+	"github.com/Nexadis/metalert/internal/metrx"
 )
 
 type Server interface {
@@ -15,7 +15,7 @@ type Server interface {
 type httpServer struct {
 	Addr    string
 	handler http.Handler
-	storage metrics.MemStorage
+	storage metrx.MemStorage
 }
 
 func (s *httpServer) Run() error {
@@ -23,7 +23,7 @@ func (s *httpServer) Run() error {
 }
 
 func NewServer(addr string) Server {
-	metricsStorage := metrics.NewMetricsStorage()
+	metricsStorage := metrx.NewMetricsStorage()
 	mux := http.NewServeMux()
 	server := &httpServer{
 		addr,
