@@ -14,6 +14,8 @@ import (
 
 type Agent interface {
 	Run() error
+	Pull()
+	Report()
 }
 
 type httpAgent struct {
@@ -50,11 +52,11 @@ func (ha *httpAgent) Run() error {
 
 func (ha *httpAgent) pullCustom() {
 	randValue := strconv.FormatFloat(rand.Float64(), 'f', -1, 64)
-	err := ha.storage.Set("gauge", "RandomValue", randValue)
+	err := ha.storage.Set(metrx.GaugeType, "RandomValue", randValue)
 	if err != nil {
 		panic(err)
 	}
-	err = ha.storage.Set("counter", "PollCount", "1")
+	err = ha.storage.Set(metrx.CounterType, "PollCount", "1")
 	if err != nil {
 		panic(err)
 	}
@@ -73,7 +75,7 @@ func (ha *httpAgent) pullRuntime() {
 		case reflect.Float64:
 			val = strconv.FormatFloat(value.Float(), 'f', -1, 64)
 		}
-		err := ha.storage.Set("gauge", mstruct.Type().Field(i).Name, val)
+		err := ha.storage.Set(metrx.GaugeType, mstruct.Type().Field(i).Name, val)
 		if err != nil {
 			panic(err)
 		}
@@ -93,10 +95,10 @@ func (ha *httpAgent) Report() {
 		panic(err)
 	}
 	for _, m := range values {
-		path := fmt.Sprintf("%s/%s/%s/%s", ha.listener, m.ValType, m.Name, m.Value)
+		path := fmt.Sprintf("%s/update/%s/%s/%s", ha.listener, m.ValType, m.Name, m.Value)
 		fmt.Printf("Send %s http request\n", path)
 		req, err := http.NewRequest(http.MethodPost, path, nil)
-		req.Header.Add("Content-type", "text/plain")
+		req.Header.Set("Content-type", "text/plain")
 		if err != nil {
 			panic(err)
 		}

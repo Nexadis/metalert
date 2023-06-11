@@ -24,6 +24,9 @@ type MemStorage interface {
 type Gauge float64
 type Counter int64
 
+const GaugeType = `gauge`
+const CounterType = `counter`
+
 type Metrics struct {
 	Gauges   map[string]Gauge
 	Counters map[string]Counter
@@ -44,14 +47,14 @@ func NewMetricsStorage() MemStorage {
 
 func (ms *Metrics) Set(valType, name, value string) error {
 	switch {
-	case strings.Compare(valType, `counter`) == 0:
+	case strings.Compare(valType, CounterType) == 0:
 		val, err := strconv.Atoi(value)
 		if err != nil {
 			return err
 		}
 		ms.Counters[name] += Counter(val)
 		return nil
-	case strings.Compare(valType, `gauge`) == 0:
+	case strings.Compare(valType, GaugeType) == 0:
 		val, err := strconv.ParseFloat(value, 64)
 		if err != nil {
 			return err
@@ -65,10 +68,10 @@ func (ms *Metrics) Set(valType, name, value string) error {
 
 func (ms *Metrics) Get(valType, name string) (string, error) {
 	switch strings.ToLower(valType) {
-	case "counter":
+	case CounterType:
 		val := strconv.FormatInt(int64(ms.Counters[name]), 10)
 		return val, nil
-	case "gauge":
+	case GaugeType:
 		val := strconv.FormatFloat(float64(ms.Gauges[name]), 'f', -1, 64)
 		return val, nil
 	}
@@ -81,7 +84,7 @@ func (ms *Metrics) Values() ([]Metrica, error) {
 	for name, value := range ms.Gauges {
 		val := strconv.FormatFloat(float64(value), 'f', -1, 64)
 		m = append(m, Metrica{
-			"gauge",
+			GaugeType,
 			name,
 			val,
 		})
@@ -89,7 +92,7 @@ func (ms *Metrics) Values() ([]Metrica, error) {
 	for name, value := range ms.Counters {
 		val := strconv.FormatInt(int64(value), 10)
 		m = append(m, Metrica{
-			"counter",
+			CounterType,
 			name,
 			val,
 		})
