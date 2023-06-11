@@ -96,16 +96,15 @@ func (ha *httpAgent) Report() {
 	}
 	for _, m := range values {
 		path := fmt.Sprintf("%s/update/%s/%s/%s", ha.listener, m.ValType, m.Name, m.Value)
-		fmt.Printf("Send %s http request\n", path)
 		req, err := http.NewRequest(http.MethodPost, path, nil)
 		req.Header.Set("Content-type", "text/plain")
 		if err != nil {
 			panic(err)
 		}
-		_, err = ha.client.Do(req)
+		resp, err := ha.client.Do(req)
 		if err != nil {
 			panic(err)
 		}
-
+		resp.Body.Close()
 	}
 }
