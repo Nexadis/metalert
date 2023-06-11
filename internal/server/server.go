@@ -3,55 +3,58 @@ package server
 import (
 	"fmt"
 	"net/http"
-	"strings"
 
 	"github.com/Nexadis/metalert/internal/metrx"
+	"github.com/go-chi/chi/v5"
 )
 
 type Server interface {
 	Run() error
+	MountHandlers()
 }
 
 type httpServer struct {
 	Addr    string
-	handler http.Handler
+	router  *chi.Mux
 	storage metrx.MemStorage
 }
 
 func (s *httpServer) Run() error {
-	return http.ListenAndServe(s.Addr, s.handler)
+	return http.ListenAndServe(s.Addr, s.router)
 }
 
 func NewServer(addr string) Server {
 	metricsStorage := metrx.NewMetricsStorage()
-	mux := http.NewServeMux()
 	server := &httpServer{
 		addr,
-		mux,
+		nil,
 		metricsStorage,
 	}
-	mux.HandleFunc(`/update/`, server.UpdateHandler)
 	return server
 }
 
-func (s *httpServer) UpdateHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, `Invalid method`, http.StatusMethodNotAllowed)
-		return
-	}
-	q := r.URL.Path
+func (s *httpServer) MountHandlers() {
 
-	splitted := strings.SplitN(q, "/", 5)
-	if len(splitted) < 5 {
-		http.NotFound(w, r)
-		return
-	}
-	_, valType, name, val := splitted[1], splitted[2], splitted[3], splitted[4]
+	router := chi.NewRouter()
+	router.Route("/", func(r chi.Router) {
+		r.Post("/update/{valType}/{name}/{value}", s.UpdateHandler)
+		r.Route("/value", func(r chi.Router) {
+			r.Get("/", s.ValuesHandler)
+			r.Get("/{valType}/{name}", s.ValueHandler)
+		})
+	})
+	s.router = router
+}
+
+func (s *httpServer) UpdateHandler(w http.ResponseWriter, r *http.Request) {
+	valType := chi.URLParam(r, "valType")
+	name := chi.URLParam(r, "name")
+	value := chi.URLParam(r, "value")
 	if name == "" {
 		http.NotFound(w, r)
 		return
 	}
-	err := s.storage.Set(valType, name, val)
+	err := s.storage.Set(valType, name, value)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -63,5 +66,43 @@ func (s *httpServer) UpdateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	w.WriteHeader(http.StatusOK)
+}
+
+func (s *httpServer) ValueHandler(w http.ResponseWriter, r *http.Request) {
+	valType := chi.URLParam(r, "valType")
+	name := chi.URLParam(r, "name")
+	if name == "" {
+		http.NotFound(w, r)
+		return
+	}
+	value, err := s.storage.Get(valType, name)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	_, err = w.Write([]byte(value))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+}
+
+func (s *httpServer) ValuesHandler(w http.ResponseWriter, r *http.Request) {
+	values, err := s.storage.Values()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	var answer string
+	for _, metric := range values {
+		answer = answer + fmt.Sprintf("%s=%s\n", metric.Name, metric.Value)
+	}
+	_, err = w.Write([]byte(answer))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 	w.WriteHeader(http.StatusOK)
 }

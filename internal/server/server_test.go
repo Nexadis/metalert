@@ -80,17 +80,18 @@ func TestUpdateHandlerURL(t *testing.T) {
 		},
 	}
 	storage := metrx.NewMetricsStorage()
-	server := httpServer{
-		"",
+	server := &httpServer{
+		"http://localhost:8080",
 		nil,
 		storage,
 	}
+	server.MountHandlers()
 
 	for _, test := range testCases {
 		t.Run(test.name, func(t *testing.T) {
 			r := httptest.NewRequest(test.request.method, test.request.url, nil)
 			w := httptest.NewRecorder()
-			server.UpdateHandler(w, r)
+			server.router.ServeHTTP(w, r)
 			result := w.Result()
 			assert.Equal(t, result.StatusCode, test.want.statusCode)
 			defer result.Body.Close()
