@@ -1,9 +1,12 @@
 package main
 
-import "github.com/Nexadis/metalert/internal/server"
+import (
+	"github.com/Nexadis/metalert/internal/server"
+)
 
 func main() {
-	server := server.NewServer(":8080")
+	parseCmd()
+	server := server.NewServer(endpoint)
 	server.MountHandlers()
 	err := server.Run()
 	if err != nil {
