@@ -96,7 +96,7 @@ func (ha *httpAgent) Report() {
 		panic(err)
 	}
 	const UpdateURL = "/update/{valType}/{name}/{value}"
-	path := fmt.Sprintf("%s%s", ha.listener, UpdateURL)
+	path := fmt.Sprintf("http://%s%s", ha.listener, UpdateURL)
 	for _, m := range values {
 		resp, err := ha.client.R().
 			SetHeader("Content-type", "text/plain").
