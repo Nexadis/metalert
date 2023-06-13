@@ -34,7 +34,7 @@ func NewAgent(listener string, pullInterval, reportInterval int64) Agent {
 		pullInterval:   pullInterval,
 		reportInterval: reportInterval,
 		storage:        storage,
-		client:         resty.New().SetDebug(true),
+		client:         resty.New(),
 	}
 }
 
@@ -109,7 +109,8 @@ func (ha *httpAgent) Report() {
 			}).
 			Post(path)
 		if err != nil {
-			panic(err)
+			logger.Error("Can't report metrics")
+			break
 		}
 		logger.Debug("Metric: %s , status:%s", m.Name, resp.Status())
 	}
