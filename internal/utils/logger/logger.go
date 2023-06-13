@@ -17,6 +17,6 @@ func Debug(format string, args ...any) {
 }
 
 func Error(format string, args ...any) {
-	color.Red("[ERROR] ")
+	color.Red("[ERROR]")
 	fmt.Printf(format+"\n", args...)
 }
