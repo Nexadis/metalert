@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/Nexadis/metalert/internal/metrx"
+	"github.com/Nexadis/metalert/internal/utils/logger"
 	"github.com/go-resty/resty/v2"
 )
 
@@ -80,6 +81,7 @@ func (ha *httpAgent) pullRuntime() {
 			panic(err)
 		}
 	}
+	logger.Debug("Metrics pulled")
 
 }
 
@@ -109,6 +111,6 @@ func (ha *httpAgent) Report() {
 		if err != nil {
 			panic(err)
 		}
-		fmt.Println(resp.Status())
+		logger.Debug("Metric: %s , status:%s", m.Name, resp.Status())
 	}
 }

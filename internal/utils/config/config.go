@@ -2,9 +2,8 @@ package config
 
 import (
 	"flag"
-	"fmt"
-	"log"
 
+	"github.com/Nexadis/metalert/internal/utils/logger"
 	"github.com/caarlos0/env/v8"
 )
 
@@ -20,7 +19,7 @@ func parseCmd() {
 	flag.StringVar(&MainConfig.Address, "a", "localhost:8080", "Server for metrics")
 	flag.Int64Var(&MainConfig.PollInterval, "p", 2, "Poll Interval")
 	flag.Int64Var(&MainConfig.ReportInterval, "r", 10, "Report Interval")
-	fmt.Printf("Get values from flags:\n%s=%s\n%s=%d\n%s=%d\n",
+	logger.Debug("Get values from flags:\n%s=%s\n%s=%d\n%s=%d\n",
 		"Address", MainConfig.Address,
 		"ReportInterval", MainConfig.ReportInterval,
 		"PollInterval", MainConfig.PollInterval)
@@ -29,12 +28,12 @@ func parseCmd() {
 
 func parseEnv() {
 	err := env.Parse(&MainConfig)
-	fmt.Printf("Get values from env:\n%s=%s\n%s=%d\n%s=%d\n",
+	logger.Debug("Get values from env:\n%s=%s\n%s=%d\n%s=%d\n",
 		"Address", MainConfig.Address,
 		"ReportInterval", MainConfig.ReportInterval,
 		"PollInterval", MainConfig.PollInterval)
 	if err != nil {
-		log.Fatal(err)
+		logger.Error(err.Error())
 	}
 }
 
