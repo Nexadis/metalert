@@ -1,27 +1,18 @@
 package main
 
 import (
-	"flag"
-
 	"github.com/Nexadis/metalert/internal/agent"
+	"github.com/Nexadis/metalert/internal/utils/config"
+	"github.com/Nexadis/metalert/internal/utils/logger"
 )
-
-var (
-	endpoint       string
-	pollInterval   int64
-	reportInterval int64
-)
-
-func parseCmd() {
-	flag.StringVar(&endpoint, "a", "localhost:8080", "Server for metrics")
-	flag.Int64Var(&pollInterval, "p", 2, "Poll Interval")
-	flag.Int64Var(&reportInterval, "r", 10, "Report Interval")
-	flag.Parse()
-}
 
 func main() {
-	parseCmd()
-	agent := agent.NewAgent(endpoint, pollInterval, reportInterval)
+	config.ParseConfig()
+	agent := agent.NewAgent(
+		config.MainConfig.Address,
+		config.MainConfig.PollInterval,
+		config.MainConfig.ReportInterval)
+	logger.Info("Start agent on %s", config.MainConfig.Address)
 	err := agent.Run()
 	if err != nil {
 		panic(err)

@@ -4,11 +4,12 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/Nexadis/metalert/internal/metrx"
 	"github.com/go-chi/chi/v5"
+
+	"github.com/Nexadis/metalert/internal/metrx"
 )
 
-type Server interface {
+type Listener interface {
 	Run() error
 	MountHandlers()
 }
@@ -23,7 +24,7 @@ func (s *httpServer) Run() error {
 	return http.ListenAndServe(s.Addr, s.router)
 }
 
-func NewServer(addr string) Server {
+func NewServer(addr string) Listener {
 	metricsStorage := metrx.NewMetricsStorage()
 	server := &httpServer{
 		addr,
@@ -66,7 +67,6 @@ func (s *httpServer) UpdateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
 }
 
 func (s *httpServer) ValueHandler(w http.ResponseWriter, r *http.Request) {
@@ -86,7 +86,6 @@ func (s *httpServer) ValueHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	w.WriteHeader(http.StatusOK)
 }
 
 func (s *httpServer) ValuesHandler(w http.ResponseWriter, r *http.Request) {
@@ -104,5 +103,4 @@ func (s *httpServer) ValuesHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	w.WriteHeader(http.StatusOK)
 }

@@ -2,7 +2,6 @@ package metrx
 
 import (
 	"errors"
-	"fmt"
 	"strconv"
 	"strings"
 )
@@ -62,8 +61,7 @@ func (ms *Metrics) Set(valType, name, value string) error {
 		ms.Gauges[name] = Gauge(val)
 		return nil
 	}
-	message := fmt.Sprintf("Ivalid type! Type is %s", strings.ToLower(valType))
-	return errors.New(message)
+	return errors.New("invalid type")
 }
 
 func (ms *Metrics) Get(valType, name string) (string, error) {

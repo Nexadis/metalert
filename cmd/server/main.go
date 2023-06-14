@@ -1,24 +1,16 @@
 package main
 
 import (
-	"flag"
-
 	"github.com/Nexadis/metalert/internal/server"
+	"github.com/Nexadis/metalert/internal/utils/config"
+	"github.com/Nexadis/metalert/internal/utils/logger"
 )
 
-var (
-	endpoint string
-)
-
-func parseCmd() {
-
-	flag.StringVar(&endpoint, "a", "localhost:8080", "Endpoint address")
-	flag.Parse()
-}
 func main() {
-	parseCmd()
-	server := server.NewServer(endpoint)
+	config.ParseConfig()
+	server := server.NewServer(config.MainConfig.Address)
 	server.MountHandlers()
+	logger.Info("Start server on %s", config.MainConfig.Address)
 	err := server.Run()
 	if err != nil {
 		panic(err)
