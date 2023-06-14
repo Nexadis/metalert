@@ -3,13 +3,13 @@ package agent
 import (
 	"fmt"
 	"math/rand"
-	"net/http"
 	"reflect"
 	"runtime"
 	"strconv"
 	"time"
 
 	"github.com/Nexadis/metalert/internal/metrx"
+	"github.com/go-resty/resty/v2"
 )
 
 type Agent interface {
@@ -23,7 +23,7 @@ type httpAgent struct {
 	pullInterval   int64
 	reportInterval int64
 	storage        metrx.MemStorage
-	client         *http.Client
+	client         *resty.Client
 }
 
 func NewAgent(listener string, pullInterval, reportInterval int64) Agent {
@@ -33,7 +33,7 @@ func NewAgent(listener string, pullInterval, reportInterval int64) Agent {
 		pullInterval:   pullInterval,
 		reportInterval: reportInterval,
 		storage:        storage,
-		client:         &http.Client{},
+		client:         resty.New().SetDebug(true),
 	}
 }
 
@@ -90,21 +90,25 @@ func (ha *httpAgent) Pull() {
 }
 
 func (ha *httpAgent) Report() {
+
 	values, err := ha.storage.Values()
 	if err != nil {
 		panic(err)
 	}
+	const UpdateURL = "/update/{valType}/{name}/{value}"
+	path := fmt.Sprintf("%s%s", ha.listener, UpdateURL)
 	for _, m := range values {
-		path := fmt.Sprintf("%s/update/%s/%s/%s", ha.listener, m.ValType, m.Name, m.Value)
-		req, err := http.NewRequest(http.MethodPost, path, nil)
-		req.Header.Set("Content-type", "text/plain")
+		resp, err := ha.client.R().
+			SetHeader("Content-type", "text/plain").
+			SetPathParams(map[string]string{
+				"valType": m.ValType,
+				"name":    m.Name,
+				"value":   m.Value,
+			}).
+			Post(path)
 		if err != nil {
 			panic(err)
 		}
-		resp, err := ha.client.Do(req)
-		if err != nil {
-			panic(err)
-		}
-		resp.Body.Close()
+		fmt.Println(resp.Status())
 	}
 }

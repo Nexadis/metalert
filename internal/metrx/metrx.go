@@ -69,10 +69,18 @@ func (ms *Metrics) Set(valType, name, value string) error {
 func (ms *Metrics) Get(valType, name string) (string, error) {
 	switch strings.ToLower(valType) {
 	case CounterType:
-		val := strconv.FormatInt(int64(ms.Counters[name]), 10)
+		value, ok := ms.Counters[name]
+		if !ok {
+			return "", errors.New("value not found")
+		}
+		val := strconv.FormatInt(int64(value), 10)
 		return val, nil
 	case GaugeType:
-		val := strconv.FormatFloat(float64(ms.Gauges[name]), 'f', -1, 64)
+		value, ok := ms.Gauges[name]
+		if !ok {
+			return "", errors.New("value not found")
+		}
+		val := strconv.FormatFloat(float64(value), 'f', -1, 64)
 		return val, nil
 	}
 
