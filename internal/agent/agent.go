@@ -16,8 +16,8 @@ import (
 
 type Watcher interface {
 	Run() error
-	Pull()
-	Report()
+	Pull() error
+	Report() error
 }
 
 type httpAgent struct {
@@ -45,26 +45,33 @@ func (ha *httpAgent) Run() error {
 	for {
 		select {
 		case <-pullTicker.C:
-			ha.Pull()
+			err := ha.Pull()
+			if err != nil {
+				return err
+			}
 		case <-reportTicker.C:
-			ha.Report()
+			err := ha.Report()
+			if err != nil {
+				return err
+			}
 		}
 	}
 }
 
-func (ha *httpAgent) pullCustom() {
+func (ha *httpAgent) pullCustom() error {
 	randValue := strconv.FormatFloat(rand.Float64(), 'f', -1, 64)
 	err := ha.storage.Set(metrx.GaugeType, "RandomValue", randValue)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	err = ha.storage.Set(metrx.CounterType, "PollCount", "1")
 	if err != nil {
-		panic(err)
+		return err
 	}
+	return nil
 }
 
-func (ha *httpAgent) pullRuntime() {
+func (ha *httpAgent) pullRuntime() error {
 	var val string
 	m := &runtime.MemStats{}
 	runtime.ReadMemStats(m)
@@ -79,24 +86,32 @@ func (ha *httpAgent) pullRuntime() {
 		}
 		err := ha.storage.Set(metrx.GaugeType, mstruct.Type().Field(i).Name, val)
 		if err != nil {
-			panic(err)
+			return err
 		}
 	}
 	logger.Debug("Metrics pulled")
+	return nil
 
 }
 
-func (ha *httpAgent) Pull() {
-	ha.pullCustom()
-	ha.pullRuntime()
+func (ha *httpAgent) Pull() error {
+	err := ha.pullCustom()
+	if err != nil {
+		return err
+	}
+	err = ha.pullRuntime()
+	if err != nil {
+		return err
+	}
+	return nil
 
 }
 
-func (ha *httpAgent) Report() {
+func (ha *httpAgent) Report() error {
 
 	values, err := ha.storage.Values()
 	if err != nil {
-		panic(err)
+		return err
 	}
 	const UpdateURL = "/update/{valType}/{name}/{value}"
 	path := fmt.Sprintf("http://%s%s", ha.listener, UpdateURL)
@@ -115,4 +130,5 @@ func (ha *httpAgent) Report() {
 		}
 		logger.Debug("Metric: %s , status:%s", m.Name, resp.Status())
 	}
+	return nil
 }

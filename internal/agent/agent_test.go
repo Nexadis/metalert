@@ -18,7 +18,10 @@ func TestPull(t *testing.T) {
 		storage:        storage,
 		client:         nil,
 	}
-	ha.Pull()
+	err := ha.Pull()
+	if err != nil {
+		panic(err)
+	}
 	type want struct {
 		name    string
 		valType string
@@ -117,7 +120,11 @@ func TestReport(t *testing.T) {
 		storage:        storage,
 		client:         nil,
 	}
-	ha.Pull()
+
+	err := ha.Pull()
+	if err != nil {
+		panic(err)
+	}
 	type want struct {
 		name    string
 		valType string
