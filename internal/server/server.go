@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/Nexadis/metalert/internal/metrx"
 	"github.com/go-chi/chi/v5"
+
+	"github.com/Nexadis/metalert/internal/metrx"
 )
 
 type Server interface {

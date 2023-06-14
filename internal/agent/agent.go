@@ -8,9 +8,10 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/go-resty/resty/v2"
+
 	"github.com/Nexadis/metalert/internal/metrx"
 	"github.com/Nexadis/metalert/internal/utils/logger"
-	"github.com/go-resty/resty/v2"
 )
 
 type Agent interface {
