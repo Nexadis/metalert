@@ -9,7 +9,7 @@ import (
 	"github.com/Nexadis/metalert/internal/metrx"
 )
 
-type Server interface {
+type Listener interface {
 	Run() error
 	MountHandlers()
 }
@@ -24,7 +24,7 @@ func (s *httpServer) Run() error {
 	return http.ListenAndServe(s.Addr, s.router)
 }
 
-func NewServer(addr string) Server {
+func NewServer(addr string) Listener {
 	metricsStorage := metrx.NewMetricsStorage()
 	server := &httpServer{
 		addr,

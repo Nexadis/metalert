@@ -14,7 +14,7 @@ import (
 	"github.com/Nexadis/metalert/internal/utils/logger"
 )
 
-type Agent interface {
+type Watcher interface {
 	Run() error
 	Pull()
 	Report()
@@ -28,7 +28,7 @@ type httpAgent struct {
 	client         *resty.Client
 }
 
-func NewAgent(listener string, pullInterval, reportInterval int64) Agent {
+func NewAgent(listener string, pullInterval, reportInterval int64) Watcher {
 	storage := metrx.NewMetricsStorage()
 	return &httpAgent{
 		listener:       listener,
