@@ -8,8 +8,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/go-resty/resty/v2"
-
+	"github.com/Nexadis/metalert/internal/agent/client"
 	"github.com/Nexadis/metalert/internal/metrx"
 	"github.com/Nexadis/metalert/internal/utils/logger"
 )
@@ -20,22 +19,25 @@ type Watcher interface {
 	Report() error
 }
 
+const UpdateURL = "/update/{valType}/{name}/{value}"
+
 type httpAgent struct {
 	listener       string
 	pullInterval   int64
 	reportInterval int64
 	storage        metrx.MemStorage
-	client         *resty.Client
+	client         client.MetricPoster
 }
 
 func NewAgent(listener string, pullInterval, reportInterval int64) Watcher {
 	storage := metrx.NewMetricsStorage()
+	client := client.NewHttp()
 	return &httpAgent{
 		listener:       listener,
 		pullInterval:   pullInterval,
 		reportInterval: reportInterval,
 		storage:        storage,
-		client:         resty.New(),
+		client:         client,
 	}
 }
 
@@ -113,22 +115,14 @@ func (ha *httpAgent) Report() error {
 	if err != nil {
 		return err
 	}
-	const UpdateURL = "/update/{valType}/{name}/{value}"
 	path := fmt.Sprintf("http://%s%s", ha.listener, UpdateURL)
 	for _, m := range values {
-		resp, err := ha.client.R().
-			SetHeader("Content-type", "text/plain").
-			SetPathParams(map[string]string{
-				"valType": m.ValType,
-				"name":    m.Name,
-				"value":   m.Value,
-			}).
-			Post(path)
+		err := ha.client.Post(path, m.Name, m.ValType, m.Value)
 		if err != nil {
 			logger.Error("Can't report metrics")
 			break
 		}
-		logger.Debug("Metric: %s , status:%s", m.Name, resp.Status())
+		logger.Debug("Metric: %s", m.Name)
 	}
 	return nil
 }
