@@ -205,8 +205,9 @@ func TestReport(t *testing.T) {
 				storage:        storage,
 				client:         testClient,
 			}
-			ha.storage.Set(test.want.valType, test.want.name, test.want.value)
-			err := ha.Report()
+			err := ha.storage.Set(test.want.valType, test.want.name, test.want.value)
+			assert.NoError(t, err)
+			err = ha.Report()
 			assert.NoError(t, err)
 			assert.Equal(t, test.want.name, testClient.name)
 			assert.Equal(t, test.want.valType, testClient.valType)

@@ -194,7 +194,8 @@ func TestValueHandlerURL(t *testing.T) {
 	server := testServer()
 	for _, test := range valueTests {
 		t.Run(test.name, func(t *testing.T) {
-			server.storage.Set(test.want.valType, test.want.name, test.want.value)
+			err := server.storage.Set(test.want.valType, test.want.name, test.want.value)
+			assert.NoError(t, err)
 			r := httptest.NewRequest(test.request.method, test.request.url, nil)
 			w := httptest.NewRecorder()
 			server.router.ServeHTTP(w, r)
@@ -210,7 +211,8 @@ func TestValueHandlerURL(t *testing.T) {
 func TestValuesHandlerURL(t *testing.T) {
 	server := testServer()
 	for _, test := range valueTests {
-		server.storage.Set(test.want.valType, test.want.name, test.want.value)
+		err := server.storage.Set(test.want.valType, test.want.name, test.want.value)
+		assert.NoError(t, err)
 	}
 	for _, test := range valuesTests {
 		t.Run(test.name, func(t *testing.T) {
