@@ -111,26 +111,29 @@ func TestPull(t *testing.T) {
 
 }
 
-func TestReport(t *testing.T) {
-	storage := metrx.NewMetricsStorage()
-	ha := &httpAgent{
-		listener:       endpoint,
-		pullInterval:   0,
-		reportInterval: 0,
-		storage:        storage,
-		client:         nil,
-	}
+type testClient struct {
+	path    string
+	valType string
+	name    string
+	value   string
+}
 
-	err := ha.Pull()
-	if err != nil {
-		panic(err)
-	}
+func (c *testClient) Post(path, valType, name, value string) error {
+	c.path = path
+	c.valType = valType
+	c.name = name
+	c.value = value
+	return nil
+}
+
+func TestReport(t *testing.T) {
+
 	type want struct {
 		name    string
 		valType string
 		value   string
 	}
-	testsRuntime := []struct {
+	tests := []struct {
 		name string
 		want want
 	}{
@@ -181,12 +184,7 @@ func TestReport(t *testing.T) {
 				valType: metrx.GaugeType,
 				value:   "0",
 			},
-		}}
-
-	testsCounter := []struct {
-		name string
-		want want
-	}{
+		},
 		{
 			name: "Check PollCount",
 			want: want{
@@ -196,19 +194,23 @@ func TestReport(t *testing.T) {
 			},
 		},
 	}
-	for _, test := range testsRuntime {
+	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			value, err := ha.storage.Get(test.want.valType, test.want.name)
-			assert.ErrorIs(t, nil, err)
-			assert.NotEmpty(t, value)
-		})
-	}
-	for _, test := range testsCounter {
-		t.Run(test.name, func(t *testing.T) {
-			value, err := ha.storage.Get(test.want.valType, test.want.name)
-			assert.ErrorIs(t, nil, err)
-			assert.NotEmpty(t, value)
-			assert.Equal(t, test.want.value, value)
+			testClient := &testClient{}
+			storage := metrx.NewMetricsStorage()
+			ha := &httpAgent{
+				listener:       endpoint,
+				pullInterval:   0,
+				reportInterval: 0,
+				storage:        storage,
+				client:         testClient,
+			}
+			ha.storage.Set(test.want.valType, test.want.name, test.want.value)
+			err := ha.Report()
+			assert.NoError(t, err)
+			assert.Equal(t, test.want.name, testClient.name)
+			assert.Equal(t, test.want.valType, testClient.valType)
+			assert.Equal(t, test.want.value, testClient.value)
 		})
 	}
 

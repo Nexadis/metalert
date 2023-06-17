@@ -3,7 +3,7 @@ package client
 import "github.com/go-resty/resty/v2"
 
 type MetricPoster interface {
-	Post(path, name, valType, value string) error
+	Post(path, valType, name, value string) error
 }
 
 type httpClient struct {
@@ -16,7 +16,7 @@ func NewHttp() MetricPoster {
 	}
 }
 
-func (c *httpClient) Post(path, name, valType, value string) error {
+func (c *httpClient) Post(path, valType, name, value string) error {
 	_, err := c.client.R().
 		SetHeader("Content-type", "text/plain").
 		SetPathParams(map[string]string{

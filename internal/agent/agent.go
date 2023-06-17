@@ -117,7 +117,7 @@ func (ha *httpAgent) Report() error {
 	}
 	path := fmt.Sprintf("http://%s%s", ha.listener, UpdateURL)
 	for _, m := range values {
-		err := ha.client.Post(path, m.Name, m.ValType, m.Value)
+		err := ha.client.Post(path, m.ValType, m.Name, m.Value)
 		if err != nil {
 			logger.Error("Can't report metrics")
 			break
