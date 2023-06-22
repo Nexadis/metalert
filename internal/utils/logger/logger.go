@@ -1,22 +1,35 @@
 package logger
 
 import (
-	"fmt"
-
-	"github.com/fatih/color"
+	"go.uber.org/zap"
 )
 
+type LogLevel int
+
+const (
+	DEBUG LogLevel = iota
+	INFO
+	WARN
+	ERROR
+	FATAL
+)
+
+var Log *zap.SugaredLogger
+
+func init() {
+	log := zap.NewExample()
+	defer log.Sync()
+	Log = log.Sugar()
+}
+
 func Info(format string, args ...any) {
-	color.Blue("[INFO] ")
-	fmt.Printf(format+"\n", args...)
+	Log.Infof(format+"\n", args...)
 }
 
 func Debug(format string, args ...any) {
-	color.Green("[DEBUG] ")
-	fmt.Printf(format+"\n", args...)
+	Log.Debugf(format+"\n", args...)
 }
 
 func Error(format string, args ...any) {
-	color.Red("[ERROR] ")
-	fmt.Printf(format+"\n", args...)
+	Log.Errorf(format+"\n", args...)
 }
