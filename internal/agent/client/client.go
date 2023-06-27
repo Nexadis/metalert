@@ -10,7 +10,7 @@ type httpClient struct {
 	client *resty.Client
 }
 
-func NewHttp() MetricPoster {
+func NewHTTP() MetricPoster {
 	return &httpClient{
 		client: resty.New(),
 	}

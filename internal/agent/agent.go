@@ -31,7 +31,7 @@ type httpAgent struct {
 
 func NewAgent(listener string, pullInterval, reportInterval int64) Watcher {
 	storage := metrx.NewMetricsStorage()
-	client := client.NewHttp()
+	client := client.NewHTTP()
 	return &httpAgent{
 		listener:       listener,
 		pullInterval:   pullInterval,
