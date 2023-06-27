@@ -119,11 +119,7 @@ func (ha *httpAgent) Report() error {
 			logger.Error("Can't report metrics")
 			break
 		}
-<<<<<<< Updated upstream
-		logger.Debug("Metric: %s", m.Name)
-=======
-		logger.Info("Metric", m.Name, "status", resp.Status())
->>>>>>> Stashed changes
+		logger.Info("Metric", m.Name)
 	}
 	return nil
 }

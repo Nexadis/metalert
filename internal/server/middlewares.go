@@ -17,30 +17,33 @@ type logWrite struct {
 	rd *responseData
 }
 
-func (lw logWrite) Write(b []byte) (int, error) {
+func (lw *logWrite) Write(b []byte) (int, error) {
+	lw.WriteHeader(http.StatusOK)
 	size, err := lw.w.Write(b)
-	lw.rd.size = size
+	lw.rd.size += size
 	return size, err
 }
 
-func (lw logWrite) WriteHeader(status int) {
-	lw.rd.status = status
-	lw.w.WriteHeader(status)
+func (lw *logWrite) WriteHeader(statusCode int) {
+	lw.rd.status = statusCode
+	lw.w.WriteHeader(statusCode)
 }
 
-func (lw logWrite) Header() http.Header {
+func (lw *logWrite) Header() http.Header {
 	return lw.w.Header()
 }
 
 func WithLogging(h http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	logFunc := func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
+		responseData := &responseData{}
 		lw := logWrite{
 			w:  w,
-			rd: &responseData{},
+			rd: responseData,
 		}
-		h.ServeHTTP(lw, r)
+		h.ServeHTTP(&lw, r)
 		duration := time.Since(start)
-		logger.Info("URI", r.RequestURI, "Method", r.Method, "Duration", duration, "Size", lw.rd.size, "Status", lw.rd.status)
-	})
+		logger.Info("URI", r.RequestURI, "Method", r.Method, "Status", responseData.status, "Duration", duration, "Size", responseData.size)
+	}
+	return http.HandlerFunc(logFunc)
 }
