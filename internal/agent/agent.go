@@ -91,9 +91,8 @@ func (ha *httpAgent) pullRuntime() error {
 			return err
 		}
 	}
-	logger.Debug("Metrics pulled")
+	logger.Info("Metrics pulled")
 	return nil
-
 }
 
 func (ha *httpAgent) Pull() error {
@@ -106,11 +105,9 @@ func (ha *httpAgent) Pull() error {
 		return err
 	}
 	return nil
-
 }
 
 func (ha *httpAgent) Report() error {
-
 	values, err := ha.storage.Values()
 	if err != nil {
 		return err
@@ -122,7 +119,11 @@ func (ha *httpAgent) Report() error {
 			logger.Error("Can't report metrics")
 			break
 		}
+<<<<<<< Updated upstream
 		logger.Debug("Metric: %s", m.Name)
+=======
+		logger.Info("Metric", m.Name, "status", resp.Status())
+>>>>>>> Stashed changes
 	}
 	return nil
 }
