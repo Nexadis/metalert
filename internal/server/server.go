@@ -74,12 +74,12 @@ func (s *httpServer) ValueHandler(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	value, err := s.storage.Get(valType, name)
+	m, err := s.storage.Get(valType, name)
 	if err != nil {
 		http.NotFound(w, r)
 		return
 	}
-	_, err = w.Write([]byte(value))
+	_, err = w.Write([]byte(m.Value))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

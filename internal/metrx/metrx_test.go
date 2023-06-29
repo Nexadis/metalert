@@ -7,7 +7,7 @@ import (
 )
 
 func TestSet(t *testing.T) {
-	storage := Metrics{
+	storage := MetricsStorage{
 		Gauges: map[string]Gauge{
 			"positive": Gauge(0),
 			"small":    Gauge(0),
@@ -98,7 +98,7 @@ func TestSet(t *testing.T) {
 }
 
 func TestGet(t *testing.T) {
-	storage := Metrics{
+	storage := MetricsStorage{
 		Gauges: map[string]Gauge{
 			"positive": Gauge(102391),
 			"small":    Gauge(0.000000000001),
@@ -162,7 +162,7 @@ func TestGet(t *testing.T) {
 	for _, test := range testCases {
 		t.Run(test.name, func(t *testing.T) {
 			res, err := storage.Get(test.request.valType, test.request.name)
-			assert.Equal(t, res, test.want)
+			assert.Equal(t, res.Value, test.want)
 			assert.NoError(t, err)
 		})
 	}

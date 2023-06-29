@@ -163,7 +163,6 @@ var valuesTests = []testReq{
 }
 
 func testServer() *httpServer {
-
 	storage := metrx.NewMetricsStorage()
 	server := &httpServer{
 		"http://localhost:8080",
@@ -186,10 +185,11 @@ func TestUpdateHandlerURL(t *testing.T) {
 			assert.Equal(t, result.StatusCode, test.want.statusCode)
 			defer result.Body.Close()
 			getted, _ := server.storage.Get(test.want.valType, test.want.name)
-			assert.Equal(t, getted, test.want.value)
+			assert.Equal(t, getted.Value, test.want.value)
 		})
 	}
 }
+
 func TestValueHandlerURL(t *testing.T) {
 	server := testServer()
 	for _, test := range valueTests {

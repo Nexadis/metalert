@@ -7,8 +7,8 @@ import (
 )
 
 type MetricsGetter interface {
-	Get(valType, name string) (string, error)
-	Values() ([]Metrica, error)
+	Get(valType, name string) (*MetricsString, error)
+	Values() ([]*MetricsString, error)
 }
 
 type MetricsSetter interface {
@@ -48,25 +48,52 @@ func ParseGauge(value string) (Gauge, error) {
 	return Gauge(val), err
 }
 
-type Metrics struct {
+type MetricsStorage struct {
 	Gauges   map[string]Gauge
 	Counters map[string]Counter
 }
 
-type Metrica struct {
+type MetricsString struct {
 	ValType string
 	Name    string
 	Value   string
 }
 
+type Metrics struct {
+	ID    string   `json:"id"`              // имя метрики
+	MType string   `json:"type"`            // параметр, принимающий значение gauge или counter
+	Delta *Counter `json:"delta,omitempty"` // значение метрики в случае передачи counter
+	Value *Gauge   `json:"value,omitempty"` // значение метрики в случае передачи gauge
+}
+
+func (m *Metrics) SetMetricsString(ms *MetricsString) error {
+	m.ID = ms.Name
+	m.MType = ms.ValType
+	switch ms.ValType {
+	case CounterType:
+		v, err := ParseCounter(ms.Value)
+		m.Delta = &v
+		if err != nil {
+			return err
+		}
+	case GaugeType:
+		v, err := ParseGauge(ms.Value)
+		m.Value = &v
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func NewMetricsStorage() MemStorage {
-	ms := new(Metrics)
+	ms := new(MetricsStorage)
 	ms.Gauges = make(map[string]Gauge)
 	ms.Counters = make(map[string]Counter)
 	return ms
 }
 
-func (ms *Metrics) Set(valType, name, value string) error {
+func (ms *MetricsStorage) Set(valType, name, value string) error {
 	switch strings.ToLower(valType) {
 	case CounterType:
 		val, err := ParseCounter(value)
@@ -86,32 +113,40 @@ func (ms *Metrics) Set(valType, name, value string) error {
 	return errors.New("invalid type")
 }
 
-func (ms *Metrics) Get(valType, name string) (string, error) {
+func (ms *MetricsStorage) Get(valType, name string) (*MetricsString, error) {
 	switch strings.ToLower(valType) {
 	case CounterType:
 		value, ok := ms.Counters[name]
 		if !ok {
-			return "", errors.New("value not found")
+			return nil, errors.New("value not found")
 		}
-		val := value.String()
+		val := &MetricsString{
+			Name:    name,
+			ValType: CounterType,
+			Value:   value.String(),
+		}
 		return val, nil
 	case GaugeType:
 		value, ok := ms.Gauges[name]
 		if !ok {
-			return "", errors.New("value not found")
+			return nil, errors.New("value not found")
 		}
-		val := value.String()
+		val := &MetricsString{
+			Name:    name,
+			ValType: GaugeType,
+			Value:   value.String(),
+		}
 		return val, nil
 	}
 
-	return "", errors.New("invalid type")
+	return nil, errors.New("invalid type")
 }
 
-func (ms *Metrics) Values() ([]Metrica, error) {
-	m := make([]Metrica, 0, len(ms.Gauges)+len(ms.Counters))
+func (ms *MetricsStorage) Values() ([]*MetricsString, error) {
+	m := make([]*MetricsString, 0, len(ms.Gauges)+len(ms.Counters))
 	for name, value := range ms.Gauges {
 		val := value.String()
-		m = append(m, Metrica{
+		m = append(m, &MetricsString{
 			GaugeType,
 			name,
 			val,
@@ -119,7 +154,7 @@ func (ms *Metrics) Values() ([]Metrica, error) {
 	}
 	for name, value := range ms.Counters {
 		val := value.String()
-		m = append(m, Metrica{
+		m = append(m, &MetricsString{
 			CounterType,
 			name,
 			val,
