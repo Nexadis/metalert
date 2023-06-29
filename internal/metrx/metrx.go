@@ -38,12 +38,12 @@ func (c Counter) String() string {
 	return strconv.FormatInt(int64(c), 10)
 }
 
-func NewCounter(value string) (Counter, error) {
+func ParseCounter(value string) (Counter, error) {
 	val, err := strconv.Atoi(value)
 	return Counter(val), err
 }
 
-func NewGauge(value string) (Gauge, error) {
+func ParseGauge(value string) (Gauge, error) {
 	val, err := strconv.ParseFloat(value, 64)
 	return Gauge(val), err
 }
@@ -69,14 +69,14 @@ func NewMetricsStorage() MemStorage {
 func (ms *Metrics) Set(valType, name, value string) error {
 	switch strings.ToLower(valType) {
 	case CounterType:
-		val, err := NewCounter(value)
+		val, err := ParseCounter(value)
 		if err != nil {
 			return err
 		}
 		ms.Counters[name] += val
 		return nil
 	case GaugeType:
-		val, err := NewGauge(value)
+		val, err := ParseGauge(value)
 		if err != nil {
 			return err
 		}
