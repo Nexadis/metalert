@@ -126,6 +126,10 @@ func (c *testClient) Post(path, valType, name, value string) error {
 	return nil
 }
 
+func (c *testClient) PostJSON(path string, m *metrx.Metrics) error {
+	return nil
+}
+
 func TestReport(t *testing.T) {
 	type want struct {
 		name    string

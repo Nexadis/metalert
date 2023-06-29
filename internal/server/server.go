@@ -117,7 +117,11 @@ func (s *httpServer) UpdateJSONHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer r.Body.Close()
-	ms := m.GetMetricsString()
+	ms, err := m.GetMetricsString()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
 	err = s.storage.Set(ms.MType, ms.ID, ms.Value)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)

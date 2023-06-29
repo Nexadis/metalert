@@ -15,6 +15,7 @@ import (
 type req struct {
 	method string
 	url    string
+	body   string
 }
 type want struct {
 	statusCode int
@@ -227,6 +228,115 @@ func TestValuesHandlerURL(t *testing.T) {
 			wanted := strings.Split(test.want.body, "\n")
 
 			assert.ElementsMatch(t, getted, wanted)
+		})
+	}
+}
+
+var JSONUpdateTests = []testReq{
+	{
+		name: "Gauge valid JSON",
+		request: req{
+			method: http.MethodPost,
+			url:    "/update/",
+			body: `{
+				"id": "name",
+				"type": "gauge",
+				"value": 1.23
+			}`,
+		},
+		want: want{
+			statusCode: http.StatusOK,
+			name:       "name",
+			valType:    metrx.GaugeType,
+			value:      "1.23",
+			body:       "",
+		},
+	},
+	{
+		name: "Gauge invalid JSON",
+		request: req{
+			method: http.MethodPost,
+			url:    "/update/",
+			body: `{
+				"id": "name",
+				"type: "gauge",
+				"value": 1.23
+			}`,
+		},
+		want: want{
+			statusCode: http.StatusBadRequest,
+		},
+	},
+	{
+		name: "Invalid Gauge value JSON",
+		request: req{
+			method: http.MethodPost,
+			url:    "/update/",
+			body: `{
+				"id": "name",
+				"type": "gauge",
+				"delta": 1
+			}`,
+		},
+		want: want{
+			statusCode: http.StatusBadRequest,
+		},
+	},
+	{
+		name: "Counter valid JSON",
+		request: req{
+			method: http.MethodPost,
+			url:    "/update/",
+			body: `{
+				"id": "name",
+				"type": "counter",
+				"delta": 1423
+			}`,
+		},
+		want: want{
+			statusCode: http.StatusOK,
+			name:       "name",
+			valType:    metrx.CounterType,
+			value:      "1423",
+			body:       "",
+		},
+	},
+	{
+		name: "Invalid Counter JSON",
+		request: req{
+			method: http.MethodPost,
+			url:    "/update/",
+			body: `{
+				"id": "name",
+				"type": "counter",
+				"value": 1.23
+			}`,
+		},
+		want: want{
+			statusCode: http.StatusBadRequest,
+		},
+	},
+}
+
+func TestUpdateHandlerJSON(t *testing.T) {
+	server := testServer()
+
+	for _, test := range JSONUpdateTests {
+		t.Run(test.name, func(t *testing.T) {
+			r := httptest.NewRequest(test.request.method, test.request.url, strings.NewReader(test.request.body))
+			headers := http.Header{
+				"Content-type": []string{"application/json"},
+			}
+			r.Header = headers
+			w := httptest.NewRecorder()
+			server.router.ServeHTTP(w, r)
+			result := w.Result()
+			assert.Equal(t, test.want.statusCode, result.StatusCode)
+			defer result.Body.Close()
+			if test.want.statusCode == http.StatusOK {
+				getted, _ := server.storage.Get(test.want.valType, test.want.name)
+				assert.Equal(t, getted.Value, test.want.value)
+			}
 		})
 	}
 }

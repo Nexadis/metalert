@@ -30,6 +30,11 @@ const (
 	CounterType = `counter`
 )
 
+var (
+	ErrorValue = errors.New("invalid value")
+	ErrorType  = errors.New("invalid type")
+)
+
 func (g Gauge) String() string {
 	return strconv.FormatFloat(float64(g), 'f', -1, 64)
 }
@@ -88,18 +93,24 @@ func (m *Metrics) ParseMetricsString(ms *MetricsString) error {
 	return nil
 }
 
-func (m *Metrics) GetMetricsString() *MetricsString {
+func (m *Metrics) GetMetricsString() (*MetricsString, error) {
 	ms := &MetricsString{
 		ID:    m.ID,
 		MType: m.MType,
 	}
 	switch m.MType {
 	case CounterType:
+		if m.Delta == nil {
+			return nil, ErrorType
+		}
 		ms.Value = m.Delta.String()
 	case GaugeType:
+		if m.Value == nil {
+			return nil, ErrorType
+		}
 		ms.Value = m.Value.String()
 	}
-	return ms
+	return ms, nil
 }
 
 func NewMetricsStorage() MemStorage {
