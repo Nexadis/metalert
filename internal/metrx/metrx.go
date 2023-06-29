@@ -54,9 +54,9 @@ type MetricsStorage struct {
 }
 
 type MetricsString struct {
-	ValType string
-	Name    string
-	Value   string
+	MType string
+	ID    string
+	Value string
 }
 
 type Metrics struct {
@@ -66,24 +66,40 @@ type Metrics struct {
 	Value *Gauge   `json:"value,omitempty"` // значение метрики в случае передачи gauge
 }
 
-func (m *Metrics) SetMetricsString(ms *MetricsString) error {
-	m.ID = ms.Name
-	m.MType = ms.ValType
-	switch ms.ValType {
+func (m *Metrics) ParseMetricsString(ms *MetricsString) error {
+	m.ID = ms.ID
+	m.MType = ms.MType
+	switch ms.MType {
 	case CounterType:
 		v, err := ParseCounter(ms.Value)
-		m.Delta = &v
 		if err != nil {
 			return err
 		}
+		m.Delta = &v
+		m.Value = nil
 	case GaugeType:
 		v, err := ParseGauge(ms.Value)
-		m.Value = &v
 		if err != nil {
 			return err
 		}
+		m.Value = &v
+		m.Delta = nil
 	}
 	return nil
+}
+
+func (m *Metrics) GetMetricsString() *MetricsString {
+	ms := &MetricsString{
+		ID:    m.ID,
+		MType: m.MType,
+	}
+	switch m.MType {
+	case CounterType:
+		ms.Value = m.Delta.String()
+	case GaugeType:
+		ms.Value = m.Value.String()
+	}
+	return ms
 }
 
 func NewMetricsStorage() MemStorage {
@@ -121,9 +137,9 @@ func (ms *MetricsStorage) Get(valType, name string) (*MetricsString, error) {
 			return nil, errors.New("value not found")
 		}
 		val := &MetricsString{
-			Name:    name,
-			ValType: CounterType,
-			Value:   value.String(),
+			ID:    name,
+			MType: CounterType,
+			Value: value.String(),
 		}
 		return val, nil
 	case GaugeType:
@@ -132,9 +148,9 @@ func (ms *MetricsStorage) Get(valType, name string) (*MetricsString, error) {
 			return nil, errors.New("value not found")
 		}
 		val := &MetricsString{
-			Name:    name,
-			ValType: GaugeType,
-			Value:   value.String(),
+			ID:    name,
+			MType: GaugeType,
+			Value: value.String(),
 		}
 		return val, nil
 	}
