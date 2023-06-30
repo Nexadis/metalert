@@ -21,7 +21,6 @@ type logWrite struct {
 }
 
 func (lw *logWrite) Write(b []byte) (int, error) {
-	lw.WriteHeader(http.StatusOK)
 	body := bytes.NewReader(b)
 	read, err := io.ReadAll(body)
 	lw.rd.body = string(read)
@@ -72,8 +71,8 @@ func WithLogging(h http.Handler) http.Handler {
 			"Status", responseData.status,
 			"Duration", duration,
 			"Size", responseData.size,
-			"Sended Body", responseData.body,
-			"Recieved Body", string(recvBody))
+			"Recieved Body", string(recvBody),
+			"Sended Body", responseData.body)
 	}
 	return http.HandlerFunc(logFunc)
 }
