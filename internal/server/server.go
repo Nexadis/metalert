@@ -130,6 +130,7 @@ func (s *httpServer) UpdateJSONHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *httpServer) ValueJSONHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-type", "application/json")
 	decoder := json.NewDecoder(r.Body)
 	m := &metrx.Metrics{}
 	err := decoder.Decode(m)
@@ -140,7 +141,7 @@ func (s *httpServer) ValueJSONHandler(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 	ms, err := s.storage.Get(m.MType, m.ID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
 	m.ParseMetricsString(ms)
