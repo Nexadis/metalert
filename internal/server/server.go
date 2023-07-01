@@ -39,6 +39,7 @@ func NewServer(addr string) Listener {
 func (s *httpServer) MountHandlers() {
 	router := chi.NewRouter()
 	router.Route("/", func(r chi.Router) {
+		r.Get("/", s.InfoPage)
 		r.Route("/update", func(r chi.Router) {
 			r.Post("/", s.UpdateJSONHandler)
 			r.Post("/{valType}/{name}/{value}", s.UpdateHandler)
@@ -152,4 +153,7 @@ func (s *httpServer) ValueJSONHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+}
+
+func (s *httpServer) InfoPage(w http.ResponseWriter, r *http.Request) {
 }
