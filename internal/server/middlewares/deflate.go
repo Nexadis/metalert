@@ -11,10 +11,6 @@ import (
 
 const StandardCompression = `gzip`
 
-func isGoodContent(contentType string) bool {
-	return strings.Contains(contentType, "text/html") || strings.Contains(contentType, "application/json")
-}
-
 func isEncoded(r *http.Request, algorithm string) bool {
 	contentEncoding := r.Header.Get("Content-Encoding")
 	return strings.Contains(contentEncoding, algorithm)
@@ -22,10 +18,6 @@ func isEncoded(r *http.Request, algorithm string) bool {
 
 func canEncode(r *http.Request, algorithm string) bool {
 	acceptEncoding := r.Header.Get("Accept-Encoding")
-	contentType := r.Header.Get("Content-Type")
-	if !isGoodContent(contentType) {
-		return false
-	}
 	return strings.Contains(acceptEncoding, algorithm)
 }
 
