@@ -49,7 +49,7 @@ func (s *httpServer) MountHandlers() {
 			r.Get("/{valType}/{name}", s.ValueHandler)
 		})
 	})
-	s.router = middlewares.WithLogging(router)
+	s.router = middlewares.WithDeflate(middlewares.WithLogging(router))
 }
 
 func (s *httpServer) UpdateHandler(w http.ResponseWriter, r *http.Request) {
