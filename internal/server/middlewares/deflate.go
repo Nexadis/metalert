@@ -5,6 +5,8 @@ import (
 	"io"
 	"net/http"
 	"strings"
+
+	"github.com/Nexadis/metalert/internal/utils/logger"
 )
 
 const StandardCompression = `gzip`
@@ -22,6 +24,7 @@ func canEncode(r *http.Request, algorithm string) bool {
 func Decompress(r *http.Request) (io.ReadCloser, error) {
 	var reader io.ReadCloser
 	if isEncoded(r, StandardCompression) {
+		logger.Info("Got compressed content")
 		gz, err := gzip.NewReader(r.Body)
 		if err != nil {
 			return nil, err
@@ -45,6 +48,8 @@ func (c *compressWriter) Write(data []byte) (int, error) {
 func Compress(w http.ResponseWriter, r *http.Request) http.ResponseWriter {
 	var writer io.Writer
 	if canEncode(r, StandardCompression) {
+		logger.Info("Send compressed content")
+		w.Header().Set("Content-Encoding", StandardCompression)
 		gz := gzip.NewWriter(w)
 		writer = gz
 	} else {
