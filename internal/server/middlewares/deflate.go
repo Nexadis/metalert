@@ -68,7 +68,6 @@ func WithDeflate(h http.Handler) http.Handler {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		defer reader.Close()
 		r.Body = reader
 		writer := Compress(w, r)
 		h.ServeHTTP(writer, r)
