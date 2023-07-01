@@ -63,12 +63,12 @@ func Compress(w http.ResponseWriter, r *http.Request) http.ResponseWriter {
 
 func WithDeflate(h http.Handler) http.Handler {
 	deflate := func(w http.ResponseWriter, r *http.Request) {
-		defer r.Body.Close()
 		reader, err := Decompress(r)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
+		defer reader.Close()
 		r.Body = reader
 		writer := Compress(w, r)
 		h.ServeHTTP(writer, r)
