@@ -18,7 +18,8 @@ func isEncoded(r *http.Request, algorithm string) bool {
 
 func canEncode(r *http.Request, algorithm string) bool {
 	acceptEncoding := r.Header.Get("Accept-Encoding")
-	return strings.Contains(acceptEncoding, algorithm)
+	encode := strings.Contains(acceptEncoding, algorithm)
+	return encode
 }
 
 func Decompress(r *http.Request) (io.ReadCloser, error) {
@@ -52,6 +53,7 @@ func Compress(w http.ResponseWriter, r *http.Request) http.ResponseWriter {
 		w.Header().Set("Content-Encoding", StandardCompression)
 		gz := gzip.NewWriter(w)
 		writer = gz
+		defer gz.Close()
 	} else {
 		writer = w
 	}
