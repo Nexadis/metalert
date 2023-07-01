@@ -8,6 +8,7 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	"github.com/Nexadis/metalert/internal/metrx"
+	"github.com/Nexadis/metalert/internal/server/middlewares"
 )
 
 type Listener interface {
@@ -48,7 +49,7 @@ func (s *httpServer) MountHandlers() {
 			r.Get("/{valType}/{name}", s.ValueHandler)
 		})
 	})
-	s.router = WithLogging(router)
+	s.router = middlewares.WithLogging(router)
 }
 
 func (s *httpServer) UpdateHandler(w http.ResponseWriter, r *http.Request) {
