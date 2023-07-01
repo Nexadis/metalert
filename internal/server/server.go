@@ -75,6 +75,7 @@ func (s *httpServer) UpdateHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *httpServer) ValueHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-type", "text/plain")
 	valType := chi.URLParam(r, "valType")
 	name := chi.URLParam(r, "name")
 	if name == "" {
@@ -94,6 +95,7 @@ func (s *httpServer) ValueHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *httpServer) ValuesHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-type", "text/plain")
 	values, err := s.storage.Values()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -156,4 +158,6 @@ func (s *httpServer) ValueJSONHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *httpServer) InfoPage(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-type", "text/html")
+	w.Write([]byte("<html><h1>Info page</h1></html>"))
 }
