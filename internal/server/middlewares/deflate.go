@@ -46,24 +46,8 @@ func (c *compressWriter) Write(data []byte) (int, error) {
 	return c.Writer.Write(data)
 }
 
-func Compress(w http.ResponseWriter, r *http.Request) http.ResponseWriter {
-	var writer io.Writer
-	if canEncode(r, StandardCompression) {
-		logger.Info("Send compressed content")
-		w.Header().Set("Content-Encoding", StandardCompression)
-		gz := gzip.NewWriter(w)
-		writer = gz
-		defer gz.Close()
-	} else {
-		writer = w
-	}
-	return &compressWriter{
-		ResponseWriter: w,
-		Writer:         writer,
-	}
-}
-
 func WithDeflate(h http.Handler) http.Handler {
+	var writer io.Writer
 	deflate := func(w http.ResponseWriter, r *http.Request) {
 		reader, err := Decompress(r)
 		if err != nil {
@@ -71,8 +55,20 @@ func WithDeflate(h http.Handler) http.Handler {
 			return
 		}
 		r.Body = reader
-		writer := Compress(w, r)
-		h.ServeHTTP(writer, r)
+		if canEncode(r, StandardCompression) {
+			logger.Info("Send compressed content")
+			w.Header().Set("Content-Encoding", StandardCompression)
+			gz := gzip.NewWriter(w)
+			writer = gz
+			defer gz.Close()
+		} else {
+			writer = w
+		}
+		w = &compressWriter{
+			ResponseWriter: w,
+			Writer:         writer,
+		}
+		h.ServeHTTP(w, r)
 	}
 	return http.HandlerFunc(deflate)
 }
