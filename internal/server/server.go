@@ -13,6 +13,7 @@ import (
 
 	"github.com/Nexadis/metalert/internal/metrx"
 	"github.com/Nexadis/metalert/internal/server/middlewares"
+	"github.com/Nexadis/metalert/internal/utils/logger"
 )
 
 type Listener interface {
@@ -51,7 +52,7 @@ func (s *httpServer) Run() error {
 func NewServer(config *Config) Listener {
 	metricsStorage := metrx.NewMetricsStorage()
 	exit := make(chan os.Signal, 1)
-	signal.Notify(exit, os.Interrupt, syscall.SIGTERM)
+	signal.Notify(exit, os.Interrupt, syscall.SIGTERM|syscall.SIGINT|syscall.SIGQUIT)
 	server := &httpServer{
 		nil,
 		metricsStorage,
@@ -60,7 +61,7 @@ func NewServer(config *Config) Listener {
 	}
 	err := restoreStorage(server)
 	if err != nil {
-		panic(err)
+		logger.Info(err)
 	}
 	return server
 }
