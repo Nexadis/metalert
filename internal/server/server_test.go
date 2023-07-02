@@ -167,10 +167,12 @@ var valuesTests = []testReq{
 
 func testServer() *httpServer {
 	storage := metrx.NewMetricsStorage()
+	config := NewConfig()
 	server := &httpServer{
-		"http://localhost:8080",
 		nil,
 		storage,
+		config,
+		nil,
 	}
 	server.MountHandlers()
 	return server

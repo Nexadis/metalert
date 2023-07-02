@@ -4,6 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 
@@ -17,21 +21,42 @@ type Listener interface {
 }
 
 type httpServer struct {
-	Addr    string
 	router  http.Handler
 	storage metrx.MemStorage
+	config  *Config
+	exit    chan os.Signal
 }
 
 func (s *httpServer) Run() error {
-	return http.ListenAndServe(s.Addr, s.router)
+	go http.ListenAndServe(s.config.Address, s.router)
+	if s.config.StoreInterval <= 0 {
+		s.config.StoreInterval = 1
+	}
+	ticker := time.NewTicker(time.Duration(s.config.StoreInterval) * time.Second)
+	for {
+		select {
+		case <-ticker.C:
+			err := saveStorage(s)
+			if err != nil {
+				return err
+			}
+
+		case <-s.exit:
+			s.Shutdown()
+			return nil
+		}
+	}
 }
 
-func NewServer(addr string) Listener {
+func NewServer(config *Config) Listener {
 	metricsStorage := metrx.NewMetricsStorage()
+	exit := make(chan os.Signal, 1)
+	signal.Notify(exit, os.Interrupt, syscall.SIGTERM)
 	server := &httpServer{
-		addr,
 		nil,
 		metricsStorage,
+		config,
+		exit,
 	}
 	return server
 }
@@ -160,4 +185,8 @@ func (s *httpServer) ValueJSONHandler(w http.ResponseWriter, r *http.Request) {
 func (s *httpServer) InfoPage(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-type", "text/html")
 	w.Write([]byte("<html><h1>Info page</h1></html>"))
+}
+
+func (s *httpServer) Shutdown() {
+	saveStorage(s)
 }
