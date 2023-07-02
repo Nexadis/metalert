@@ -58,6 +58,10 @@ func NewServer(config *Config) Listener {
 		config,
 		exit,
 	}
+	err := restoreStorage(server)
+	if err != nil {
+		panic(err)
+	}
 	return server
 }
 
