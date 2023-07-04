@@ -9,7 +9,7 @@ import (
 	"github.com/Nexadis/metalert/internal/utils/logger"
 )
 
-func (s *MetricsStorage) Save(FileStoragePath string) error {
+func (ms *MetricsStorage) Save(FileStoragePath string) error {
 	fileName := FileStoragePath
 	if fileName == "" {
 		return nil
@@ -20,7 +20,7 @@ func (s *MetricsStorage) Save(FileStoragePath string) error {
 		return err
 	}
 	defer file.Close()
-	metrics, err := s.GetAll()
+	metrics, err := ms.GetAll()
 	if err != nil {
 		return err
 	}
@@ -30,7 +30,7 @@ func (s *MetricsStorage) Save(FileStoragePath string) error {
 	return nil
 }
 
-func (s *MetricsStorage) Restore(FileStoragePath string, Restore bool) error {
+func (ms *MetricsStorage) Restore(FileStoragePath string, Restore bool) error {
 	fileName := FileStoragePath
 	if fileName == "" {
 		return nil
@@ -51,7 +51,7 @@ func (s *MetricsStorage) Restore(FileStoragePath string, Restore bool) error {
 		return err
 	}
 	for _, m := range metrics {
-		err = s.Set(m.MType, m.ID, m.Value)
+		err = ms.Set(m.MType, m.ID, m.Value)
 		if err != nil {
 			return err
 		}
@@ -59,14 +59,14 @@ func (s *MetricsStorage) Restore(FileStoragePath string, Restore bool) error {
 	return nil
 }
 
-func (s *MetricsStorage) SaveTimer(FileStoragePath string, interval int64) {
+func (ms *MetricsStorage) SaveTimer(FileStoragePath string, interval int64) {
 	if interval <= 0 {
 		interval = 1
 	}
 	ticker := time.NewTicker(time.Duration(interval) * time.Second)
 	for {
 		<-ticker.C
-		err := s.Save(FileStoragePath)
+		err := ms.Save(FileStoragePath)
 		if err != nil {
 			logger.Info("Can't save storage")
 		}
