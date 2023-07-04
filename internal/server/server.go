@@ -38,7 +38,7 @@ func (s *httpServer) Run() error {
 	for {
 		select {
 		case <-ticker.C:
-			err := saveStorage(s)
+			err := s.storage.SaveStorage(s.config.FileStoragePath)
 			if err != nil {
 				return err
 			}
@@ -60,7 +60,7 @@ func NewServer(config *Config) Listener {
 		config,
 		exit,
 	}
-	err := restoreStorage(server)
+	err := server.storage.RestoreStorage(server.config.FileStoragePath, server.config.Restore)
 	if err != nil {
 		logger.Info(err)
 	}
@@ -194,5 +194,5 @@ func (s *httpServer) InfoPage(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *httpServer) Shutdown() {
-	saveStorage(s)
+	s.storage.SaveStorage(s.config.FileStoragePath)
 }

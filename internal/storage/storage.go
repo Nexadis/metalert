@@ -7,24 +7,30 @@ import (
 	"github.com/Nexadis/metalert/internal/metrx"
 )
 
-type Object interface {
+type ObjectGetter interface {
 	GetMType() string
 	GetID() string
 	GetValue() string
 }
 
 type Getter interface {
-	Get(valType, name string) (Object, error)
-	GetAll() ([]Object, error)
+	Get(valType, name string) (ObjectGetter, error)
+	GetAll() ([]ObjectGetter, error)
 }
 
 type Setter interface {
 	Set(valType, name, value string) error
 }
 
+type StateSaver interface {
+	RestoreStorage(FileStoragePath string, Restore bool) error
+	SaveStorage(FileStoragePath string) error
+}
+
 type MemStorage interface {
 	Getter
 	Setter
+	StateSaver
 }
 
 type MetricsStorage struct {
@@ -59,7 +65,7 @@ func (ms *MetricsStorage) Set(valType, name, value string) error {
 	return errors.New("invalid type")
 }
 
-func (ms *MetricsStorage) Get(valType, name string) (Object, error) {
+func (ms *MetricsStorage) Get(valType, name string) (ObjectGetter, error) {
 	switch strings.ToLower(valType) {
 	case metrx.CounterType:
 		value, ok := ms.Counters[name]
@@ -88,8 +94,8 @@ func (ms *MetricsStorage) Get(valType, name string) (Object, error) {
 	return nil, errors.New("invalid type")
 }
 
-func (ms *MetricsStorage) GetAll() ([]Object, error) {
-	m := make([]Object, 0, len(ms.Gauges)+len(ms.Counters))
+func (ms *MetricsStorage) GetAll() ([]ObjectGetter, error) {
+	m := make([]ObjectGetter, 0, len(ms.Gauges)+len(ms.Counters))
 	for name, value := range ms.Gauges {
 		val := value.String()
 		m = append(m, &metrx.MetricsString{
