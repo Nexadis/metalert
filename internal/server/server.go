@@ -126,7 +126,7 @@ func (s *httpServer) ValueHandler(w http.ResponseWriter, r *http.Request) {
 
 func (s *httpServer) ValuesHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-type", "text/plain")
-	values, err := s.storage.Values()
+	values, err := s.storage.GetAll()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

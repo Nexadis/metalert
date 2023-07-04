@@ -8,7 +8,7 @@ import (
 
 type MetricsGetter interface {
 	Get(valType, name string) (*MetricsString, error)
-	Values() ([]*MetricsString, error)
+	GetAll() ([]*MetricsString, error)
 }
 
 type MetricsSetter interface {
@@ -166,7 +166,7 @@ func (ms *MetricsStorage) Get(valType, name string) (*MetricsString, error) {
 	return nil, errors.New("invalid type")
 }
 
-func (ms *MetricsStorage) Values() ([]*MetricsString, error) {
+func (ms *MetricsStorage) GetAll() ([]*MetricsString, error) {
 	m := make([]*MetricsString, 0, len(ms.Gauges)+len(ms.Counters))
 	for name, value := range ms.Gauges {
 		val := value.String()

@@ -113,7 +113,7 @@ func (ha *httpAgent) Pull() error {
 }
 
 func (ha *httpAgent) Report() error {
-	values, err := ha.storage.Values()
+	values, err := ha.storage.GetAll()
 	m := &metrx.Metrics{}
 	if err != nil {
 		return err

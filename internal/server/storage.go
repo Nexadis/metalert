@@ -19,7 +19,7 @@ func saveStorage(s *httpServer) error {
 		return err
 	}
 	defer file.Close()
-	metrics, err := s.storage.Values()
+	metrics, err := s.storage.GetAll()
 	if err != nil {
 		return err
 	}
