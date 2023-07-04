@@ -3,12 +3,13 @@ package storage
 import (
 	"encoding/json"
 	"os"
+	"time"
 
 	"github.com/Nexadis/metalert/internal/metrx"
 	"github.com/Nexadis/metalert/internal/utils/logger"
 )
 
-func (s *MetricsStorage) SaveStorage(FileStoragePath string) error {
+func (s *MetricsStorage) Save(FileStoragePath string) error {
 	fileName := FileStoragePath
 	if fileName == "" {
 		return nil
@@ -29,7 +30,7 @@ func (s *MetricsStorage) SaveStorage(FileStoragePath string) error {
 	return nil
 }
 
-func (s *MetricsStorage) RestoreStorage(FileStoragePath string, Restore bool) error {
+func (s *MetricsStorage) Restore(FileStoragePath string, Restore bool) error {
 	fileName := FileStoragePath
 	if fileName == "" {
 		return nil
@@ -56,4 +57,18 @@ func (s *MetricsStorage) RestoreStorage(FileStoragePath string, Restore bool) er
 		}
 	}
 	return nil
+}
+
+func (s *MetricsStorage) SaveTimer(FileStoragePath string, interval int64) {
+	if interval <= 0 {
+		interval = 1
+	}
+	ticker := time.NewTicker(time.Duration(interval) * time.Second)
+	for {
+		<-ticker.C
+		err := s.Save(FileStoragePath)
+		if err != nil {
+			logger.Info("Can't save storage")
+		}
+	}
 }

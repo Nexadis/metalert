@@ -23,8 +23,9 @@ type Setter interface {
 }
 
 type StateSaver interface {
-	RestoreStorage(FileStoragePath string, Restore bool) error
-	SaveStorage(FileStoragePath string) error
+	Restore(FileStoragePath string, Restore bool) error
+	Save(FileStoragePath string) error
+	SaveTimer(FileStoragePath string, interval int64)
 }
 
 type MemStorage interface {
