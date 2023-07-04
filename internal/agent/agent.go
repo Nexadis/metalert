@@ -9,6 +9,7 @@ import (
 
 	"github.com/Nexadis/metalert/internal/agent/client"
 	"github.com/Nexadis/metalert/internal/metrx"
+	"github.com/Nexadis/metalert/internal/storage"
 	"github.com/Nexadis/metalert/internal/utils/logger"
 )
 
@@ -29,13 +30,13 @@ type httpAgent struct {
 	listener       string
 	pullInterval   int64
 	reportInterval int64
-	storage        metrx.MemStorage
+	storage        storage.MemStorage
 	client         client.MetricPoster
 }
 
 func NewAgent(listener string, pullInterval, reportInterval int64) Watcher {
 	defineRuntimes()
-	storage := metrx.NewMetricsStorage()
+	storage := storage.NewMetricsStorage()
 	client := client.NewHTTP()
 	return &httpAgent{
 		listener:       listener,
@@ -121,18 +122,18 @@ func (ha *httpAgent) Report() error {
 	path := fmt.Sprintf("http://%s%s", ha.listener, UpdateURL)
 	pathJSON := fmt.Sprintf("http://%s%s", ha.listener, JSONUpdateURL)
 	for _, ms := range values {
-		err := ha.client.Post(path, ms.MType, ms.ID, ms.Value)
+		err := ha.client.Post(path, ms.GetMType(), ms.GetID(), ms.GetValue())
 		if err != nil {
 			logger.Error("Can't report metrics")
 			break
 		}
-		m.ParseMetricsString(ms)
+		m.ParseMetricsString(ms.(*metrx.MetricsString))
 		err = ha.client.PostJSON(pathJSON, m)
 		if err != nil {
 			logger.Error("Can't report metrics", err)
 			break
 		}
-		logger.Info("Metric", ms.ID)
+		logger.Info("Metric", ms.GetID())
 	}
 	return nil
 }

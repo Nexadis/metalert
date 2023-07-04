@@ -13,6 +13,7 @@ import (
 
 	"github.com/Nexadis/metalert/internal/metrx"
 	"github.com/Nexadis/metalert/internal/server/middlewares"
+	"github.com/Nexadis/metalert/internal/storage"
 	"github.com/Nexadis/metalert/internal/utils/logger"
 )
 
@@ -23,7 +24,7 @@ type Listener interface {
 
 type httpServer struct {
 	router  http.Handler
-	storage metrx.MemStorage
+	storage storage.MemStorage
 	config  *Config
 	exit    chan os.Signal
 }
@@ -50,7 +51,7 @@ func (s *httpServer) Run() error {
 }
 
 func NewServer(config *Config) Listener {
-	metricsStorage := metrx.NewMetricsStorage()
+	metricsStorage := storage.NewMetricsStorage()
 	exit := make(chan os.Signal, 1)
 	signal.Notify(exit, os.Interrupt, syscall.SIGTERM|syscall.SIGINT|syscall.SIGQUIT)
 	server := &httpServer{
@@ -117,7 +118,7 @@ func (s *httpServer) ValueHandler(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	_, err = w.Write([]byte(m.Value))
+	_, err = w.Write([]byte(m.GetValue()))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -133,7 +134,7 @@ func (s *httpServer) ValuesHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	var answer string
 	for _, metric := range values {
-		answer = answer + fmt.Sprintf("%s=%s\n", metric.ID, metric.Value)
+		answer = answer + fmt.Sprintf("%s=%s\n", metric.GetID(), metric.GetValue())
 	}
 	_, err = w.Write([]byte(answer))
 	if err != nil {
@@ -178,7 +179,7 @@ func (s *httpServer) ValueJSONHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
-	m.ParseMetricsString(ms)
+	m.ParseMetricsString(ms.(*metrx.MetricsString))
 	encoder := json.NewEncoder(w)
 	err = encoder.Encode(m)
 	if err != nil {

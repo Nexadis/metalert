@@ -4,13 +4,15 @@ import (
 	"testing"
 
 	"github.com/Nexadis/metalert/internal/metrx"
+	"github.com/Nexadis/metalert/internal/storage"
 	"github.com/stretchr/testify/assert"
 )
 
 var endpoint = "http://localhost:8080"
 
 func TestPull(t *testing.T) {
-	storage := metrx.NewMetricsStorage()
+	defineRuntimes()
+	storage := storage.NewMetricsStorage()
 	ha := &httpAgent{
 		listener:       endpoint,
 		pullInterval:   0,
@@ -20,7 +22,7 @@ func TestPull(t *testing.T) {
 	}
 	err := ha.Pull()
 	if err != nil {
-		panic(err)
+		t.Error(err)
 	}
 	type want struct {
 		name    string
@@ -106,7 +108,7 @@ func TestPull(t *testing.T) {
 			value, err := ha.storage.Get(test.want.valType, test.want.name)
 			assert.ErrorIs(t, nil, err)
 			assert.NotEmpty(t, value)
-			assert.Equal(t, test.want.value, value.Value)
+			assert.Equal(t, test.want.value, value.GetValue())
 		})
 	}
 }
@@ -200,7 +202,7 @@ func TestReport(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			testClient := &testClient{}
-			storage := metrx.NewMetricsStorage()
+			storage := storage.NewMetricsStorage()
 			ha := &httpAgent{
 				listener:       endpoint,
 				pullInterval:   0,
