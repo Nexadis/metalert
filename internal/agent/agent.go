@@ -25,17 +25,6 @@ const (
 
 var RuntimeNames []string
 
-func init() {
-	m := &runtime.MemStats{}
-	runtime.ReadMemStats(m)
-	mstruct := reflect.ValueOf(*m)
-	RuntimeNames = make([]string, 0, mstruct.NumField())
-	for i := 0; i < mstruct.NumField(); i++ {
-		value := mstruct.Type().Field(i).Name
-		RuntimeNames = append(RuntimeNames, value)
-	}
-}
-
 type httpAgent struct {
 	listener       string
 	pullInterval   int64
@@ -45,6 +34,7 @@ type httpAgent struct {
 }
 
 func NewAgent(listener string, pullInterval, reportInterval int64) Watcher {
+	defineRuntimes()
 	storage := metrx.NewMetricsStorage()
 	client := client.NewHTTP()
 	return &httpAgent{
@@ -145,4 +135,18 @@ func (ha *httpAgent) Report() error {
 		logger.Info("Metric", ms.ID)
 	}
 	return nil
+}
+
+func defineRuntimes() {
+	if RuntimeNames != nil {
+		return
+	}
+	m := &runtime.MemStats{}
+	runtime.ReadMemStats(m)
+	mstruct := reflect.ValueOf(*m)
+	RuntimeNames = make([]string, 0, mstruct.NumField())
+	for i := 0; i < mstruct.NumField(); i++ {
+		value := mstruct.Type().Field(i).Name
+		RuntimeNames = append(RuntimeNames, value)
+	}
 }
