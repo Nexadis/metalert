@@ -9,6 +9,7 @@ import (
 
 	"github.com/Nexadis/metalert/internal/agent/client"
 	"github.com/Nexadis/metalert/internal/metrx"
+	"github.com/Nexadis/metalert/internal/storage"
 	"github.com/Nexadis/metalert/internal/utils/logger"
 )
 
@@ -25,27 +26,17 @@ const (
 
 var RuntimeNames []string
 
-func init() {
-	m := &runtime.MemStats{}
-	runtime.ReadMemStats(m)
-	mstruct := reflect.ValueOf(*m)
-	RuntimeNames = make([]string, 0, mstruct.NumField())
-	for i := 0; i < mstruct.NumField(); i++ {
-		value := mstruct.Type().Field(i).Name
-		RuntimeNames = append(RuntimeNames, value)
-	}
-}
-
 type httpAgent struct {
 	listener       string
 	pullInterval   int64
 	reportInterval int64
-	storage        metrx.MemStorage
+	storage        storage.MemStorage
 	client         client.MetricPoster
 }
 
 func NewAgent(listener string, pullInterval, reportInterval int64) Watcher {
-	storage := metrx.NewMetricsStorage()
+	defineRuntimes()
+	storage := storage.NewMetricsStorage()
 	client := client.NewHTTP()
 	return &httpAgent{
 		listener:       listener,
@@ -123,7 +114,7 @@ func (ha *httpAgent) Pull() error {
 }
 
 func (ha *httpAgent) Report() error {
-	values, err := ha.storage.Values()
+	values, err := ha.storage.GetAll()
 	m := &metrx.Metrics{}
 	if err != nil {
 		return err
@@ -131,18 +122,32 @@ func (ha *httpAgent) Report() error {
 	path := fmt.Sprintf("http://%s%s", ha.listener, UpdateURL)
 	pathJSON := fmt.Sprintf("http://%s%s", ha.listener, JSONUpdateURL)
 	for _, ms := range values {
-		err := ha.client.Post(path, ms.MType, ms.ID, ms.Value)
+		err := ha.client.Post(path, ms.GetMType(), ms.GetID(), ms.GetValue())
 		if err != nil {
 			logger.Error("Can't report metrics")
 			break
 		}
-		m.ParseMetricsString(ms)
+		m.ParseMetricsString(ms.(*metrx.MetricsString))
 		err = ha.client.PostJSON(pathJSON, m)
 		if err != nil {
 			logger.Error("Can't report metrics", err)
 			break
 		}
-		logger.Info("Metric", ms.ID)
+		logger.Info("Metric", ms.GetID())
 	}
 	return nil
+}
+
+func defineRuntimes() {
+	if RuntimeNames != nil {
+		return
+	}
+	m := &runtime.MemStats{}
+	runtime.ReadMemStats(m)
+	mstruct := reflect.ValueOf(*m)
+	RuntimeNames = make([]string, 0, mstruct.NumField())
+	for i := 0; i < mstruct.NumField(); i++ {
+		value := mstruct.Type().Field(i).Name
+		RuntimeNames = append(RuntimeNames, value)
+	}
 }

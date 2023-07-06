@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/Nexadis/metalert/internal/metrx"
+	"github.com/Nexadis/metalert/internal/storage"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -166,11 +167,13 @@ var valuesTests = []testReq{
 }
 
 func testServer() *httpServer {
-	storage := metrx.NewMetricsStorage()
+	storage := storage.NewMetricsStorage()
+	config := NewConfig()
 	server := &httpServer{
-		"http://localhost:8080",
 		nil,
 		storage,
+		config,
+		nil,
 	}
 	server.MountHandlers()
 	return server
@@ -188,7 +191,7 @@ func TestUpdateHandlerURL(t *testing.T) {
 			assert.Equal(t, result.StatusCode, test.want.statusCode)
 			defer result.Body.Close()
 			getted, _ := server.storage.Get(test.want.valType, test.want.name)
-			assert.Equal(t, getted.Value, test.want.value)
+			assert.Equal(t, getted.GetValue(), test.want.value)
 		})
 	}
 }
@@ -433,7 +436,7 @@ func TestUpdateHandlerJSON(t *testing.T) {
 			defer result.Body.Close()
 			if result.StatusCode == http.StatusOK {
 				getted, _ := server.storage.Get(test.want.valType, test.want.name)
-				assert.Equal(t, getted.Value, test.want.value)
+				assert.Equal(t, getted.GetValue(), test.want.value)
 			}
 		})
 	}
