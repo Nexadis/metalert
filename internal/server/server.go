@@ -8,6 +8,7 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	"github.com/Nexadis/metalert/internal/metrx"
+	"github.com/Nexadis/metalert/internal/server/middlewares"
 )
 
 type Listener interface {
@@ -38,6 +39,7 @@ func NewServer(addr string) Listener {
 func (s *httpServer) MountHandlers() {
 	router := chi.NewRouter()
 	router.Route("/", func(r chi.Router) {
+		r.Get("/", s.InfoPage)
 		r.Route("/update", func(r chi.Router) {
 			r.Post("/", s.UpdateJSONHandler)
 			r.Post("/{valType}/{name}/{value}", s.UpdateHandler)
@@ -48,7 +50,7 @@ func (s *httpServer) MountHandlers() {
 			r.Get("/{valType}/{name}", s.ValueHandler)
 		})
 	})
-	s.router = WithLogging(router)
+	s.router = middlewares.WithDeflate(middlewares.WithLogging(router))
 }
 
 func (s *httpServer) UpdateHandler(w http.ResponseWriter, r *http.Request) {
@@ -73,6 +75,7 @@ func (s *httpServer) UpdateHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *httpServer) ValueHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-type", "text/plain")
 	valType := chi.URLParam(r, "valType")
 	name := chi.URLParam(r, "name")
 	if name == "" {
@@ -92,6 +95,7 @@ func (s *httpServer) ValueHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *httpServer) ValuesHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-type", "text/plain")
 	values, err := s.storage.Values()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -151,4 +155,9 @@ func (s *httpServer) ValueJSONHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+}
+
+func (s *httpServer) InfoPage(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-type", "text/html")
+	w.Write([]byte("<html><h1>Info page</h1></html>"))
 }

@@ -23,6 +23,7 @@ func NewHTTP() MetricPoster {
 func (c *httpClient) Post(path, valType, name, value string) error {
 	_, err := c.client.R().
 		SetHeader("Content-type", "text/plain").
+		SetHeader("Accept-Encoding", "gzip").
 		SetPathParams(map[string]string{
 			"valType": valType,
 			"name":    name,
@@ -35,6 +36,7 @@ func (c *httpClient) Post(path, valType, name, value string) error {
 func (c *httpClient) PostJSON(path string, m *metrx.Metrics) error {
 	_, err := c.client.R().
 		SetHeader("Content-type", "application/json").
+		SetHeader("Accept-Encoding", "gzip").
 		SetBody(*m).
 		Post(path)
 	return err
