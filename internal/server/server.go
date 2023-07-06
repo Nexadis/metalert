@@ -16,7 +16,7 @@ type Listener interface {
 
 type httpServer struct {
 	Addr    string
-	router  *chi.Mux
+	router  http.Handler
 	storage metrx.MemStorage
 }
 
@@ -35,7 +35,6 @@ func NewServer(addr string) Listener {
 }
 
 func (s *httpServer) MountHandlers() {
-
 	router := chi.NewRouter()
 	router.Route("/", func(r chi.Router) {
 		r.Post("/update/{valType}/{name}/{value}", s.UpdateHandler)
@@ -44,7 +43,7 @@ func (s *httpServer) MountHandlers() {
 			r.Get("/{valType}/{name}", s.ValueHandler)
 		})
 	})
-	s.router = router
+	s.router = WithLogging(router)
 }
 
 func (s *httpServer) UpdateHandler(w http.ResponseWriter, r *http.Request) {
@@ -66,7 +65,6 @@ func (s *httpServer) UpdateHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-
 }
 
 func (s *httpServer) ValueHandler(w http.ResponseWriter, r *http.Request) {

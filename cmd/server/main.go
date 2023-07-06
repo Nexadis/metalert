@@ -10,10 +10,9 @@ func main() {
 	config.ParseConfig()
 	server := server.NewServer(config.MainConfig.Address)
 	server.MountHandlers()
-	logger.Info("Start server on %s", config.MainConfig.Address)
+	logger.Info("Server", config.MainConfig.Address)
 	err := server.Run()
 	if err != nil {
 		panic(err)
 	}
-
 }

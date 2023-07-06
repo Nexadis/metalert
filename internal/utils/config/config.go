@@ -20,7 +20,7 @@ func parseCmd() {
 	flag.StringVar(&MainConfig.Address, "a", "localhost:8080", "Server for metrics")
 	flag.Int64Var(&MainConfig.PollInterval, "p", 2, "Poll Interval")
 	flag.Int64Var(&MainConfig.ReportInterval, "r", 10, "Report Interval")
-	logger.Debug("Get values from flags:\n%s=%s\n%s=%d\n%s=%d\n",
+	logger.Info("Parse command flags:",
 		"Address", MainConfig.Address,
 		"ReportInterval", MainConfig.ReportInterval,
 		"PollInterval", MainConfig.PollInterval)
@@ -29,7 +29,7 @@ func parseCmd() {
 
 func parseEnv() {
 	err := env.Parse(&MainConfig)
-	logger.Debug("Get values from env:\n%s=%s\n%s=%d\n%s=%d\n",
+	logger.Info("Parse environment:",
 		"Address", MainConfig.Address,
 		"ReportInterval", MainConfig.ReportInterval,
 		"PollInterval", MainConfig.PollInterval)
