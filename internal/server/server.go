@@ -1,6 +1,7 @@
 package server
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 
@@ -37,9 +38,13 @@ func NewServer(addr string) Listener {
 func (s *httpServer) MountHandlers() {
 	router := chi.NewRouter()
 	router.Route("/", func(r chi.Router) {
-		r.Post("/update/{valType}/{name}/{value}", s.UpdateHandler)
+		r.Route("/update", func(r chi.Router) {
+			r.Post("/", s.UpdateJSONHandler)
+			r.Post("/{valType}/{name}/{value}", s.UpdateHandler)
+		})
 		r.Route("/value", func(r chi.Router) {
 			r.Get("/", s.ValuesHandler)
+			r.Post("/", s.ValueJSONHandler)
 			r.Get("/{valType}/{name}", s.ValueHandler)
 		})
 	})
@@ -74,12 +79,12 @@ func (s *httpServer) ValueHandler(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	value, err := s.storage.Get(valType, name)
+	m, err := s.storage.Get(valType, name)
 	if err != nil {
 		http.NotFound(w, r)
 		return
 	}
-	_, err = w.Write([]byte(value))
+	_, err = w.Write([]byte(m.Value))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -94,9 +99,54 @@ func (s *httpServer) ValuesHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	var answer string
 	for _, metric := range values {
-		answer = answer + fmt.Sprintf("%s=%s\n", metric.Name, metric.Value)
+		answer = answer + fmt.Sprintf("%s=%s\n", metric.ID, metric.Value)
 	}
 	_, err = w.Write([]byte(answer))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+}
+
+func (s *httpServer) UpdateJSONHandler(w http.ResponseWriter, r *http.Request) {
+	decoder := json.NewDecoder(r.Body)
+	m := &metrx.Metrics{}
+	err := decoder.Decode(m)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	defer r.Body.Close()
+	ms, err := m.GetMetricsString()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	err = s.storage.Set(ms.MType, ms.ID, ms.Value)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+}
+
+func (s *httpServer) ValueJSONHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-type", "application/json")
+	decoder := json.NewDecoder(r.Body)
+	m := &metrx.Metrics{}
+	err := decoder.Decode(m)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	defer r.Body.Close()
+	ms, err := s.storage.Get(m.MType, m.ID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+	m.ParseMetricsString(ms)
+	encoder := json.NewEncoder(w)
+	err = encoder.Encode(m)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

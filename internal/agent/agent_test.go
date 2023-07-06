@@ -78,7 +78,8 @@ func TestPull(t *testing.T) {
 				valType: metrx.GaugeType,
 				value:   "0",
 			},
-		}}
+		},
+	}
 
 	testsCounter := []struct {
 		name string
@@ -105,10 +106,9 @@ func TestPull(t *testing.T) {
 			value, err := ha.storage.Get(test.want.valType, test.want.name)
 			assert.ErrorIs(t, nil, err)
 			assert.NotEmpty(t, value)
-			assert.Equal(t, test.want.value, value)
+			assert.Equal(t, test.want.value, value.Value)
 		})
 	}
-
 }
 
 type testClient struct {
@@ -126,8 +126,11 @@ func (c *testClient) Post(path, valType, name, value string) error {
 	return nil
 }
 
-func TestReport(t *testing.T) {
+func (c *testClient) PostJSON(path string, m *metrx.Metrics) error {
+	return nil
+}
 
+func TestReport(t *testing.T) {
 	type want struct {
 		name    string
 		valType string
@@ -214,5 +217,4 @@ func TestReport(t *testing.T) {
 			assert.Equal(t, test.want.value, testClient.value)
 		})
 	}
-
 }

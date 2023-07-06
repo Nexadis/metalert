@@ -5,7 +5,6 @@ import (
 	"math/rand"
 	"reflect"
 	"runtime"
-	"strconv"
 	"time"
 
 	"github.com/Nexadis/metalert/internal/agent/client"
@@ -19,7 +18,23 @@ type Watcher interface {
 	Report() error
 }
 
-const UpdateURL = "/update/{valType}/{name}/{value}"
+const (
+	UpdateURL     = "/update/{valType}/{name}/{value}"
+	JSONUpdateURL = "/update/"
+)
+
+var RuntimeNames []string
+
+func init() {
+	m := &runtime.MemStats{}
+	runtime.ReadMemStats(m)
+	mstruct := reflect.ValueOf(*m)
+	RuntimeNames = make([]string, 0, mstruct.NumField())
+	for i := 0; i < mstruct.NumField(); i++ {
+		value := mstruct.Type().Field(i).Name
+		RuntimeNames = append(RuntimeNames, value)
+	}
+}
 
 type httpAgent struct {
 	listener       string
@@ -61,7 +76,7 @@ func (ha *httpAgent) Run() error {
 }
 
 func (ha *httpAgent) pullCustom() error {
-	randValue := strconv.FormatFloat(rand.Float64(), 'f', -1, 64)
+	randValue := metrx.Gauge(rand.Float64()).String()
 	err := ha.storage.Set(metrx.GaugeType, "RandomValue", randValue)
 	if err != nil {
 		return err
@@ -78,15 +93,15 @@ func (ha *httpAgent) pullRuntime() error {
 	m := &runtime.MemStats{}
 	runtime.ReadMemStats(m)
 	mstruct := reflect.ValueOf(*m)
-	for i := 0; i < mstruct.NumField(); i++ {
-		value := mstruct.Field(i)
+	for _, gaugeName := range RuntimeNames {
+		value := mstruct.FieldByName(gaugeName)
 		switch value.Kind() {
-		case reflect.Uint32, reflect.Uint64:
-			val = strconv.FormatUint(value.Uint(), 10)
 		case reflect.Float64:
-			val = strconv.FormatFloat(value.Float(), 'f', -1, 64)
+			val = metrx.Gauge(value.Float()).String()
+		case reflect.Uint32, reflect.Uint64:
+			val = metrx.Gauge(value.Uint()).String()
 		}
-		err := ha.storage.Set(metrx.GaugeType, mstruct.Type().Field(i).Name, val)
+		err := ha.storage.Set(metrx.GaugeType, gaugeName, val)
 		if err != nil {
 			return err
 		}
@@ -109,17 +124,25 @@ func (ha *httpAgent) Pull() error {
 
 func (ha *httpAgent) Report() error {
 	values, err := ha.storage.Values()
+	m := &metrx.Metrics{}
 	if err != nil {
 		return err
 	}
 	path := fmt.Sprintf("http://%s%s", ha.listener, UpdateURL)
-	for _, m := range values {
-		err := ha.client.Post(path, m.ValType, m.Name, m.Value)
+	pathJSON := fmt.Sprintf("http://%s%s", ha.listener, JSONUpdateURL)
+	for _, ms := range values {
+		err := ha.client.Post(path, ms.MType, ms.ID, ms.Value)
 		if err != nil {
 			logger.Error("Can't report metrics")
 			break
 		}
-		logger.Info("Metric", m.Name)
+		m.ParseMetricsString(ms)
+		err = ha.client.PostJSON(pathJSON, m)
+		if err != nil {
+			logger.Error("Can't report metrics", err)
+			break
+		}
+		logger.Info("Metric", ms.ID)
 	}
 	return nil
 }

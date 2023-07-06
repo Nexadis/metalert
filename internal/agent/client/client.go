@@ -1,9 +1,13 @@
 package client
 
-import "github.com/go-resty/resty/v2"
+import (
+	"github.com/Nexadis/metalert/internal/metrx"
+	"github.com/go-resty/resty/v2"
+)
 
 type MetricPoster interface {
 	Post(path, valType, name, value string) error
+	PostJSON(path string, m *metrx.Metrics) error
 }
 
 type httpClient struct {
@@ -24,6 +28,14 @@ func (c *httpClient) Post(path, valType, name, value string) error {
 			"name":    name,
 			"value":   value,
 		}).
+		Post(path)
+	return err
+}
+
+func (c *httpClient) PostJSON(path string, m *metrx.Metrics) error {
+	_, err := c.client.R().
+		SetHeader("Content-type", "application/json").
+		SetBody(*m).
 		Post(path)
 	return err
 }

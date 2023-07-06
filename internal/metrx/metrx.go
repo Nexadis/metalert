@@ -7,8 +7,8 @@ import (
 )
 
 type MetricsGetter interface {
-	Get(valType, name string) (string, error)
-	Values() ([]Metrica, error)
+	Get(valType, name string) (*MetricsString, error)
+	Values() ([]*MetricsString, error)
 }
 
 type MetricsSetter interface {
@@ -20,84 +20,165 @@ type MemStorage interface {
 	MetricsSetter
 }
 
-type Gauge float64
-type Counter int64
+type (
+	Gauge   float64
+	Counter int64
+)
 
-const GaugeType = `gauge`
-const CounterType = `counter`
+const (
+	GaugeType   = `gauge`
+	CounterType = `counter`
+)
 
-type Metrics struct {
+var ErrorMetrics = errors.New("invalid metrics")
+
+func (g Gauge) String() string {
+	return strconv.FormatFloat(float64(g), 'f', -1, 64)
+}
+
+func (c Counter) String() string {
+	return strconv.FormatInt(int64(c), 10)
+}
+
+func ParseCounter(value string) (Counter, error) {
+	val, err := strconv.Atoi(value)
+	return Counter(val), err
+}
+
+func ParseGauge(value string) (Gauge, error) {
+	val, err := strconv.ParseFloat(value, 64)
+	return Gauge(val), err
+}
+
+type MetricsStorage struct {
 	Gauges   map[string]Gauge
 	Counters map[string]Counter
 }
 
-type Metrica struct {
-	ValType string
-	Name    string
-	Value   string
+type MetricsString struct {
+	MType string
+	ID    string
+	Value string
+}
+
+type Metrics struct {
+	ID    string   `json:"id"`              // имя метрики
+	MType string   `json:"type"`            // параметр, принимающий значение gauge или counter
+	Delta *Counter `json:"delta,omitempty"` // значение метрики в случае передачи counter
+	Value *Gauge   `json:"value,omitempty"` // значение метрики в случае передачи gauge
+}
+
+func (m *Metrics) ParseMetricsString(ms *MetricsString) error {
+	m.ID = ms.ID
+	m.MType = ms.MType
+	switch ms.MType {
+	case CounterType:
+		v, err := ParseCounter(ms.Value)
+		if err != nil {
+			return err
+		}
+		m.Delta = &v
+		m.Value = nil
+	case GaugeType:
+		v, err := ParseGauge(ms.Value)
+		if err != nil {
+			return err
+		}
+		m.Value = &v
+		m.Delta = nil
+	}
+	return nil
+}
+
+func (m *Metrics) GetMetricsString() (*MetricsString, error) {
+	ms := &MetricsString{
+		ID:    m.ID,
+		MType: m.MType,
+	}
+	switch m.MType {
+	case CounterType:
+		if m.Delta == nil {
+			return nil, ErrorMetrics
+		}
+		ms.Value = m.Delta.String()
+	case GaugeType:
+		if m.Value == nil {
+			return nil, ErrorMetrics
+		}
+		ms.Value = m.Value.String()
+	}
+	return ms, nil
 }
 
 func NewMetricsStorage() MemStorage {
-	ms := new(Metrics)
+	ms := new(MetricsStorage)
 	ms.Gauges = make(map[string]Gauge)
 	ms.Counters = make(map[string]Counter)
 	return ms
 }
 
-func (ms *Metrics) Set(valType, name, value string) error {
-	switch {
-	case strings.Compare(valType, CounterType) == 0:
-		val, err := strconv.Atoi(value)
+func (ms *MetricsStorage) Set(valType, name, value string) error {
+	switch strings.ToLower(valType) {
+	case CounterType:
+		val, err := ParseCounter(value)
 		if err != nil {
 			return err
 		}
-		ms.Counters[name] += Counter(val)
+		ms.Counters[name] += val
 		return nil
-	case strings.Compare(valType, GaugeType) == 0:
-		val, err := strconv.ParseFloat(value, 64)
+	case GaugeType:
+		val, err := ParseGauge(value)
 		if err != nil {
 			return err
 		}
-		ms.Gauges[name] = Gauge(val)
+		ms.Gauges[name] = val
 		return nil
 	}
 	return errors.New("invalid type")
 }
 
-func (ms *Metrics) Get(valType, name string) (string, error) {
+func (ms *MetricsStorage) Get(valType, name string) (*MetricsString, error) {
 	switch strings.ToLower(valType) {
 	case CounterType:
 		value, ok := ms.Counters[name]
 		if !ok {
-			return "", errors.New("value not found")
+			return nil, errors.New("value not found")
 		}
-		val := strconv.FormatInt(int64(value), 10)
+		val := &MetricsString{
+			ID:    name,
+			MType: CounterType,
+			Value: value.String(),
+		}
 		return val, nil
 	case GaugeType:
 		value, ok := ms.Gauges[name]
 		if !ok {
-			return "", errors.New("value not found")
+			return nil, errors.New("value not found")
 		}
-		val := strconv.FormatFloat(float64(value), 'f', -1, 64)
+		val := &MetricsString{
+			ID:    name,
+			MType: GaugeType,
+			Value: value.String(),
+		}
 		return val, nil
 	}
 
-	return "", errors.New("invalid type")
+	return nil, errors.New("invalid type")
 }
 
-func (ms *Metrics) Values() ([]Metrica, error) {
-	m := make([]Metrica, 0, len(ms.Gauges)+len(ms.Counters))
+func (ms *MetricsStorage) Values() ([]*MetricsString, error) {
+	m := make([]*MetricsString, 0, len(ms.Gauges)+len(ms.Counters))
 	for name, value := range ms.Gauges {
-		val := strconv.FormatFloat(float64(value), 'f', -1, 64)
-		m = append(m, Metrica{
+		val := value.String()
+		m = append(m, &MetricsString{
 			GaugeType,
 			name,
 			val,
 		})
 	}
 	for name, value := range ms.Counters {
-		val := strconv.FormatInt(int64(value), 10)
-		m = append(m, Metrica{
+		val := value.String()
+		m = append(m, &MetricsString{
 			CounterType,
 			name,
 			val,

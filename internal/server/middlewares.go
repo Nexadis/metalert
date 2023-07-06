@@ -1,6 +1,8 @@
 package server
 
 import (
+	"bytes"
+	"io"
 	"net/http"
 	"time"
 
@@ -8,6 +10,7 @@ import (
 )
 
 type responseData struct {
+	body   string
 	size   int
 	status int
 }
@@ -18,7 +21,13 @@ type logWrite struct {
 }
 
 func (lw *logWrite) Write(b []byte) (int, error) {
-	lw.WriteHeader(http.StatusOK)
+	body := bytes.NewReader(b)
+	read, err := io.ReadAll(body)
+	lw.rd.body = string(read)
+	if err != nil {
+		panic(err)
+	}
+
 	size, err := lw.w.Write(b)
 	lw.rd.size += size
 	return size, err
@@ -41,9 +50,29 @@ func WithLogging(h http.Handler) http.Handler {
 			w:  w,
 			rd: responseData,
 		}
+		buf, err := io.ReadAll(r.Body)
+		if err != nil {
+			logger.Error("Error when read request", err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		recvBody, err := io.ReadAll(bytes.NewBuffer(buf))
+		if err != nil {
+			logger.Error("Error when read request", err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		newBody := io.NopCloser(bytes.NewBuffer(buf))
+		r.Body = newBody
 		h.ServeHTTP(&lw, r)
 		duration := time.Since(start)
-		logger.Info("URI", r.RequestURI, "Method", r.Method, "Status", responseData.status, "Duration", duration, "Size", responseData.size)
+		logger.Info("URI", r.RequestURI,
+			"Method", r.Method,
+			"Status", responseData.status,
+			"Duration", duration,
+			"Size", responseData.size,
+			"Recieved Body", string(recvBody),
+			"Sended Body", responseData.body)
 	}
 	return http.HandlerFunc(logFunc)
 }
