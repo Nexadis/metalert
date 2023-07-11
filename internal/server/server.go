@@ -20,7 +20,7 @@ type Listener interface {
 
 type httpServer struct {
 	router  http.Handler
-	storage storage.MemStorage
+	storage storage.Storage
 	config  *Config
 	exit    chan os.Signal
 }
