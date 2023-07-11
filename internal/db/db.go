@@ -16,8 +16,13 @@ type DBCloser interface {
 	Close() error
 }
 
+type DBPing interface {
+	Ping() error
+}
+
 type DataBase interface {
 	DBOpener
+	DBPing
 	DBCloser
 }
 
@@ -34,6 +39,7 @@ func NewDB() DataBase {
 
 func (db *DB) Open(ctx context.Context, DSN string) error {
 	pgx, err := sql.Open("pgx", DSN)
+	logger.Info("Connect to:", DSN)
 	if err != nil {
 		logger.Error("Unable to connect to database: %v\n", err)
 		return err
@@ -44,4 +50,8 @@ func (db *DB) Open(ctx context.Context, DSN string) error {
 
 func (db *DB) Close() error {
 	return db.db.Close()
+}
+
+func (db *DB) Ping() error {
+	return db.db.Ping()
 }
