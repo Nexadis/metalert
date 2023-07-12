@@ -50,8 +50,9 @@ func (c *Config) parseEnv() {
 }
 
 func (c *Config) ParseConfig() {
-	c.DB.ParseConfig()
+	c.DB.ParseCmd()
 	c.parseCmd()
-	c.parseEnv()
 	flag.Parse()
+	c.parseEnv()
+	c.DB.ParseEnv()
 }

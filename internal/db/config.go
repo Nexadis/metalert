@@ -15,14 +15,14 @@ func NewConfig() *Config {
 	return &Config{}
 }
 
-func (c *Config) parseCmd() {
+func (c *Config) ParseCmd() {
 	flag.StringVar(&c.DSN, "d", "", "DSN for DB")
 	logger.Info("Parse command flags:",
-		"Address", c.DSN,
+		"DSN", c.DSN,
 	)
 }
 
-func (c *Config) parseEnv() {
+func (c *Config) ParseEnv() {
 	err := env.Parse(c)
 	logger.Info("Parse environment:",
 		"Address", c.DSN,
@@ -33,6 +33,6 @@ func (c *Config) parseEnv() {
 }
 
 func (c *Config) ParseConfig() {
-	c.parseCmd()
-	c.parseEnv()
+	c.ParseCmd()
+	c.ParseEnv()
 }
