@@ -172,10 +172,7 @@ func testServer() *httpServer {
 	server := &httpServer{
 		nil,
 		storage,
-		nil,
-		nil,
 		config,
-		nil,
 	}
 	server.MountHandlers()
 	return server

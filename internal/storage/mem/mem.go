@@ -8,12 +8,6 @@ import (
 	"github.com/Nexadis/metalert/internal/storage"
 )
 
-type StateSaver interface {
-	Restore(FileStoragePath string, Restore bool) error
-	Save(FileStoragePath string) error
-	SaveTimer(FileStoragePath string, interval int64)
-}
-
 type MetricsStorage interface {
 	storage.Storage
 	StateSaver

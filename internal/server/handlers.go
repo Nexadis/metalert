@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/Nexadis/metalert/internal/metrx"
+	"github.com/Nexadis/metalert/internal/storage/db"
 	"github.com/Nexadis/metalert/internal/utils/logger"
 	"github.com/go-chi/chi/v5"
 )
@@ -120,11 +121,14 @@ func (s *httpServer) InfoPage(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *httpServer) DBPing(w http.ResponseWriter, r *http.Request) {
-	err := s.db.Ping()
-	if err != nil {
+	db, ok := s.storage.(*db.DB)
+	if ok {
+		err := db.Ping()
+		if err == nil {
+			w.Write([]byte("DB is ok"))
+			return
+		}
 		logger.Error(err)
-		http.Error(w, "DB is not connected", http.StatusInternalServerError)
-		return
 	}
-	w.Write([]byte("DB is ok"))
+	http.Error(w, "DB is not connected", http.StatusInternalServerError)
 }
