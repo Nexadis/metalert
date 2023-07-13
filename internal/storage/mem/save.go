@@ -1,6 +1,7 @@
 package mem
 
 import (
+	"context"
 	"encoding/json"
 	"os"
 	"os/signal"
@@ -14,7 +15,7 @@ import (
 type StateSaver interface {
 	Restore(FileStoragePath string, Restore bool) error
 	Save(FileStoragePath string) error
-	SaveTimer(FileStoragePath string, interval int64)
+	SaveTimer(ctx context.Context, FileStoragePath string, interval int64)
 }
 
 func (ms *Storage) Save(FileStoragePath string) error {
@@ -67,13 +68,13 @@ func (ms *Storage) Restore(FileStoragePath string, Restore bool) error {
 	return nil
 }
 
-func (ms *Storage) SaveTimer(FileStoragePath string, interval int64) {
+func (ms *Storage) SaveTimer(ctx context.Context, FileStoragePath string, interval int64) {
 	if interval <= 0 {
 		interval = 1
 	}
 
-	exit := make(chan os.Signal, 1)
-	signal.Notify(exit, os.Interrupt, syscall.SIGTERM|syscall.SIGINT|syscall.SIGQUIT)
+	exit, stop := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM|syscall.SIGINT|syscall.SIGQUIT)
+	defer stop()
 
 	ticker := time.NewTicker(time.Duration(interval) * time.Second)
 	for {
@@ -83,12 +84,12 @@ func (ms *Storage) SaveTimer(FileStoragePath string, interval int64) {
 			if err != nil {
 				logger.Info("Can't save storage")
 			}
-		case <-exit:
+		case <-exit.Done():
 			err := ms.Save(FileStoragePath)
 			if err != nil {
 				logger.Info("Can't save storage")
 			}
-			return
+			os.Exit(0)
 		}
 	}
 }

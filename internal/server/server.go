@@ -48,7 +48,7 @@ func chooseStorage(config *Config) storage.Storage {
 		if err != nil {
 			logger.Info(err)
 		}
-		go metricsStorage.SaveTimer(config.FileStoragePath, config.StoreInterval)
+		go metricsStorage.SaveTimer(context.Background(), config.FileStoragePath, config.StoreInterval)
 		return metricsStorage
 	}
 }
