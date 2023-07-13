@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 
+	"github.com/Nexadis/metalert/internal/storage"
 	"github.com/Nexadis/metalert/internal/utils/logger"
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
@@ -23,6 +24,7 @@ type DBPing interface {
 type DataBase interface {
 	DBOpener
 	DBPing
+	storage.Storage
 	DBCloser
 }
 
@@ -54,4 +56,16 @@ func (db *DB) Close() error {
 
 func (db *DB) Ping() error {
 	return db.db.Ping()
+}
+
+func (db *DB) Get(valType, name string) (storage.ObjectGetter, error) {
+	return nil, nil
+}
+
+func (db *DB) GetAll() ([]storage.ObjectGetter, error) {
+	return nil, nil
+}
+
+func (db *DB) Set(valType, name, value string) error {
+	return nil
 }

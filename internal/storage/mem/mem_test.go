@@ -1,4 +1,4 @@
-package storage
+package mem
 
 import (
 	"testing"
@@ -8,7 +8,7 @@ import (
 )
 
 func TestSet(t *testing.T) {
-	storage := MetricsStorage{
+	storage := Storage{
 		Gauges: map[string]metrx.Gauge{
 			"positive": metrx.Gauge(0),
 			"small":    metrx.Gauge(0),
@@ -99,7 +99,7 @@ func TestSet(t *testing.T) {
 }
 
 func TestGet(t *testing.T) {
-	storage := MetricsStorage{
+	storage := Storage{
 		Gauges: map[string]metrx.Gauge{
 			"positive": metrx.Gauge(102391),
 			"small":    metrx.Gauge(0.000000000001),

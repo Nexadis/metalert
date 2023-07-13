@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"github.com/Nexadis/metalert/internal/metrx"
-	"github.com/Nexadis/metalert/internal/storage"
+	"github.com/Nexadis/metalert/internal/storage/mem"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -167,11 +167,12 @@ var valuesTests = []testReq{
 }
 
 func testServer() *httpServer {
-	storage := storage.NewMetricsStorage()
+	storage := mem.NewMetricsStorage()
 	config := NewConfig()
 	server := &httpServer{
 		nil,
 		storage,
+		nil,
 		nil,
 		config,
 		nil,

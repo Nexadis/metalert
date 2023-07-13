@@ -9,7 +9,7 @@ import (
 
 	"github.com/Nexadis/metalert/internal/agent/client"
 	"github.com/Nexadis/metalert/internal/metrx"
-	"github.com/Nexadis/metalert/internal/storage"
+	"github.com/Nexadis/metalert/internal/storage/mem"
 	"github.com/Nexadis/metalert/internal/utils/logger"
 )
 
@@ -30,13 +30,13 @@ type httpAgent struct {
 	listener       string
 	pullInterval   int64
 	reportInterval int64
-	storage        storage.Storage
+	storage        mem.MetricsStorage
 	client         client.MetricPoster
 }
 
 func NewAgent(listener string, pullInterval, reportInterval int64) Watcher {
 	defineRuntimes()
-	storage := storage.NewMetricsStorage()
+	storage := mem.NewMetricsStorage()
 	client := client.NewHTTP()
 	return &httpAgent{
 		listener:       listener,

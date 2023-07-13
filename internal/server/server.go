@@ -10,9 +10,10 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
-	"github.com/Nexadis/metalert/internal/db"
 	"github.com/Nexadis/metalert/internal/server/middlewares"
 	"github.com/Nexadis/metalert/internal/storage"
+	"github.com/Nexadis/metalert/internal/storage/db"
+	"github.com/Nexadis/metalert/internal/storage/mem"
 	"github.com/Nexadis/metalert/internal/utils/logger"
 )
 
@@ -24,14 +25,18 @@ type Listener interface {
 type httpServer struct {
 	router  http.Handler
 	storage storage.Storage
+	saver   mem.StateSaver
 	db      db.DataBase
 	config  *Config
 	exit    chan os.Signal
 }
 
 func (s *httpServer) Run() error {
-	go s.storage.SaveTimer(s.config.FileStoragePath, s.config.StoreInterval)
+	if s.db != nil {
+		return http.ListenAndServe(s.config.Address, s.router)
+	}
 	go http.ListenAndServe(s.config.Address, s.router)
+	go s.saver.SaveTimer(s.config.FileStoragePath, s.config.StoreInterval)
 	for {
 		<-s.exit
 		s.Shutdown()
@@ -40,24 +45,41 @@ func (s *httpServer) Run() error {
 }
 
 func NewServer(config *Config) Listener {
-	metricsStorage := storage.NewMetricsStorage()
-	db := db.NewDB()
-	dbctx, cancel := context.WithTimeout(context.Background(), time.Duration(time.Second))
-	defer cancel()
-	err := db.Open(dbctx, config.DB.DSN)
-	if err != nil {
-		logger.Error(err)
+	switch {
+	case config.DB.DSN != "":
+		logger.Info("Start with DB")
+
+		db := db.NewDB()
+		dbctx, cancel := context.WithTimeout(context.Background(), time.Duration(time.Second))
+		defer cancel()
+		err := db.Open(dbctx, config.DB.DSN)
+		if err != nil {
+			logger.Error(err)
+		}
+		server := &httpServer{
+			nil,
+			db,
+			nil,
+			db,
+			config,
+			nil,
+		}
+		return server
+	default:
+		logger.Info("Use in mem storage")
 	}
 	exit := make(chan os.Signal, 1)
 	signal.Notify(exit, os.Interrupt, syscall.SIGTERM|syscall.SIGINT|syscall.SIGQUIT)
+	metricsStorage := mem.NewMetricsStorage()
 	server := &httpServer{
 		nil,
 		metricsStorage,
-		db,
+		metricsStorage,
+		nil,
 		config,
 		exit,
 	}
-	err = server.storage.Restore(server.config.FileStoragePath, server.config.Restore)
+	err := server.saver.Restore(server.config.FileStoragePath, server.config.Restore)
 	if err != nil {
 		logger.Info(err)
 	}
@@ -83,5 +105,9 @@ func (s *httpServer) MountHandlers() {
 }
 
 func (s *httpServer) Shutdown() {
-	s.storage.Save(s.config.FileStoragePath)
+	if s.db != nil {
+		s.db.Close()
+		return
+	}
+	s.saver.Save(s.config.FileStoragePath)
 }

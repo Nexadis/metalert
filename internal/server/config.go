@@ -3,7 +3,7 @@ package server
 import (
 	"flag"
 
-	"github.com/Nexadis/metalert/internal/db"
+	"github.com/Nexadis/metalert/internal/storage/db"
 	"github.com/Nexadis/metalert/internal/utils/logger"
 	"github.com/caarlos0/env/v8"
 )

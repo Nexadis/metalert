@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/Nexadis/metalert/internal/metrx"
-	"github.com/Nexadis/metalert/internal/storage"
+	"github.com/Nexadis/metalert/internal/storage/mem"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -12,7 +12,7 @@ var endpoint = "http://localhost:8080"
 
 func TestPull(t *testing.T) {
 	defineRuntimes()
-	storage := storage.NewMetricsStorage()
+	storage := mem.NewMetricsStorage()
 	ha := &httpAgent{
 		listener:       endpoint,
 		pullInterval:   0,
@@ -202,7 +202,7 @@ func TestReport(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			testClient := &testClient{}
-			storage := storage.NewMetricsStorage()
+			storage := mem.NewMetricsStorage()
 			ha := &httpAgent{
 				listener:       endpoint,
 				pullInterval:   0,

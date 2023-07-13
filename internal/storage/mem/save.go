@@ -1,4 +1,4 @@
-package storage
+package mem
 
 import (
 	"encoding/json"
@@ -9,7 +9,7 @@ import (
 	"github.com/Nexadis/metalert/internal/utils/logger"
 )
 
-func (ms *MetricsStorage) Save(FileStoragePath string) error {
+func (ms *Storage) Save(FileStoragePath string) error {
 	fileName := FileStoragePath
 	if fileName == "" {
 		return nil
@@ -30,7 +30,7 @@ func (ms *MetricsStorage) Save(FileStoragePath string) error {
 	return nil
 }
 
-func (ms *MetricsStorage) Restore(FileStoragePath string, Restore bool) error {
+func (ms *Storage) Restore(FileStoragePath string, Restore bool) error {
 	fileName := FileStoragePath
 	if fileName == "" {
 		return nil
@@ -59,7 +59,7 @@ func (ms *MetricsStorage) Restore(FileStoragePath string, Restore bool) error {
 	return nil
 }
 
-func (ms *MetricsStorage) SaveTimer(FileStoragePath string, interval int64) {
+func (ms *Storage) SaveTimer(FileStoragePath string, interval int64) {
 	if interval <= 0 {
 		interval = 1
 	}
