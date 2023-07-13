@@ -1,6 +1,7 @@
 package mem
 
 import (
+	"context"
 	"errors"
 	"strings"
 
@@ -25,7 +26,7 @@ func NewMetricsStorage() MetricsStorage {
 	return ms
 }
 
-func (ms *Storage) Set(valType, name, value string) error {
+func (ms *Storage) Set(ctx context.Context, valType, name, value string) error {
 	switch strings.ToLower(valType) {
 	case metrx.CounterType:
 		val, err := metrx.ParseCounter(value)
@@ -45,7 +46,7 @@ func (ms *Storage) Set(valType, name, value string) error {
 	return errors.New("invalid type")
 }
 
-func (ms *Storage) Get(valType, name string) (storage.ObjectGetter, error) {
+func (ms *Storage) Get(ctx context.Context, valType, name string) (storage.ObjectGetter, error) {
 	switch strings.ToLower(valType) {
 	case metrx.CounterType:
 		value, ok := ms.Counters[name]
@@ -74,7 +75,7 @@ func (ms *Storage) Get(valType, name string) (storage.ObjectGetter, error) {
 	return nil, errors.New("invalid type")
 }
 
-func (ms *Storage) GetAll() ([]storage.ObjectGetter, error) {
+func (ms *Storage) GetAll(ctx context.Context) ([]storage.ObjectGetter, error) {
 	m := make([]storage.ObjectGetter, 0, len(ms.Gauges)+len(ms.Counters))
 	for name, value := range ms.Gauges {
 		val := value.String()

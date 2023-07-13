@@ -19,7 +19,7 @@ func (s *httpServer) UpdateHandler(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	err := s.storage.Set(valType, name, value)
+	err := s.storage.Set(r.Context(), valType, name, value)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -40,7 +40,7 @@ func (s *httpServer) ValueHandler(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	m, err := s.storage.Get(valType, name)
+	m, err := s.storage.Get(r.Context(), valType, name)
 	if err != nil {
 		http.NotFound(w, r)
 		return
@@ -54,7 +54,7 @@ func (s *httpServer) ValueHandler(w http.ResponseWriter, r *http.Request) {
 
 func (s *httpServer) ValuesHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-type", "text/plain")
-	values, err := s.storage.GetAll()
+	values, err := s.storage.GetAll(r.Context())
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -84,7 +84,7 @@ func (s *httpServer) UpdateJSONHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	err = s.storage.Set(ms.MType, ms.ID, ms.Value)
+	err = s.storage.Set(r.Context(), ms.MType, ms.ID, ms.Value)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -101,7 +101,7 @@ func (s *httpServer) ValueJSONHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer r.Body.Close()
-	ms, err := s.storage.Get(m.MType, m.ID)
+	ms, err := s.storage.Get(r.Context(), m.MType, m.ID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return

@@ -30,10 +30,11 @@ func (s *httpServer) Run() error {
 }
 
 func chooseStorage(config *Config) storage.Storage {
+	ctx := context.TODO()
 	switch {
 	case config.DB.DSN != "":
 		logger.Info("Start with DB")
-		db := db.NewDB()
+		db := db.New()
 		dbctx, cancel := context.WithTimeout(context.Background(), time.Duration(time.Second))
 		defer cancel()
 		err := db.Open(dbctx, config.DB.DSN)
@@ -44,7 +45,7 @@ func chooseStorage(config *Config) storage.Storage {
 	default:
 		logger.Info("Use in mem storage")
 		metricsStorage := mem.NewMetricsStorage()
-		err := metricsStorage.Restore(config.FileStoragePath, config.Restore)
+		err := metricsStorage.Restore(ctx, config.FileStoragePath, config.Restore)
 		if err != nil {
 			logger.Info(err)
 		}

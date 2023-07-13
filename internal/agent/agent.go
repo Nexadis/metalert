@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"context"
 	"fmt"
 	"math/rand"
 	"reflect"
@@ -67,12 +68,13 @@ func (ha *httpAgent) Run() error {
 }
 
 func (ha *httpAgent) pullCustom() error {
+	ctx := context.TODO()
 	randValue := metrx.Gauge(rand.Float64()).String()
-	err := ha.storage.Set(metrx.GaugeType, "RandomValue", randValue)
+	err := ha.storage.Set(ctx, metrx.GaugeType, "RandomValue", randValue)
 	if err != nil {
 		return err
 	}
-	err = ha.storage.Set(metrx.CounterType, "PollCount", "1")
+	err = ha.storage.Set(ctx, metrx.CounterType, "PollCount", "1")
 	if err != nil {
 		return err
 	}
@@ -84,6 +86,7 @@ func (ha *httpAgent) pullRuntime() error {
 	m := &runtime.MemStats{}
 	runtime.ReadMemStats(m)
 	mstruct := reflect.ValueOf(*m)
+	ctx := context.TODO()
 	for _, gaugeName := range RuntimeNames {
 		value := mstruct.FieldByName(gaugeName)
 		switch value.Kind() {
@@ -92,7 +95,7 @@ func (ha *httpAgent) pullRuntime() error {
 		case reflect.Uint32, reflect.Uint64:
 			val = metrx.Gauge(value.Uint()).String()
 		}
-		err := ha.storage.Set(metrx.GaugeType, gaugeName, val)
+		err := ha.storage.Set(ctx, metrx.GaugeType, gaugeName, val)
 		if err != nil {
 			return err
 		}
@@ -114,7 +117,8 @@ func (ha *httpAgent) Pull() error {
 }
 
 func (ha *httpAgent) Report() error {
-	values, err := ha.storage.GetAll()
+	ctx := context.TODO()
+	values, err := ha.storage.GetAll(ctx)
 	m := &metrx.Metrics{}
 	if err != nil {
 		return err

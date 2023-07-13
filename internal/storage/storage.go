@@ -1,5 +1,7 @@
 package storage
 
+import "context"
+
 type ObjectGetter interface {
 	GetMType() string
 	GetID() string
@@ -7,12 +9,12 @@ type ObjectGetter interface {
 }
 
 type Getter interface {
-	Get(valType, name string) (ObjectGetter, error)
-	GetAll() ([]ObjectGetter, error)
+	Get(ctx context.Context, valType, name string) (ObjectGetter, error)
+	GetAll(ctx context.Context) ([]ObjectGetter, error)
 }
 
 type Setter interface {
-	Set(valType, name, value string) error
+	Set(ctx context.Context, valType, name, value string) error
 }
 
 type Storage interface {

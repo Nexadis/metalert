@@ -32,7 +32,7 @@ type DB struct {
 	db *sql.DB
 }
 
-func NewDB() DataBase {
+func New() DataBase {
 	db := &sql.DB{}
 	return &DB{
 		db: db,
@@ -58,14 +58,14 @@ func (db *DB) Ping() error {
 	return db.db.Ping()
 }
 
-func (db *DB) Get(valType, name string) (storage.ObjectGetter, error) {
+func (db *DB) Get(ctx context.Context, valType, name string) (storage.ObjectGetter, error) {
 	return nil, nil
 }
 
-func (db *DB) GetAll() ([]storage.ObjectGetter, error) {
+func (db *DB) GetAll(ctx context.Context) ([]storage.ObjectGetter, error) {
 	return nil, nil
 }
 
-func (db *DB) Set(valType, name, value string) error {
+func (db *DB) Set(ctx context.Context, vlaType, name, value string) error {
 	return nil
 }
