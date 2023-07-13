@@ -1,6 +1,9 @@
 package storage
 
-import "context"
+import (
+	"context"
+	"errors"
+)
 
 type ObjectGetter interface {
 	GetMType() string
@@ -21,3 +24,8 @@ type Storage interface {
 	Getter
 	Setter
 }
+
+var (
+	ErrNotFound    = errors.New(`value not found`)
+	ErrInvalidType = errors.New(`invalid type`)
+)

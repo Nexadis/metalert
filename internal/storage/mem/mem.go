@@ -2,7 +2,6 @@ package mem
 
 import (
 	"context"
-	"errors"
 	"strings"
 
 	"github.com/Nexadis/metalert/internal/metrx"
@@ -43,7 +42,7 @@ func (ms *Storage) Set(ctx context.Context, valType, name, value string) error {
 		ms.Gauges[name] = val
 		return nil
 	}
-	return errors.New("invalid type")
+	return storage.ErrInvalidType
 }
 
 func (ms *Storage) Get(ctx context.Context, valType, name string) (storage.ObjectGetter, error) {
@@ -51,7 +50,7 @@ func (ms *Storage) Get(ctx context.Context, valType, name string) (storage.Objec
 	case metrx.CounterType:
 		value, ok := ms.Counters[name]
 		if !ok {
-			return nil, errors.New("value not found")
+			return nil, storage.ErrNotFound
 		}
 		val := &metrx.MetricsString{
 			ID:    name,
@@ -62,7 +61,7 @@ func (ms *Storage) Get(ctx context.Context, valType, name string) (storage.Objec
 	case metrx.GaugeType:
 		value, ok := ms.Gauges[name]
 		if !ok {
-			return nil, errors.New("value not found")
+			return nil, storage.ErrNotFound
 		}
 		val := &metrx.MetricsString{
 			ID:    name,
@@ -72,7 +71,7 @@ func (ms *Storage) Get(ctx context.Context, valType, name string) (storage.Objec
 		return val, nil
 	}
 
-	return nil, errors.New("invalid type")
+	return nil, storage.ErrInvalidType
 }
 
 func (ms *Storage) GetAll(ctx context.Context) ([]storage.ObjectGetter, error) {
