@@ -28,7 +28,7 @@ type StateSaver interface {
 	SaveTimer(FileStoragePath string, interval int64)
 }
 
-type MemStorage interface {
+type Storage interface {
 	Getter
 	Setter
 	StateSaver
@@ -39,7 +39,7 @@ type MetricsStorage struct {
 	Counters map[string]metrx.Counter
 }
 
-func NewMetricsStorage() MemStorage {
+func NewMetricsStorage() Storage {
 	ms := new(MetricsStorage)
 	ms.Gauges = make(map[string]metrx.Gauge)
 	ms.Counters = make(map[string]metrx.Counter)

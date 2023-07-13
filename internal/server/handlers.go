@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/Nexadis/metalert/internal/metrx"
+	"github.com/Nexadis/metalert/internal/utils/logger"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -116,4 +117,14 @@ func (s *httpServer) ValueJSONHandler(w http.ResponseWriter, r *http.Request) {
 func (s *httpServer) InfoPage(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-type", "text/html")
 	w.Write([]byte("<html><h1>Info page</h1></html>"))
+}
+
+func (s *httpServer) DBPing(w http.ResponseWriter, r *http.Request) {
+	err := s.db.Ping()
+	if err != nil {
+		logger.Error(err)
+		http.Error(w, "DB is not connected", http.StatusInternalServerError)
+		return
+	}
+	w.Write([]byte("DB is ok"))
 }

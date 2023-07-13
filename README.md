@@ -30,3 +30,21 @@ git fetch template && git checkout template/main .github
 При мёрже ветки с инкрементом в основную ветку `main` будут запускаться все автотесты.
 
 Подробнее про локальный и автоматический запуск читайте в [README автотестов](https://github.com/Yandex-Practicum/go-autotests).
+
+Запуск postgres для тестов:
+```bash
+docker run -d \                                                                                                                       ✔ 
+        --name postgre-go \
+        -e POSTGRES_PASSWORD=secret \
+        -e PGDATA=/var/lib/postgresql/data/pgdata \
+        -v /var/tmp:/var/lib/postgresql/data \
+        -p 5432:5432 postgres:15
+
+psql postgres://postgres:secret@localhost:5432
+
+postgres=# create database metrics;
+postgres=# create user test with encrypted password 'test';
+postgres=# grant all privileges on database metrics to test;
+
+```
+
