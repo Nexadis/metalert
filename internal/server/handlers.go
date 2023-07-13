@@ -36,12 +36,14 @@ func (s *httpServer) ValueHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-type", "text/plain")
 	valType := chi.URLParam(r, "valType")
 	name := chi.URLParam(r, "name")
+	logger.Info("Value Handler", valType, name)
 	if name == "" {
 		http.NotFound(w, r)
 		return
 	}
 	m, err := s.storage.Get(r.Context(), valType, name)
 	if err != nil {
+		logger.Error(err)
 		http.NotFound(w, r)
 		return
 	}
