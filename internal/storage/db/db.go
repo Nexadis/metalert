@@ -75,7 +75,7 @@ func (db *DB) Ping() error {
 
 func (db *DB) Get(ctx context.Context, mtype, id string) (storage.ObjectGetter, error) {
 	row := db.db.QueryRowContext(ctx,
-		`SELECT delta, value FROM Metrics WHERE type = $2 AND id = $3`,
+		`SELECT delta, value FROM Metrics WHERE type = $1 AND id = $2`,
 		mtype, id,
 	)
 	m := &metrx.Metrics{}
@@ -122,17 +122,23 @@ func (db *DB) Set(ctx context.Context, mtype, id, value string) error {
 	if err != nil {
 		return err
 	}
-	t, err := db.db.Begin()
-	if err != nil {
-		return err
-	}
-	t.ExecContext(ctx, "UPDATE Metrics SET id=$2, type=$3, delta=$4, value=$5",
+	logger.Info("Begin transaction for db!")
+	_, err = db.db.ExecContext(ctx, "INSERT INTO Metrics (id, type, delta, value)"+
+		" VALUES ($1,$2,$3,$4)",
 		m.ID,
 		m.MType,
 		m.Delta,
 		m.Value,
 	)
-	t.ExecContext(ctx, "INSERT INTO Metrics ")
-	db.size += 1
-	return nil
+	if err == nil {
+		db.size += 1
+		return nil
+	}
+	_, err = db.db.ExecContext(ctx, "UPDATE Metrics SET delta=delta + $3, value=$4 WHERE id=$1 AND type=$2 ",
+		m.ID,
+		m.MType,
+		m.Delta,
+		m.Value,
+	)
+	return err
 }
