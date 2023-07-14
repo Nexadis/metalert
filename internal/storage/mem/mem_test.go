@@ -1,6 +1,7 @@
-package storage
+package mem
 
 import (
+	"context"
 	"testing"
 
 	"github.com/Nexadis/metalert/internal/metrx"
@@ -8,7 +9,7 @@ import (
 )
 
 func TestSet(t *testing.T) {
-	storage := MetricsStorage{
+	storage := Storage{
 		Gauges: map[string]metrx.Gauge{
 			"positive": metrx.Gauge(0),
 			"small":    metrx.Gauge(0),
@@ -82,16 +83,17 @@ func TestSet(t *testing.T) {
 			want: metrx.Gauge(-102391),
 		},
 	}
+	ctx := context.TODO()
 	for _, test := range testCasesCounters {
 		t.Run(test.name, func(t *testing.T) {
-			err := storage.Set(test.request.valType, test.request.name, test.request.value)
+			err := storage.Set(ctx, test.request.valType, test.request.name, test.request.value)
 			assert.Equal(t, storage.Counters[test.request.name], test.want)
 			assert.NoError(t, err)
 		})
 	}
 	for _, test := range testCasesGauges {
 		t.Run(test.name, func(t *testing.T) {
-			err := storage.Set(test.request.valType, test.request.name, test.request.value)
+			err := storage.Set(ctx, test.request.valType, test.request.name, test.request.value)
 			assert.Equal(t, storage.Gauges[test.request.name], test.want)
 			assert.NoError(t, err)
 		})
@@ -99,7 +101,7 @@ func TestSet(t *testing.T) {
 }
 
 func TestGet(t *testing.T) {
-	storage := MetricsStorage{
+	storage := Storage{
 		Gauges: map[string]metrx.Gauge{
 			"positive": metrx.Gauge(102391),
 			"small":    metrx.Gauge(0.000000000001),
@@ -160,9 +162,10 @@ func TestGet(t *testing.T) {
 			want: "-102391",
 		},
 	}
+	ctx := context.TODO()
 	for _, test := range testCases {
 		t.Run(test.name, func(t *testing.T) {
-			res, err := storage.Get(test.request.valType, test.request.name)
+			res, err := storage.Get(ctx, test.request.valType, test.request.name)
 			assert.Equal(t, res.GetValue(), test.want)
 			assert.NoError(t, err)
 		})
