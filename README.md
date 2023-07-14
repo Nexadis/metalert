@@ -49,10 +49,12 @@ postgres=# grant all on SCHEMA public TO test;
 
 psql postgres://test:test@localhost:5432/test
 
-postgres=# CREATE TABLE Metrics (
+postgres=# 
+CREATE TABLE Metrics (
 "name" VARCHAR(250) NOT NULL,
 "type" VARCHAR(100) NOT NULL,
-"value" VARCHAR(100) NOT NULL,
+"delta" DOUBLE PRECISION,
+"value" BIGINT,
 CONSTRAINT ID PRIMARY KEY (name,type) );
 
 ```
