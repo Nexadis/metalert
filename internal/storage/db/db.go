@@ -3,7 +3,6 @@ package db
 import (
 	"context"
 	"database/sql"
-	"fmt"
 
 	"github.com/Nexadis/metalert/internal/metrx"
 	"github.com/Nexadis/metalert/internal/storage"
@@ -11,15 +10,13 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
-const table_name = "Metrics"
-
-var schema = fmt.Sprintf(`CREATE TABLE %s(
-"name" VARCHAR(250) NOT NULL,
+const schema = `CREATE TABLE Metrics(
+"id" VARCHAR(250) NOT NULL,
 "type" VARCHAR(100) NOT NULL,
 "delta" DOUBLE PRECISION,
 "value" BIGINT,
-CONSTRAINT ID PRIMARY KEY (name,type));
-`, table_name)
+CONSTRAINT ID PRIMARY KEY (id,type));
+`
 
 type DBOpener interface {
 	Open(ctx context.Context, DSN string) error
@@ -76,10 +73,10 @@ func (db *DB) Ping() error {
 	return db.db.Ping()
 }
 
-func (db *DB) Get(ctx context.Context, valType, name string) (storage.ObjectGetter, error) {
+func (db *DB) Get(ctx context.Context, mtype, id string) (storage.ObjectGetter, error) {
 	row := db.db.QueryRowContext(ctx,
-		`SELECT delta, value FROM $1 WHERE type = $2 AND name = $3`,
-		table_name, valType, name,
+		`SELECT delta, value FROM Metrics WHERE type = $2 AND id = $3`,
+		mtype, id,
 	)
 	m := &metrx.Metrics{}
 	err := row.Scan(&m.Delta, &m.Value)
@@ -92,7 +89,7 @@ func (db *DB) Get(ctx context.Context, valType, name string) (storage.ObjectGett
 func (db *DB) GetAll(ctx context.Context) ([]storage.ObjectGetter, error) {
 	metrics := make([]storage.ObjectGetter, 0, db.size)
 	rows, err := db.db.QueryContext(ctx,
-		`SELECT * FROM $1`, table_name,
+		`SELECT * FROM Metrics`,
 	)
 	if err != nil {
 		return nil, err
@@ -113,12 +110,29 @@ func (db *DB) GetAll(ctx context.Context) ([]storage.ObjectGetter, error) {
 	return metrics, nil
 }
 
-func (db *DB) Set(ctx context.Context, valType, name, value string) error {
+func (db *DB) Set(ctx context.Context, mtype, id, value string) error {
+	m := metrx.Metrics{}
+	err := m.ParseMetricsString(
+		&metrx.MetricsString{
+			ID:    id,
+			MType: mtype,
+			Value: value,
+		},
+	)
+	if err != nil {
+		return err
+	}
 	t, err := db.db.Begin()
 	if err != nil {
 		return err
 	}
-	t.ExecContext(ctx, "INSERT INTO ")
+	t.ExecContext(ctx, "UPDATE Metrics SET id=$2, type=$3, delta=$4, value=$5",
+		m.ID,
+		m.MType,
+		m.Delta,
+		m.Value,
+	)
+	t.ExecContext(ctx, "INSERT INTO Metrics ")
 	db.size += 1
 	return nil
 }

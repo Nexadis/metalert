@@ -12,19 +12,19 @@ import (
 )
 
 func (s *httpServer) UpdateHandler(w http.ResponseWriter, r *http.Request) {
-	valType := chi.URLParam(r, "valType")
-	name := chi.URLParam(r, "name")
+	mtype := chi.URLParam(r, "mtype")
+	id := chi.URLParam(r, "id")
 	value := chi.URLParam(r, "value")
-	if name == "" {
+	if id == "" {
 		http.NotFound(w, r)
 		return
 	}
-	err := s.storage.Set(r.Context(), valType, name, value)
+	err := s.storage.Set(r.Context(), mtype, id, value)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	answer := fmt.Sprintf(`Value %s type %s updated`, name, valType)
+	answer := fmt.Sprintf(`Value %s type %s updated`, id, mtype)
 	_, err = w.Write([]byte(answer))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -34,14 +34,14 @@ func (s *httpServer) UpdateHandler(w http.ResponseWriter, r *http.Request) {
 
 func (s *httpServer) ValueHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-type", "text/plain")
-	valType := chi.URLParam(r, "valType")
-	name := chi.URLParam(r, "name")
-	logger.Info("Value Handler", valType, name)
-	if name == "" {
+	mtype := chi.URLParam(r, "mtype")
+	id := chi.URLParam(r, "id")
+	logger.Info("Value Handler", mtype, id)
+	if id == "" {
 		http.NotFound(w, r)
 		return
 	}
-	m, err := s.storage.Get(r.Context(), valType, name)
+	m, err := s.storage.Get(r.Context(), mtype, id)
 	if err != nil {
 		logger.Error(err)
 		http.NotFound(w, r)

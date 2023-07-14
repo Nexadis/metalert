@@ -12,12 +12,12 @@ type ObjectGetter interface {
 }
 
 type Getter interface {
-	Get(ctx context.Context, valType, name string) (ObjectGetter, error)
+	Get(ctx context.Context, mtype, id string) (ObjectGetter, error)
 	GetAll(ctx context.Context) ([]ObjectGetter, error)
 }
 
 type Setter interface {
-	Set(ctx context.Context, valType, name, value string) error
+	Set(ctx context.Context, mtype, id, value string) error
 }
 
 type Storage interface {

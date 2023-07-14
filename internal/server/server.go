@@ -70,12 +70,12 @@ func (s *httpServer) MountHandlers() {
 		r.Get("/", s.InfoPage)
 		r.Route("/update", func(r chi.Router) {
 			r.Post("/", s.UpdateJSONHandler)
-			r.Post("/{valType}/{name}/{value}", s.UpdateHandler)
+			r.Post("/{mtype}/{id}/{value}", s.UpdateHandler)
 		})
 		r.Route("/value", func(r chi.Router) {
 			r.Get("/", s.ValuesHandler)
 			r.Post("/", s.ValueJSONHandler)
-			r.Get("/{valType}/{name}", s.ValueHandler)
+			r.Get("/{mtype}/{id}", s.ValueHandler)
 		})
 		r.Get("/ping", s.DBPing)
 	})

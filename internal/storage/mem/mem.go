@@ -25,46 +25,46 @@ func NewMetricsStorage() MetricsStorage {
 	return ms
 }
 
-func (ms *Storage) Set(ctx context.Context, valType, name, value string) error {
-	switch strings.ToLower(valType) {
+func (ms *Storage) Set(ctx context.Context, mtype, id, value string) error {
+	switch strings.ToLower(mtype) {
 	case metrx.CounterType:
 		val, err := metrx.ParseCounter(value)
 		if err != nil {
 			return err
 		}
-		ms.Counters[name] += val
+		ms.Counters[id] += val
 		return nil
 	case metrx.GaugeType:
 		val, err := metrx.ParseGauge(value)
 		if err != nil {
 			return err
 		}
-		ms.Gauges[name] = val
+		ms.Gauges[id] = val
 		return nil
 	}
 	return storage.ErrInvalidType
 }
 
-func (ms *Storage) Get(ctx context.Context, valType, name string) (storage.ObjectGetter, error) {
-	switch strings.ToLower(valType) {
+func (ms *Storage) Get(ctx context.Context, mtype, id string) (storage.ObjectGetter, error) {
+	switch strings.ToLower(mtype) {
 	case metrx.CounterType:
-		value, ok := ms.Counters[name]
+		value, ok := ms.Counters[id]
 		if !ok {
 			return nil, storage.ErrNotFound
 		}
 		val := &metrx.MetricsString{
-			ID:    name,
+			ID:    id,
 			MType: metrx.CounterType,
 			Value: value.String(),
 		}
 		return val, nil
 	case metrx.GaugeType:
-		value, ok := ms.Gauges[name]
+		value, ok := ms.Gauges[id]
 		if !ok {
 			return nil, storage.ErrNotFound
 		}
 		val := &metrx.MetricsString{
-			ID:    name,
+			ID:    id,
 			MType: metrx.GaugeType,
 			Value: value.String(),
 		}
