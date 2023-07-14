@@ -107,6 +107,10 @@ func (db *DB) GetAll(ctx context.Context) ([]storage.ObjectGetter, error) {
 		}
 		metrics = append(metrics, metric)
 	}
+	err = rows.Err()
+	if err != nil {
+		return nil, err
+	}
 	return metrics, nil
 }
 
