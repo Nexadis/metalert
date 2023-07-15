@@ -133,6 +133,8 @@ func (ha *httpAgent) Report() error {
 			logger.Error("Can't report metrics")
 			break
 		}
+	}
+	for _, ms := range values {
 		m.ParseMetricsString(ms.(*metrx.MetricsString))
 		err = ha.client.PostJSON(pathJSON, m)
 		if err != nil {

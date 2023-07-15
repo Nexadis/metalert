@@ -13,8 +13,8 @@ import (
 const schema = `CREATE TABLE Metrics(
 "id" VARCHAR(250) NOT NULL,
 "type" VARCHAR(100) NOT NULL,
-"delta" DOUBLE PRECISION,
-"value" BIGINT,
+"delta" BIGINT,
+"value" DOUBLE PRECISION,
 CONSTRAINT ID PRIMARY KEY (id,type));
 `
 
@@ -76,14 +76,20 @@ func (db *DB) Ping() error {
 
 func (db *DB) Get(ctx context.Context, mtype, id string) (storage.ObjectGetter, error) {
 	stmt, err := db.db.PrepareContext(ctx,
-		`SELECT delta, value FROM Metrics WHERE type = $1 AND id = $2`)
+		`SELECT delta, value FROM Metrics WHERE type=$1 AND id= $2`)
 	if err != nil {
 		return nil, err
 	}
 	row := stmt.QueryRowContext(ctx,
 		mtype, id,
 	)
-	m := &metrx.Metrics{}
+	if row.Err() != nil {
+		return nil, err
+	}
+	m := &metrx.Metrics{
+		ID:    id,
+		MType: mtype,
+	}
 	err = row.Scan(&m.Delta, &m.Value)
 	if err != nil {
 		return nil, err
@@ -146,7 +152,6 @@ func (db *DB) Set(ctx context.Context, mtype, id, value string) error {
 	if err != nil {
 		return err
 	}
-
 	_, err = stmt.ExecContext(ctx,
 		m.ID,
 		m.MType,
