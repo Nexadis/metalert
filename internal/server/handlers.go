@@ -93,6 +93,30 @@ func (s *httpServer) UpdateJSON(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (s *httpServer) Updates(w http.ResponseWriter, r *http.Request) {
+	decoder := json.NewDecoder(r.Body)
+	mxs := make([]metrx.Metrics, 0, 50)
+	err := decoder.Decode(&mxs)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	defer r.Body.Close()
+	logger.Info("Parse metrics in Updates handler")
+	for _, m := range mxs {
+		ms, err := m.GetMetricsString()
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		err = s.storage.Set(r.Context(), ms.MType, ms.ID, ms.Value)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+	}
+}
+
 func (s *httpServer) ValueJSON(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-type", "application/json")
 	decoder := json.NewDecoder(r.Body)

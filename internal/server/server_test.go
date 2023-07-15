@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/Nexadis/metalert/internal/metrx"
+	"github.com/Nexadis/metalert/internal/storage"
 	"github.com/Nexadis/metalert/internal/storage/mem"
 	"github.com/stretchr/testify/assert"
 )
@@ -25,6 +26,7 @@ type want struct {
 	name       string
 	valType    string
 	value      string
+	values     []storage.ObjectGetter
 	body       string
 	headers    http.Header
 }
@@ -179,7 +181,7 @@ func testServer() *httpServer {
 	return server
 }
 
-func TestUpdateHandlerURL(t *testing.T) {
+func TestUpdateURL(t *testing.T) {
 	server := testServer()
 	ctx := context.TODO()
 
@@ -197,7 +199,7 @@ func TestUpdateHandlerURL(t *testing.T) {
 	}
 }
 
-func TestValueHandlerURL(t *testing.T) {
+func TestValueURL(t *testing.T) {
 	server := testServer()
 	ctx := context.TODO()
 	for _, test := range valueTests {
@@ -216,7 +218,7 @@ func TestValueHandlerURL(t *testing.T) {
 	}
 }
 
-func TestValuesHandlerURL(t *testing.T) {
+func TestValuesURL(t *testing.T) {
 	server := testServer()
 	ctx := context.TODO()
 	for _, test := range valueTests {
@@ -240,7 +242,7 @@ func TestValuesHandlerURL(t *testing.T) {
 	}
 }
 
-var httpHeaders = http.Header{
+var JSONHeaders = http.Header{
 	"Content-type": []string{"application/json"},
 }
 
@@ -255,7 +257,7 @@ var JSONUpdateTests = []testReq{
 				"type": "gauge",
 				"value": 1.23
 			}`,
-			headers: httpHeaders,
+			headers: JSONHeaders,
 		},
 		want: want{
 			statusCode: http.StatusOK,
@@ -263,7 +265,7 @@ var JSONUpdateTests = []testReq{
 			valType:    metrx.GaugeType,
 			value:      "1.23",
 			body:       "",
-			headers:    httpHeaders,
+			headers:    JSONHeaders,
 		},
 	},
 	{
@@ -276,7 +278,7 @@ var JSONUpdateTests = []testReq{
 				"type: "gauge",
 				"value": 1.23
 			}`,
-			headers: httpHeaders,
+			headers: JSONHeaders,
 		},
 		want: want{
 			statusCode: http.StatusBadRequest,
@@ -292,7 +294,7 @@ var JSONUpdateTests = []testReq{
 				"type": "gauge",
 				"delta": 1
 			}`,
-			headers: httpHeaders,
+			headers: JSONHeaders,
 		},
 		want: want{
 			statusCode: http.StatusBadRequest,
@@ -308,7 +310,7 @@ var JSONUpdateTests = []testReq{
 				"type": "counter",
 				"delta": 1423
 			}`,
-			headers: httpHeaders,
+			headers: JSONHeaders,
 		},
 		want: want{
 			statusCode: http.StatusOK,
@@ -316,7 +318,7 @@ var JSONUpdateTests = []testReq{
 			valType:    metrx.CounterType,
 			value:      "1423",
 			body:       "",
-			headers:    httpHeaders,
+			headers:    JSONHeaders,
 		},
 	},
 	{
@@ -329,7 +331,7 @@ var JSONUpdateTests = []testReq{
 				"type": "counter",
 				"value": 1.23
 			}`,
-			headers: httpHeaders,
+			headers: JSONHeaders,
 		},
 		want: want{
 			statusCode: http.StatusBadRequest,
@@ -362,7 +364,7 @@ var JSONValueTests = []testReq{
 				"id": "name",
 				"type": "gauge"
 			}`,
-			headers: httpHeaders,
+			headers: JSONHeaders,
 		},
 		want: want{
 			statusCode: http.StatusOK,
@@ -370,7 +372,7 @@ var JSONValueTests = []testReq{
 			valType:    metrx.GaugeType,
 			value:      "123.123",
 			body:       `{"id":"name","type":"gauge","value":123.123}`,
-			headers:    httpHeaders,
+			headers:    JSONHeaders,
 		},
 	},
 	{
@@ -382,7 +384,7 @@ var JSONValueTests = []testReq{
 				"id": "name",
 				"type: "gauge"
 			}`,
-			headers: httpHeaders,
+			headers: JSONHeaders,
 		},
 		want: want{
 			statusCode: http.StatusBadRequest,
@@ -397,7 +399,7 @@ var JSONValueTests = []testReq{
 				"id": "notfound",
 				"type": "gauge"
 			}`,
-			headers: httpHeaders,
+			headers: JSONHeaders,
 		},
 		want: want{
 			statusCode: http.StatusNotFound,
@@ -412,7 +414,7 @@ var JSONValueTests = []testReq{
 				"id": "ctr",
 				"type": "counter"
 			}`,
-			headers: httpHeaders,
+			headers: JSONHeaders,
 		},
 		want: want{
 			statusCode: http.StatusOK,
@@ -420,12 +422,12 @@ var JSONValueTests = []testReq{
 			valType:    metrx.CounterType,
 			value:      "1423",
 			body:       `{"id":"ctr","type":"counter","delta":1423}`,
-			headers:    httpHeaders,
+			headers:    JSONHeaders,
 		},
 	},
 }
 
-func TestUpdateHandlerJSON(t *testing.T) {
+func TestUpdateJSON(t *testing.T) {
 	server := testServer()
 	ctx := context.TODO()
 	for _, test := range JSONUpdateTests {
@@ -445,7 +447,7 @@ func TestUpdateHandlerJSON(t *testing.T) {
 	}
 }
 
-func TestValueHandlerJSON(t *testing.T) {
+func TestValueJSON(t *testing.T) {
 	server := testServer()
 
 	ctx := context.TODO()
@@ -464,6 +466,89 @@ func TestValueHandlerJSON(t *testing.T) {
 				assert.NoError(t, err)
 				assert.JSONEq(t, test.want.body, string(body))
 				assert.EqualValues(t, test.want.headers, r.Header)
+			}
+		})
+	}
+}
+
+var JSONUpdatesTests = []testReq{
+	{
+		name: "Invalid type",
+		request: req{
+			method: http.MethodPost,
+			url:    "/updates",
+			body: `[{
+				"id": "name",
+				"type": "counrer",
+				"value": 1.23
+			}]`,
+		},
+		want: want{
+			statusCode: http.StatusBadRequest,
+		},
+	},
+	{
+		name: "Many valid values",
+		request: req{
+			method: http.MethodPost,
+			url:    "/updates",
+			body: `
+				[
+{"id":"name","type":"gauge","value":123.123},
+{"id":"someGauge","type":"gauge","value":435.435},
+{"id":"ctr","type":"counter","delta":1423},
+{"id":"SomeCtr","type":"counter","delta":1445309},
+{"id":"ctr","type":"counter","delta":1423}
+				]
+			
+			`,
+			headers: JSONHeaders,
+		},
+		want: want{
+			statusCode: http.StatusOK,
+			values: []storage.ObjectGetter{
+				&metrx.MetricsString{
+					ID:    "name",
+					MType: "gauge",
+					Value: "123.123",
+				},
+				&metrx.MetricsString{
+					ID:    "someGauge",
+					MType: "gauge",
+					Value: "435.435",
+				},
+				&metrx.MetricsString{
+					ID:    "ctr",
+					MType: "counter",
+					Value: "2846",
+				},
+				&metrx.MetricsString{
+					ID:    "SomeCtr",
+					MType: "counter",
+					Value: "1445309",
+				},
+			},
+		},
+	},
+}
+
+func TestUpdatesJSON(t *testing.T) {
+	server := testServer()
+	ctx := context.TODO()
+	for _, test := range JSONUpdatesTests {
+		t.Run(test.name, func(t *testing.T) {
+			r := httptest.NewRequest(test.request.method, test.request.url, strings.NewReader(test.request.body))
+			r.Header = test.request.headers
+			w := httptest.NewRecorder()
+			server.router.ServeHTTP(w, r)
+			result := w.Result()
+			assert.Equal(t, test.want.statusCode, result.StatusCode)
+			defer result.Body.Close()
+			if result.StatusCode == http.StatusOK {
+				for _, want := range test.want.values {
+					value, _ := server.storage.Get(ctx, want.GetMType(), want.GetID())
+					assert.Equal(t, want.GetValue(), value.GetValue())
+				}
 			}
 		})
 	}

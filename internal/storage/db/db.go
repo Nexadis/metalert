@@ -75,12 +75,16 @@ func (db *DB) Ping() error {
 }
 
 func (db *DB) Get(ctx context.Context, mtype, id string) (storage.ObjectGetter, error) {
-	row := db.db.QueryRowContext(ctx,
-		`SELECT delta, value FROM Metrics WHERE type = $1 AND id = $2`,
+	stmt, err := db.db.PrepareContext(ctx,
+		`SELECT delta, value FROM Metrics WHERE type = $1 AND id = $2`)
+	if err != nil {
+		return nil, err
+	}
+	row := stmt.QueryRowContext(ctx,
 		mtype, id,
 	)
 	m := &metrx.Metrics{}
-	err := row.Scan(&m.Delta, &m.Value)
+	err = row.Scan(&m.Delta, &m.Value)
 	if err != nil {
 		return nil, err
 	}
@@ -88,10 +92,13 @@ func (db *DB) Get(ctx context.Context, mtype, id string) (storage.ObjectGetter, 
 }
 
 func (db *DB) GetAll(ctx context.Context) ([]storage.ObjectGetter, error) {
+	stmt, err := db.db.PrepareContext(ctx,
+		`SELECT * FROM Metrics`)
+	if err != nil {
+		return nil, err
+	}
 	metrics := make([]storage.ObjectGetter, 0, db.size)
-	rows, err := db.db.QueryContext(ctx,
-		`SELECT * FROM Metrics`,
-	)
+	rows, err := stmt.QueryContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -132,10 +139,15 @@ func (db *DB) Set(ctx context.Context, mtype, id, value string) error {
 		return err
 	}
 	defer tx.Rollback()
-
-	_, err = tx.ExecContext(ctx, "INSERT INTO Metrics (id, type, delta, value) "+
+	stmt, err := tx.PrepareContext(ctx, "INSERT INTO Metrics (id, type, delta, value) "+
 		"VALUES ($1,$2,$3,$4) ON CONFLICT(id,type) "+
 		"DO UPDATE SET delta=metrics.delta + $3, value=$4",
+	)
+	if err != nil {
+		return err
+	}
+
+	_, err = stmt.ExecContext(ctx,
 		m.ID,
 		m.MType,
 		m.Delta,
