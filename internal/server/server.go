@@ -68,7 +68,7 @@ func (s *httpServer) MountHandlers() {
 	router := chi.NewRouter()
 	router.Route("/", func(r chi.Router) {
 		r.Get("/", s.InfoPage)
-		r.Post("/updates", s.Updates)
+		r.Post("/updates/", s.Updates)
 		r.Route("/update", func(r chi.Router) {
 			r.Post("/", s.UpdateJSON)
 			r.Post("/{mtype}/{id}/{value}", s.Update)
