@@ -45,7 +45,8 @@ type DB struct {
 func New() DataBase {
 	db := &sql.DB{}
 	return &DB{
-		db: db,
+		db:   db,
+		size: 0,
 	}
 }
 
@@ -126,23 +127,23 @@ func (db *DB) Set(ctx context.Context, mtype, id, value string) error {
 	if err != nil {
 		return err
 	}
-	logger.Info("Begin transaction for db!")
-	_, err = db.db.ExecContext(ctx, "INSERT INTO Metrics (id, type, delta, value)"+
-		" VALUES ($1,$2,$3,$4)",
-		m.ID,
-		m.MType,
-		m.Delta,
-		m.Value,
-	)
-	if err == nil {
-		db.size += 1
-		return nil
+	tx, err := db.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
 	}
-	_, err = db.db.ExecContext(ctx, "UPDATE Metrics SET delta=delta + $3, value=$4 WHERE id=$1 AND type=$2 ",
+	defer tx.Rollback()
+
+	_, err = tx.ExecContext(ctx, "INSERT INTO Metrics (id, type, delta, value) "+
+		"VALUES ($1,$2,$3,$4) ON CONFLICT(id,type) "+
+		"DO UPDATE SET delta=metrics.delta + $3, value=$4",
 		m.ID,
 		m.MType,
 		m.Delta,
 		m.Value,
 	)
-	return err
+	if err != nil {
+		return err
+	}
+	db.size += 1
+	return tx.Commit()
 }
