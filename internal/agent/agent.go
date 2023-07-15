@@ -21,9 +21,8 @@ type Watcher interface {
 }
 
 const (
-	UpdateURL      = "/update/{valType}/{name}/{value}"
-	JSONUpdateURL  = "/update/"
-	JSONUpdatesURL = "/updates"
+	UpdateURL     = "/update/{valType}/{name}/{value}"
+	JSONUpdateURL = "/update/"
 )
 
 var RuntimeNames []string
@@ -126,15 +125,12 @@ func (ha *httpAgent) Report() error {
 	}
 	path := fmt.Sprintf("http://%s%s", ha.listener, UpdateURL)
 	pathJSON := fmt.Sprintf("http://%s%s", ha.listener, JSONUpdateURL)
-	manyJSONs := fmt.Sprintf("http://%s%s", ha.listener, JSONUpdatesURL)
 	for _, ms := range values {
 		err := ha.client.Post(path, ms.GetMType(), ms.GetID(), ms.GetValue())
 		if err != nil {
 			logger.Error("Can't report metrics")
 			break
 		}
-	}
-	for _, ms := range values {
 		m.ParseMetricsString(ms.(*metrx.MetricsString))
 		err = ha.client.PostJSON(pathJSON, m)
 		if err != nil {
@@ -143,23 +139,7 @@ func (ha *httpAgent) Report() error {
 		}
 		logger.Info("Metric", ms.GetID())
 	}
-	metrics := make([]metrx.Metrics, 0, len(values))
-	for _, val := range values {
-		m := &metrx.MetricsString{
-			ID:    val.GetID(),
-			MType: val.GetMType(),
-			Value: val.GetValue(),
-		}
-		mx := metrx.Metrics{}
-		err := mx.ParseMetricsString(m)
-		if err != nil {
-			return err
-		}
-		metrics = append(metrics, mx)
-	}
-	logger.Info("Post big JSON with batch")
-	err = ha.client.PostJSONs(manyJSONs, metrics)
-	return err
+	return nil
 }
 
 func defineRuntimes() {

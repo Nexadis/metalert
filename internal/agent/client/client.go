@@ -8,7 +8,6 @@ import (
 type MetricPoster interface {
 	Post(path, valType, name, value string) error
 	PostJSON(path string, m *metrx.Metrics) error
-	PostJSONs(path string, m []metrx.Metrics) error
 }
 
 type httpClient struct {
@@ -39,15 +38,6 @@ func (c *httpClient) PostJSON(path string, m *metrx.Metrics) error {
 		SetHeader("Content-type", "application/json").
 		SetHeader("Accept-Encoding", "gzip").
 		SetBody(*m).
-		Post(path)
-	return err
-}
-
-func (c *httpClient) PostJSONs(path string, m []metrx.Metrics) error {
-	_, err := c.client.R().
-		SetHeader("Content-type", "application/json").
-		SetHeader("Accept-Encoding", "gzip").
-		SetBody(m).
 		Post(path)
 	return err
 }
