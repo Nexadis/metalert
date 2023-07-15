@@ -1,13 +1,16 @@
 package client
 
 import (
-	"github.com/Nexadis/metalert/internal/metrx"
+	"bytes"
+	"compress/gzip"
+	"encoding/json"
+
 	"github.com/go-resty/resty/v2"
 )
 
 type MetricPoster interface {
 	Post(path, valType, name, value string) error
-	PostJSON(path string, m *metrx.Metrics) error
+	PostObj(path string, obj interface{}) error
 }
 
 type httpClient struct {
@@ -33,11 +36,21 @@ func (c *httpClient) Post(path, valType, name, value string) error {
 	return err
 }
 
-func (c *httpClient) PostJSON(path string, m *metrx.Metrics) error {
-	_, err := c.client.R().
+func (c *httpClient) PostObj(path string, obj interface{}) error {
+	buf, err := json.Marshal(obj)
+	if err != nil {
+		return err
+	}
+	body := &bytes.Buffer{}
+	g := gzip.NewWriter(body)
+	g.Write(buf)
+	g.Close()
+
+	_, err = c.client.R().
 		SetHeader("Content-type", "application/json").
 		SetHeader("Accept-Encoding", "gzip").
-		SetBody(*m).
+		SetHeader("Content-Encoding", "gzip").
+		SetBody(body).
 		Post(path)
 	return err
 }

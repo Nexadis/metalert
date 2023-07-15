@@ -21,8 +21,9 @@ type Watcher interface {
 }
 
 const (
-	UpdateURL     = "/update/{valType}/{name}/{value}"
-	JSONUpdateURL = "/update/"
+	UpdateURL      = "/update/{valType}/{name}/{value}"
+	JSONUpdateURL  = "/update/"
+	JSONUpdatesURL = "/updates/"
 )
 
 var RuntimeNames []string
@@ -125,6 +126,7 @@ func (ha *httpAgent) Report() error {
 	}
 	path := fmt.Sprintf("http://%s%s", ha.listener, UpdateURL)
 	pathJSON := fmt.Sprintf("http://%s%s", ha.listener, JSONUpdateURL)
+	pathValues := fmt.Sprintf("http://%s%s", ha.listener, JSONUpdatesURL)
 	for _, ms := range values {
 		err := ha.client.Post(path, ms.GetMType(), ms.GetID(), ms.GetValue())
 		if err != nil {
@@ -132,12 +134,21 @@ func (ha *httpAgent) Report() error {
 			break
 		}
 		m.ParseMetricsString(ms.(*metrx.MetricsString))
-		err = ha.client.PostJSON(pathJSON, m)
+		err = ha.client.PostObj(pathJSON, m)
 		if err != nil {
 			logger.Error("Can't report metrics", err)
 			break
 		}
 		logger.Info("Metric", ms.GetID())
+	}
+	metrics := make([]metrx.Metrics, 0, len(values))
+	for _, ms := range values {
+		m.ParseMetricsString(ms.(*metrx.MetricsString))
+		metrics = append(metrics, *m)
+	}
+	err = ha.client.PostObj(pathValues, metrics)
+	if err != nil {
+		logger.Error("Can't report metrics")
 	}
 	return nil
 }
