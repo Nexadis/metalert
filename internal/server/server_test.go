@@ -476,7 +476,7 @@ var JSONUpdatesTests = []testReq{
 		name: "Invalid type",
 		request: req{
 			method: http.MethodPost,
-			url:    "/updates",
+			url:    "/updates/",
 			body: `[{
 				"id": "name",
 				"type": "counrer",
@@ -491,7 +491,7 @@ var JSONUpdatesTests = []testReq{
 		name: "Many valid values",
 		request: req{
 			method: http.MethodPost,
-			url:    "/updates",
+			url:    "/updates/",
 			body: `
 				[
 {"id":"name","type":"gauge","value":123.123},
