@@ -131,13 +131,13 @@ func (ha *httpAgent) Report() error {
 		err := ha.client.Post(path, ms.GetMType(), ms.GetID(), ms.GetValue())
 		if err != nil {
 			logger.Error("Can't report metrics")
-			break
+			return fmt.Errorf("can't report metrics: %w", err)
 		}
 		m.ParseMetricsString(ms.(*metrx.MetricsString))
 		err = ha.client.PostObj(pathJSON, m)
 		if err != nil {
 			logger.Error("Can't report metrics", err)
-			break
+			return fmt.Errorf("can't report metrics: %w", err)
 		}
 		logger.Info("Metric", ms.GetID())
 	}
@@ -149,6 +149,7 @@ func (ha *httpAgent) Report() error {
 	err = ha.client.PostObj(pathValues, metrics)
 	if err != nil {
 		logger.Error("Can't report metrics")
+		return fmt.Errorf("can't report metrics: %w", err)
 	}
 	return nil
 }

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"encoding/json"
+	"time"
 
 	"github.com/go-resty/resty/v2"
 )
@@ -19,7 +20,10 @@ type httpClient struct {
 
 func NewHTTP() MetricPoster {
 	return &httpClient{
-		client: resty.New(),
+		client: resty.New().
+			SetRetryCount(3).
+			SetRetryWaitTime(1 * time.Second).
+			SetRetryMaxWaitTime(5 * time.Second),
 	}
 }
 

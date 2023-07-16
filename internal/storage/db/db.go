@@ -3,6 +3,8 @@ package db
 import (
 	"context"
 	"database/sql"
+	"fmt"
+	"time"
 
 	"github.com/Nexadis/metalert/internal/metrx"
 	"github.com/Nexadis/metalert/internal/storage"
@@ -51,7 +53,16 @@ func New() DataBase {
 }
 
 func (db *DB) Open(ctx context.Context, DSN string) error {
-	pgx, err := sql.Open("pgx", DSN)
+	var pgx *sql.DB
+	err := retry(3, 2*time.Second, func() error {
+		var err error
+		pgx, err = sql.Open("pgx", DSN)
+		if err != nil {
+			logger.Info("Unable to connect to database:", err)
+			return err
+		}
+		return pgx.Ping()
+	})
 	logger.Info("Connect to:", DSN)
 	if err != nil {
 		logger.Error("Unable to connect to database:", err)
@@ -71,7 +82,7 @@ func (db *DB) Close() error {
 }
 
 func (db *DB) Ping() error {
-	return db.db.Ping()
+	return retry(3, 2*time.Second, db.db.Ping)
 }
 
 func (db *DB) Get(ctx context.Context, mtype, id string) (storage.ObjectGetter, error) {
@@ -80,10 +91,18 @@ func (db *DB) Get(ctx context.Context, mtype, id string) (storage.ObjectGetter, 
 	if err != nil {
 		return nil, err
 	}
-	row := stmt.QueryRowContext(ctx,
-		mtype, id,
-	)
-	if row.Err() != nil {
+	var row *sql.Row
+	err = retry(3, 2*time.Second, func() error {
+		row = stmt.QueryRowContext(ctx,
+			mtype, id,
+		)
+		err = row.Err()
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
 		return nil, err
 	}
 	m := &metrx.Metrics{
@@ -104,7 +123,14 @@ func (db *DB) GetAll(ctx context.Context) ([]storage.ObjectGetter, error) {
 		return nil, err
 	}
 	metrics := make([]storage.ObjectGetter, 0, db.size)
-	rows, err := stmt.QueryContext(ctx)
+	var rows *sql.Rows
+	err = retry(3, 2*time.Second, func() error {
+		rows, err = stmt.QueryContext(ctx)
+		if err != nil {
+			return err
+		}
+		return nil
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -152,15 +178,34 @@ func (db *DB) Set(ctx context.Context, mtype, id, value string) error {
 	if err != nil {
 		return err
 	}
-	_, err = stmt.ExecContext(ctx,
-		m.ID,
-		m.MType,
-		m.Delta,
-		m.Value,
-	)
-	if err != nil {
-		return err
-	}
+	retry(3, 2*time.Second, func() error {
+		_, err = stmt.ExecContext(ctx,
+			m.ID,
+			m.MType,
+			m.Delta,
+			m.Value,
+		)
+		if err != nil {
+			return err
+		}
+		return nil
+	})
 	db.size += 1
 	return tx.Commit()
+}
+
+func retry(attempt int, sleep time.Duration, fn func() error) error {
+	var err error
+	for attempt > 0 {
+		err = fn()
+		if err != nil {
+			logger.Info("Retry", attempt)
+			attempt--
+			time.Sleep(sleep)
+		} else {
+			logger.Info("Don't retry all is good ")
+			return nil
+		}
+	}
+	return fmt.Errorf("retry db %w", err)
 }
