@@ -129,6 +129,9 @@ func (db *DB) GetAll(ctx context.Context) ([]storage.ObjectGetter, error) {
 		if err != nil {
 			return err
 		}
+		if rows.Err() != nil {
+			return err
+		}
 		return nil
 	})
 	if err != nil {
