@@ -9,6 +9,7 @@ import (
 	"github.com/Nexadis/metalert/internal/metrx"
 	"github.com/Nexadis/metalert/internal/storage"
 	"github.com/Nexadis/metalert/internal/utils/logger"
+	"github.com/jackc/pgerrcode"
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
@@ -98,7 +99,7 @@ func (db *DB) Get(ctx context.Context, mtype, id string) (storage.ObjectGetter, 
 		)
 		err = row.Err()
 		if err != nil {
-			return err
+			return checkConnection(err)
 		}
 		return nil
 	})
@@ -127,10 +128,10 @@ func (db *DB) GetAll(ctx context.Context) ([]storage.ObjectGetter, error) {
 	err = retry(3, 2*time.Second, func() error {
 		rows, err = stmt.QueryContext(ctx)
 		if err != nil {
-			return err
+			return checkConnection(err)
 		}
 		if rows.Err() != nil {
-			return err
+			return checkConnection(err)
 		}
 		return nil
 	})
@@ -189,12 +190,19 @@ func (db *DB) Set(ctx context.Context, mtype, id, value string) error {
 			m.Value,
 		)
 		if err != nil {
-			return err
+			return checkConnection(err)
 		}
 		return nil
 	})
 	db.size += 1
 	return tx.Commit()
+}
+
+func checkConnection(err error) error {
+	if pgerrcode.IsConnectionException(err.Error()) {
+		return fmt.Errorf("db conenction problem %w", err)
+	}
+	return err
 }
 
 func retry(attempt int, sleep time.Duration, fn func() error) error {
