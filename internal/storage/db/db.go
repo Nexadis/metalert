@@ -43,19 +43,36 @@ type DataBase interface {
 type DB struct {
 	db   *sql.DB
 	size int
+	conn connection
 }
 
-func New() DataBase {
+type connection struct {
+	retries int
+	timeout time.Duration
+}
+
+func New(config *Config) DataBase {
+	return new(
+		SetRetries(config.Retry),
+		SetTimeout(time.Duration(config.Timeout)),
+	)
+}
+
+func new(options ...func(*DB)) DataBase {
 	db := &sql.DB{}
-	return &DB{
+	DB := &DB{
 		db:   db,
 		size: 0,
 	}
+	for _, o := range options {
+		o(DB)
+	}
+	return DB
 }
 
 func (db *DB) Open(ctx context.Context, DSN string) error {
 	var pgx *sql.DB
-	err := retry(3, 2*time.Second, func() error {
+	err := retry(db.conn.retries, db.conn.timeout, func() error {
 		var err error
 		pgx, err = sql.Open("pgx", DSN)
 		if err != nil {
@@ -83,7 +100,7 @@ func (db *DB) Close() error {
 }
 
 func (db *DB) Ping() error {
-	return retry(3, 2*time.Second, db.db.Ping)
+	return retry(db.conn.retries, db.conn.timeout, db.db.Ping)
 }
 
 func (db *DB) Get(ctx context.Context, mtype, id string) (storage.ObjectGetter, error) {
@@ -93,7 +110,7 @@ func (db *DB) Get(ctx context.Context, mtype, id string) (storage.ObjectGetter, 
 		return nil, err
 	}
 	var row *sql.Row
-	err = retry(3, 2*time.Second, func() error {
+	err = retry(db.conn.retries, db.conn.timeout, func() error {
 		row = stmt.QueryRowContext(ctx,
 			mtype, id,
 		)
@@ -125,7 +142,7 @@ func (db *DB) GetAll(ctx context.Context) ([]storage.ObjectGetter, error) {
 	}
 	metrics := make([]storage.ObjectGetter, 0, db.size)
 	var rows *sql.Rows
-	err = retry(3, 2*time.Second, func() error {
+	err = retry(db.conn.retries, db.conn.timeout, func() error {
 		rows, err = stmt.QueryContext(ctx)
 		if err != nil {
 			return checkConnection(err)
@@ -182,7 +199,7 @@ func (db *DB) Set(ctx context.Context, mtype, id, value string) error {
 	if err != nil {
 		return err
 	}
-	retry(3, 2*time.Second, func() error {
+	retry(db.conn.retries, db.conn.timeout, func() error {
 		_, err = stmt.ExecContext(ctx,
 			m.ID,
 			m.MType,
