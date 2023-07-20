@@ -33,6 +33,7 @@ type httpAgent struct {
 	pullInterval   int64
 	reportInterval int64
 	storage        mem.MetricsStorage
+	mchan          chan metrx.MetricsString
 	client         client.MetricPoster
 }
 
@@ -40,11 +41,13 @@ func NewAgent(listener string, pullInterval, reportInterval int64) Watcher {
 	defineRuntimes()
 	storage := mem.NewMetricsStorage()
 	client := client.NewHTTP()
+	mchan := make(chan metrx.MetricsString)
 	return &httpAgent{
 		listener:       listener,
 		pullInterval:   pullInterval,
 		reportInterval: reportInterval,
 		storage:        storage,
+		mchan:          mchan,
 		client:         client,
 	}
 }

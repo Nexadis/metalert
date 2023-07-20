@@ -19,7 +19,7 @@ func NewConfig() *Config {
 
 func (c *Config) ParseCmd() {
 	flag.StringVar(&c.DSN, "d", "", "DSN for DB")
-	flag.IntVar(&c.Retry, "r", 3, "number of repeated attempts to connect to DB")
+	flag.IntVar(&c.Retry, "rc", 3, "number of repeated attempts to connect to DB")
 	flag.IntVar(&c.Timeout, "to", 2, "timeout in seconds to connect to DB")
 	logger.Info("Parse command flags:",
 		"DSN", c.DSN,
