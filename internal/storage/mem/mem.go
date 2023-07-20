@@ -3,6 +3,7 @@ package mem
 import (
 	"context"
 	"strings"
+	"sync"
 
 	"github.com/Nexadis/metalert/internal/metrx"
 	"github.com/Nexadis/metalert/internal/storage"
@@ -16,6 +17,7 @@ type MetricsStorage interface {
 type Storage struct {
 	Gauges   map[string]metrx.Gauge
 	Counters map[string]metrx.Counter
+	mutex    sync.RWMutex
 }
 
 func NewMetricsStorage() MetricsStorage {
@@ -32,14 +34,18 @@ func (ms *Storage) Set(ctx context.Context, mtype, id, value string) error {
 		if err != nil {
 			return err
 		}
+		ms.mutex.Lock()
 		ms.Counters[id] += val
+		ms.mutex.Unlock()
 		return nil
 	case metrx.GaugeType:
 		val, err := metrx.ParseGauge(value)
 		if err != nil {
 			return err
 		}
+		ms.mutex.Lock()
 		ms.Gauges[id] = val
+		ms.mutex.Unlock()
 		return nil
 	}
 	return storage.ErrInvalidType
@@ -48,7 +54,9 @@ func (ms *Storage) Set(ctx context.Context, mtype, id, value string) error {
 func (ms *Storage) Get(ctx context.Context, mtype, id string) (storage.ObjectGetter, error) {
 	switch strings.ToLower(mtype) {
 	case metrx.CounterType:
+		ms.mutex.RLock()
 		value, ok := ms.Counters[id]
+		ms.mutex.RUnlock()
 		if !ok {
 			return nil, storage.ErrNotFound
 		}
@@ -59,7 +67,9 @@ func (ms *Storage) Get(ctx context.Context, mtype, id string) (storage.ObjectGet
 		}
 		return val, nil
 	case metrx.GaugeType:
+		ms.mutex.RLock()
 		value, ok := ms.Gauges[id]
+		ms.mutex.RUnlock()
 		if !ok {
 			return nil, storage.ErrNotFound
 		}
@@ -76,6 +86,7 @@ func (ms *Storage) Get(ctx context.Context, mtype, id string) (storage.ObjectGet
 
 func (ms *Storage) GetAll(ctx context.Context) ([]storage.ObjectGetter, error) {
 	m := make([]storage.ObjectGetter, 0, len(ms.Gauges)+len(ms.Counters))
+	ms.mutex.RLock()
 	for name, value := range ms.Gauges {
 		val := value.String()
 		m = append(m, &metrx.MetricsString{
@@ -93,5 +104,6 @@ func (ms *Storage) GetAll(ctx context.Context) ([]storage.ObjectGetter, error) {
 		})
 
 	}
+	ms.mutex.RUnlock()
 	return m, nil
 }
