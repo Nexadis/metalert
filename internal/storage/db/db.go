@@ -72,7 +72,7 @@ func new(options ...func(*DB)) DataBase {
 
 func (db *DB) Open(ctx context.Context, DSN string) error {
 	var pgx *sql.DB
-	err := retry(db.conn.retries, db.conn.timeout, func() error {
+	err := db.retry(func() error {
 		var err error
 		pgx, err = sql.Open("pgx", DSN)
 		if err != nil {
@@ -100,7 +100,7 @@ func (db *DB) Close() error {
 }
 
 func (db *DB) Ping() error {
-	return retry(db.conn.retries, db.conn.timeout, db.db.Ping)
+	return db.retry(db.db.Ping)
 }
 
 func (db *DB) Get(ctx context.Context, mtype, id string) (storage.ObjectGetter, error) {
@@ -110,7 +110,7 @@ func (db *DB) Get(ctx context.Context, mtype, id string) (storage.ObjectGetter, 
 		return nil, err
 	}
 	var row *sql.Row
-	err = retry(db.conn.retries, db.conn.timeout, func() error {
+	err = db.retry(func() error {
 		row = stmt.QueryRowContext(ctx,
 			mtype, id,
 		)
@@ -142,7 +142,7 @@ func (db *DB) GetAll(ctx context.Context) ([]storage.ObjectGetter, error) {
 	}
 	metrics := make([]storage.ObjectGetter, 0, db.size)
 	var rows *sql.Rows
-	err = retry(db.conn.retries, db.conn.timeout, func() error {
+	err = db.retry(func() error {
 		rows, err = stmt.QueryContext(ctx)
 		if err != nil {
 			return checkConnection(err)
@@ -199,7 +199,7 @@ func (db *DB) Set(ctx context.Context, mtype, id, value string) error {
 	if err != nil {
 		return err
 	}
-	retry(db.conn.retries, db.conn.timeout, func() error {
+	db.retry(func() error {
 		_, err = stmt.ExecContext(ctx,
 			m.ID,
 			m.MType,
@@ -222,14 +222,15 @@ func checkConnection(err error) error {
 	return err
 }
 
-func retry(attempt int, sleep time.Duration, fn func() error) error {
+func (db *DB) retry(fn func() error) error {
+	attempt := db.conn.retries
 	var err error
 	for attempt > 0 {
 		err = fn()
 		if err != nil {
 			logger.Info("Retry", attempt)
 			attempt--
-			time.Sleep(sleep)
+			time.Sleep(db.conn.timeout)
 		} else {
 			logger.Info("Don't retry all is good ")
 			return nil
