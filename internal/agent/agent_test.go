@@ -14,17 +14,6 @@ var endpoint = "http://localhost:8080"
 func TestPull(t *testing.T) {
 	defineRuntimes()
 	storage := mem.NewMetricsStorage()
-	ha := &httpAgent{
-		listener:       endpoint,
-		pullInterval:   0,
-		reportInterval: 0,
-		storage:        storage,
-		client:         nil,
-	}
-	err := ha.Pull()
-	if err != nil {
-		t.Error(err)
-	}
 	type want struct {
 		name    string
 		valType string
@@ -97,6 +86,18 @@ func TestPull(t *testing.T) {
 			},
 		},
 	}
+	mchan := make(chan *metrx.MetricsString, 1000)
+	ha := &httpAgent{
+		listener:       endpoint,
+		pullInterval:   0,
+		reportInterval: 0,
+		storage:        storage,
+		client:         nil,
+		mchan:          mchan,
+	}
+	errs := make(chan error, 1)
+	ha.Pull(errs)
+	close(ha.mchan)
 	ctx := context.TODO()
 	for _, test := range testsRuntime {
 		t.Run(test.name, func(t *testing.T) {
@@ -113,6 +114,11 @@ func TestPull(t *testing.T) {
 			assert.Equal(t, test.want.value, value.GetValue())
 		})
 	}
+	err := <-errs
+	if err != nil {
+		t.Error(err)
+	}
+	close(errs)
 }
 
 type testClient struct {
@@ -135,6 +141,7 @@ func (c *testClient) PostObj(path string, obj interface{}) error {
 }
 
 func TestReport(t *testing.T) {
+	t.Log("Run goroutine report")
 	type want struct {
 		name    string
 		valType string
@@ -214,12 +221,20 @@ func TestReport(t *testing.T) {
 				client:         testClient,
 			}
 			err := ha.storage.Set(ctx, test.want.valType, test.want.name, test.want.value)
-			assert.NoError(t, err)
-			err = ha.Report()
+			ha.mchan = make(chan *metrx.MetricsString, 1)
+			ha.mchan <- &metrx.MetricsString{
+				ID:    test.want.name,
+				MType: test.want.valType,
+				Value: test.want.value,
+			}
+			close(ha.mchan)
+			errs := make(chan error, 1)
+			ha.Report(errs)
 			assert.NoError(t, err)
 			assert.Equal(t, test.want.name, testClient.name)
 			assert.Equal(t, test.want.valType, testClient.valType)
 			assert.Equal(t, test.want.value, testClient.value)
+			close(errs)
 		})
 	}
 }

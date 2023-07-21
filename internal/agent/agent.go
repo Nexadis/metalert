@@ -16,8 +16,8 @@ import (
 
 type Watcher interface {
 	Run() error
-	Pull() error
-	Report() error
+	Pull(result chan error)
+	Report(result chan error)
 }
 
 const (
@@ -33,7 +33,8 @@ type httpAgent struct {
 	pullInterval   int64
 	reportInterval int64
 	storage        mem.MetricsStorage
-	mchan          chan metrx.MetricsString
+	mchan          chan *metrx.MetricsString
+	counter        metrx.Counter
 	client         client.MetricPoster
 }
 
@@ -41,7 +42,7 @@ func NewAgent(listener string, pullInterval, reportInterval int64) Watcher {
 	defineRuntimes()
 	storage := mem.NewMetricsStorage()
 	client := client.NewHTTP()
-	mchan := make(chan metrx.MetricsString)
+	mchan := make(chan *metrx.MetricsString)
 	return &httpAgent{
 		listener:       listener,
 		pullInterval:   pullInterval,
@@ -53,19 +54,25 @@ func NewAgent(listener string, pullInterval, reportInterval int64) Watcher {
 }
 
 func (ha *httpAgent) Run() error {
-	pullTicker := time.NewTicker(time.Duration(ha.pullInterval) * time.Second)
+	pullerrs := make(chan error)
+	reporterrs := make(chan error)
 	reportTicker := time.NewTicker(time.Duration(ha.reportInterval) * time.Second)
+	pullTicker := time.NewTicker(time.Duration(ha.pullInterval) * time.Second)
 	for {
 		select {
 		case <-pullTicker.C:
-			err := ha.Pull()
-			if err != nil {
-				return err
-			}
+			ha.mchan = make(chan *metrx.MetricsString)
+			go ha.Pull(pullerrs)
 		case <-reportTicker.C:
-			err := ha.Report()
+			go ha.Report(reporterrs)
+		case err := <-pullerrs:
 			if err != nil {
-				return err
+				logger.Error(err)
+			}
+			close(ha.mchan)
+		case err := <-reporterrs:
+			if err != nil {
+				logger.Error(err)
 			}
 		}
 	}
@@ -75,10 +82,23 @@ func (ha *httpAgent) pullCustom() error {
 	ctx := context.TODO()
 	randValue := metrx.Gauge(rand.Float64()).String()
 	err := ha.storage.Set(ctx, metrx.GaugeType, "RandomValue", randValue)
+	logger.Info("Pull RandomValue")
+	ha.mchan <- &metrx.MetricsString{
+		ID:    "RandomValue",
+		MType: metrx.GaugeType,
+		Value: randValue,
+	}
 	if err != nil {
 		return err
 	}
 	err = ha.storage.Set(ctx, metrx.CounterType, "PollCount", "1")
+	ha.counter += 1
+	logger.Info("Pull PollCount")
+	ha.mchan <- &metrx.MetricsString{
+		ID:    "PollCount",
+		MType: metrx.CounterType,
+		Value: ha.counter.String(),
+	}
 	if err != nil {
 		return err
 	}
@@ -100,6 +120,11 @@ func (ha *httpAgent) pullRuntime() error {
 			val = metrx.Gauge(value.Uint()).String()
 		}
 		err := ha.storage.Set(ctx, metrx.GaugeType, gaugeName, val)
+		ha.mchan <- &metrx.MetricsString{
+			ID:    gaugeName,
+			MType: metrx.GaugeType,
+			Value: val,
+		}
 		if err != nil {
 			return err
 		}
@@ -108,53 +133,41 @@ func (ha *httpAgent) pullRuntime() error {
 	return nil
 }
 
-func (ha *httpAgent) Pull() error {
+func (ha *httpAgent) Pull(errs chan error) {
+	logger.Info("Pull Custom")
 	err := ha.pullCustom()
 	if err != nil {
-		return err
+		logger.Error(err)
 	}
 	err = ha.pullRuntime()
 	if err != nil {
-		return err
+		logger.Error(err)
 	}
-	return nil
+	errs <- err
 }
 
-func (ha *httpAgent) Report() error {
-	ctx := context.TODO()
-	values, err := ha.storage.GetAll(ctx)
+func (ha *httpAgent) Report(reported chan error) {
 	m := &metrx.Metrics{}
-	if err != nil {
-		return err
-	}
 	path := fmt.Sprintf("http://%s%s", ha.listener, UpdateURL)
 	pathJSON := fmt.Sprintf("http://%s%s", ha.listener, JSONUpdateURL)
-	pathValues := fmt.Sprintf("http://%s%s", ha.listener, JSONUpdatesURL)
-	for _, ms := range values {
+	for ms := range ha.mchan {
 		err := ha.client.Post(path, ms.GetMType(), ms.GetID(), ms.GetValue())
 		if err != nil {
 			logger.Error("Can't report metrics")
-			return fmt.Errorf("can't report metrics: %w", err)
+			reported <- fmt.Errorf("can't report metrics: %w", err)
+			return
 		}
-		m.ParseMetricsString(ms.(*metrx.MetricsString))
+		m.ParseMetricsString(ms)
 		err = ha.client.PostObj(pathJSON, m)
 		if err != nil {
 			logger.Error("Can't report metrics", err)
-			return fmt.Errorf("can't report metrics: %w", err)
+			reported <- fmt.Errorf("can't report metrics: %w", err)
+			return
 		}
 		logger.Info("Metric", ms.GetID())
+
 	}
-	metrics := make([]metrx.Metrics, 0, len(values))
-	for _, ms := range values {
-		m.ParseMetricsString(ms.(*metrx.MetricsString))
-		metrics = append(metrics, *m)
-	}
-	err = ha.client.PostObj(pathValues, metrics)
-	if err != nil {
-		logger.Error("Can't report metrics")
-		return fmt.Errorf("can't report metrics: %w", err)
-	}
-	return nil
+	reported <- nil
 }
 
 func defineRuntimes() {
