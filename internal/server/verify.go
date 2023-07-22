@@ -34,35 +34,41 @@ func (vw *verifiedWriter) Write(data []byte) (int, error) {
 
 func (s *httpServer) WithVerify(h http.Handler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if s.config.Key != "" {
-			body, err := io.ReadAll(r.Body)
-			if err != nil {
-				http.Error(w, fmt.Errorf(ErrorCheckHash, err).Error(), http.StatusInternalServerError)
-				return
-			}
-			defer r.Body.Close()
-			newBody := io.NopCloser(bytes.NewBuffer(body))
-			r.Body = newBody
-			signature, err := verifier.Sign(body, []byte(s.config.Key))
-			if err != nil {
-				http.Error(w, fmt.Errorf(ErrorCheckHash, err).Error(), http.StatusInternalServerError)
-				return
-			}
-			gotSignature := r.Header.Get(verifier.HashHeader)
-			strSignature := base64.StdEncoding.EncodeToString(signature)
-
-			if gotSignature != strSignature {
-				logger.Info(ErrorInvalidHash.Error(), gotSignature+"!="+strSignature)
-				http.Error(w, ErrorInvalidHash.Error(), http.StatusBadRequest)
-				return
-			}
-			logger.Info("Signature is good")
-			w = &verifiedWriter{
-				ResponseWriter: w,
-				Writer:         w,
-				key:            s.config.Key,
-			}
+		if s.config.Key == "" {
+			h.ServeHTTP(w, r)
 		}
+		gotSignature := r.Header.Get(verifier.HashHeader)
+		if gotSignature == "" {
+			h.ServeHTTP(w, r)
+		}
+
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			http.Error(w, fmt.Errorf(ErrorCheckHash, err).Error(), http.StatusInternalServerError)
+			return
+		}
+		defer r.Body.Close()
+		newBody := io.NopCloser(bytes.NewBuffer(body))
+		r.Body = newBody
+		signature, err := verifier.Sign(body, []byte(s.config.Key))
+		if err != nil {
+			http.Error(w, fmt.Errorf(ErrorCheckHash, err).Error(), http.StatusInternalServerError)
+			return
+		}
+		strSignature := base64.StdEncoding.EncodeToString(signature)
+
+		if gotSignature != strSignature {
+			logger.Info(ErrorInvalidHash.Error(), gotSignature+"!="+strSignature)
+			http.Error(w, ErrorInvalidHash.Error(), http.StatusBadRequest)
+			return
+		}
+		logger.Info("Signature is good")
+		w = &verifiedWriter{
+			ResponseWriter: w,
+			Writer:         w,
+			key:            s.config.Key,
+		}
+
 		h.ServeHTTP(w, r)
 	}
 }
