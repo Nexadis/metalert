@@ -3,12 +3,11 @@ package client
 import (
 	"bytes"
 	"compress/gzip"
-	"crypto/hmac"
-	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
 	"time"
 
+	"github.com/Nexadis/metalert/internal/utils/verifier"
 	"github.com/go-resty/resty/v2"
 )
 
@@ -63,7 +62,7 @@ func (c *httpClient) PostObj(path string, obj interface{}) error {
 		"Content-Encoding": "gzip",
 	}
 	if c.key != "" {
-		signature, err := Sign(buf, []byte(c.key))
+		signature, err := verifier.Sign(buf, []byte(c.key))
 		if err != nil {
 			return err
 		}
@@ -75,13 +74,4 @@ func (c *httpClient) PostObj(path string, obj interface{}) error {
 		SetBody(body).
 		Post(path)
 	return err
-}
-
-func Sign(body []byte, key []byte) ([]byte, error) {
-	sign := hmac.New(sha256.New, key)
-	_, err := sign.Write(body)
-	if err != nil {
-		return nil, nil
-	}
-	return sign.Sum(nil), nil
 }

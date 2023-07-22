@@ -85,12 +85,15 @@ func TestPull(t *testing.T) {
 			},
 		},
 	}
+	config := &Config{
+		Address:        endpoint,
+		PollInterval:   0,
+		ReportInterval: 0,
+	}
 	ha := &httpAgent{
-		listener:       endpoint,
-		pullInterval:   0,
-		reportInterval: 0,
-		storage:        storage,
-		client:         nil,
+		config:  config,
+		storage: storage,
+		client:  nil,
 	}
 	mchan := ha.Pull()
 	metrics := make(map[string]metrx.MetricsString, len(RuntimeNames))
@@ -204,12 +207,15 @@ func TestReport(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			testClient := &testClient{}
 			storage := mem.NewMetricsStorage()
+			config := &Config{
+				Address:        endpoint,
+				PollInterval:   0,
+				ReportInterval: 0,
+			}
 			ha := &httpAgent{
-				listener:       endpoint,
-				pullInterval:   0,
-				reportInterval: 0,
-				storage:        storage,
-				client:         testClient,
+				config:  config,
+				storage: storage,
+				client:  testClient,
 			}
 			mchan := make(chan *metrx.MetricsString, 1000)
 			mchan <- &metrx.MetricsString{

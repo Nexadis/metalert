@@ -13,6 +13,7 @@ type Config struct {
 	StoreInterval   int64  `env:"STORE_INTERVAL"`
 	FileStoragePath string `env:"FILE_STORAGE_PATH"`
 	Restore         bool   `env:"RESTORE"`
+	Key             string `env:"KEY"`
 	DB              *db.Config
 }
 
@@ -28,22 +29,11 @@ func (c *Config) parseCmd() {
 	flag.Int64Var(&c.StoreInterval, "i", 300, "Save metrics on disk with interval")
 	flag.StringVar(&c.FileStoragePath, "f", "/tmp/metrics_db.json", "File for save metrics")
 	flag.BoolVar(&c.Restore, "r", true, "Restore file with metrics when start server")
-	logger.Info("Parse command flags:",
-		"Address", c.Address,
-		"Store Interval", c.StoreInterval,
-		"File Storage Path", c.FileStoragePath,
-		"Restore", c.Restore,
-	)
+	flag.StringVar(&c.Key, "k", "", "Key to sign body")
 }
 
 func (c *Config) parseEnv() {
 	err := env.Parse(c)
-	logger.Info("Parse environment:",
-		"Address", c.Address,
-		"Store Interval", c.StoreInterval,
-		"File Storage Path", c.FileStoragePath,
-		"Restore", c.Restore,
-	)
 	if err != nil {
 		logger.Error(err.Error())
 	}
@@ -55,4 +45,11 @@ func (c *Config) ParseConfig() {
 	flag.Parse()
 	c.parseEnv()
 	c.DB.ParseEnv()
+	logger.Info("Parse config:",
+		"Address", c.Address,
+		"Store Interval", c.StoreInterval,
+		"File Storage Path", c.FileStoragePath,
+		"Restore", c.Restore,
+		"Key", c.Key,
+	)
 }

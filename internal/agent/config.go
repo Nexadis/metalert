@@ -22,7 +22,7 @@ func (c *Config) parseCmd() {
 	flag.StringVar(&c.Address, "a", "localhost:8080", "Server for metrics")
 	flag.Int64Var(&c.PollInterval, "p", 2, "Poll Interval")
 	flag.Int64Var(&c.ReportInterval, "r", 10, "Report Interval")
-	flag.StringVar(&c.Key, "k", "", "Key for sha256")
+	flag.StringVar(&c.Key, "k", "", "Key to sign body")
 	flag.Parse()
 }
 

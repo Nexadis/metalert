@@ -28,12 +28,10 @@ const (
 var RuntimeNames []string
 
 type httpAgent struct {
-	listener       string
-	pullInterval   int64
-	reportInterval int64
-	storage        mem.MetricsStorage
-	counter        metrx.Counter
-	client         client.MetricPoster
+	config  *Config
+	storage mem.MetricsStorage
+	counter metrx.Counter
+	client  client.MetricPoster
 }
 
 func New(config *Config) Watcher {
@@ -41,18 +39,16 @@ func New(config *Config) Watcher {
 	storage := mem.NewMetricsStorage()
 	client := client.NewHTTP(client.SetKey(config.Key))
 	agent := &httpAgent{
-		listener:       config.Address,
-		storage:        storage,
-		client:         client,
-		pullInterval:   config.PollInterval,
-		reportInterval: config.ReportInterval,
+		config:  config,
+		storage: storage,
+		client:  client,
 	}
 	return agent
 }
 
 func (ha *httpAgent) Run() error {
 	errs := make(chan error)
-	reportTicker := time.NewTicker(time.Duration(ha.reportInterval) * time.Second)
+	reportTicker := time.NewTicker(time.Duration(ha.config.ReportInterval) * time.Second)
 	for {
 		select {
 		case <-reportTicker.C:
@@ -68,14 +64,12 @@ func (ha *httpAgent) Run() error {
 
 func (ha *httpAgent) pullCustom(mchan chan *metrx.MetricsString) {
 	randValue := metrx.Gauge(rand.Float64()).String()
-	logger.Info("Pull RandomValue")
 	mchan <- &metrx.MetricsString{
 		ID:    "RandomValue",
 		MType: metrx.GaugeType,
 		Value: randValue,
 	}
 	ha.counter += 1
-	logger.Info("Pull PollCount")
 	mchan <- &metrx.MetricsString{
 		ID:    "PollCount",
 		MType: metrx.CounterType,
@@ -118,8 +112,8 @@ func (ha *httpAgent) Pull() chan *metrx.MetricsString {
 
 func (ha *httpAgent) Report(input chan *metrx.MetricsString, errs chan error) {
 	m := &metrx.Metrics{}
-	path := fmt.Sprintf("http://%s%s", ha.listener, UpdateURL)
-	pathJSON := fmt.Sprintf("http://%s%s", ha.listener, JSONUpdateURL)
+	path := fmt.Sprintf("http://%s%s", ha.config.Address, UpdateURL)
+	pathJSON := fmt.Sprintf("http://%s%s", ha.config.Address, JSONUpdateURL)
 	for ms := range input {
 		err := ha.client.Post(path, ms.GetMType(), ms.GetID(), ms.GetValue())
 		if err != nil {
@@ -134,8 +128,6 @@ func (ha *httpAgent) Report(input chan *metrx.MetricsString, errs chan error) {
 			errs <- fmt.Errorf("can't report metrics: %w", err)
 			return
 		}
-		logger.Info("Metric", ms.GetID())
-
 	}
 	errs <- nil
 }
