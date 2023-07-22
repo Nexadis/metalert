@@ -36,17 +36,18 @@ type httpAgent struct {
 	client         client.MetricPoster
 }
 
-func NewAgent(listener string, pullInterval, reportInterval int64) Watcher {
+func New(config *Config) Watcher {
 	defineRuntimes()
 	storage := mem.NewMetricsStorage()
-	client := client.NewHTTP()
-	return &httpAgent{
-		listener:       listener,
-		pullInterval:   pullInterval,
-		reportInterval: reportInterval,
+	client := client.NewHTTP(client.SetKey(config.Key))
+	agent := &httpAgent{
+		listener:       config.Address,
 		storage:        storage,
 		client:         client,
+		pullInterval:   config.PollInterval,
+		reportInterval: config.ReportInterval,
 	}
+	return agent
 }
 
 func (ha *httpAgent) Run() error {

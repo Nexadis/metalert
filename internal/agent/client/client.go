@@ -3,6 +3,9 @@ package client
 import (
 	"bytes"
 	"compress/gzip"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/base64"
 	"encoding/json"
 	"time"
 
@@ -16,15 +19,20 @@ type MetricPoster interface {
 
 type httpClient struct {
 	client *resty.Client
+	key    string
 }
 
-func NewHTTP() MetricPoster {
-	return &httpClient{
+func NewHTTP(options ...func(*httpClient)) MetricPoster {
+	client := &httpClient{
 		client: resty.New().
 			SetRetryCount(3).
 			SetRetryWaitTime(1 * time.Second).
 			SetRetryMaxWaitTime(5 * time.Second),
 	}
+	for _, o := range options {
+		o(client)
+	}
+	return client
 }
 
 func (c *httpClient) Post(path, valType, name, value string) error {
@@ -49,12 +57,31 @@ func (c *httpClient) PostObj(path string, obj interface{}) error {
 	g := gzip.NewWriter(body)
 	g.Write(buf)
 	g.Close()
+	Headers := map[string]string{
+		"Content-type":     "application/json",
+		"Accept-Encoding":  "gzip",
+		"Content-Encoding": "gzip",
+	}
+	if c.key != "" {
+		signature, err := Sign(buf, []byte(c.key))
+		if err != nil {
+			return err
+		}
+		Headers["HashSHA256"] = base64.StdEncoding.EncodeToString(signature)
+	}
 
 	_, err = c.client.R().
-		SetHeader("Content-type", "application/json").
-		SetHeader("Accept-Encoding", "gzip").
-		SetHeader("Content-Encoding", "gzip").
+		SetHeaders(Headers).
 		SetBody(body).
 		Post(path)
 	return err
+}
+
+func Sign(body []byte, key []byte) ([]byte, error) {
+	sign := hmac.New(sha256.New, key)
+	_, err := sign.Write(body)
+	if err != nil {
+		return nil, nil
+	}
+	return sign.Sum(nil), nil
 }

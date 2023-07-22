@@ -8,10 +8,7 @@ import (
 func main() {
 	config := agent.NewConfig()
 	config.ParseConfig()
-	agent := agent.NewAgent(
-		config.Address,
-		config.PollInterval,
-		config.ReportInterval)
+	agent := agent.New(config)
 	logger.Info("Agent", config.Address)
 	err := agent.Run()
 	if err != nil {
