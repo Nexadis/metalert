@@ -39,8 +39,8 @@ func (s *httpServer) WithVerify(h http.Handler) http.HandlerFunc {
 			return
 		}
 		gotSignature := r.Header.Get(verifier.HashHeader)
-		_, err := base64.StdEncoding.DecodeString(gotSignature)
-		if gotSignature == "" || err != nil {
+		logger.Info("GOT HASH:", gotSignature, r.Header)
+		if gotSignature == "" {
 			h.ServeHTTP(w, r)
 			return
 		}
