@@ -57,12 +57,12 @@ func (s *httpServer) WithVerify(h http.Handler) http.HandlerFunc {
 				return
 			}
 			logger.Info("Signature is good")
+			w = &verifiedWriter{
+				ResponseWriter: w,
+				Writer:         w,
+				key:            s.config.Key,
+			}
 		}
-		vw := &verifiedWriter{
-			ResponseWriter: w,
-			Writer:         w,
-			key:            s.config.Key,
-		}
-		h.ServeHTTP(vw, r)
+		h.ServeHTTP(w, r)
 	}
 }
