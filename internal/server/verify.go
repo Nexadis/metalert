@@ -28,7 +28,7 @@ func (vw *verifiedWriter) Write(data []byte) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	vw.Header().Add(verifier.HashHeader, base64.StdEncoding.EncodeToString(signature))
+	vw.Header().Set(verifier.HashHeader, base64.StdEncoding.EncodeToString(signature))
 	return vw.Writer.Write(data)
 }
 
