@@ -5,7 +5,7 @@ import (
 	"crypto/sha256"
 )
 
-const HashHeader = `HashSHA256`
+const HashHeader = `Hash`
 
 func Sign(body []byte, key []byte) ([]byte, error) {
 	sign := hmac.New(sha256.New, key)
