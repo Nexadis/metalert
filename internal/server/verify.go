@@ -28,7 +28,7 @@ func (vw *verifiedWriter) Write(data []byte) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	vw.Header().Add("HashSHA256", base64.StdEncoding.EncodeToString(signature))
+	vw.Header().Add(verifier.HashHeader, base64.StdEncoding.EncodeToString(signature))
 	return vw.Writer.Write(data)
 }
 
@@ -48,7 +48,7 @@ func (s *httpServer) WithVerify(h http.Handler) http.HandlerFunc {
 				http.Error(w, fmt.Errorf(ErrorCheckHash, err).Error(), http.StatusInternalServerError)
 				return
 			}
-			gotSignature := r.Header.Get("HashSHA256")
+			gotSignature := r.Header.Get(verifier.HashHeader)
 			strSignature := base64.StdEncoding.EncodeToString(signature)
 
 			if gotSignature != strSignature {

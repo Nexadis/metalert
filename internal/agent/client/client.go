@@ -66,7 +66,7 @@ func (c *httpClient) PostObj(path string, obj interface{}) error {
 		if err != nil {
 			return err
 		}
-		Headers["HashSHA256"] = base64.StdEncoding.EncodeToString(signature)
+		Headers[verifier.HashHeader] = base64.StdEncoding.EncodeToString(signature)
 	}
 
 	_, err = c.client.R().
