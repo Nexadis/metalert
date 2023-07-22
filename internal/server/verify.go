@@ -36,10 +36,12 @@ func (s *httpServer) WithVerify(h http.Handler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if s.config.Key == "" {
 			h.ServeHTTP(w, r)
+			return
 		}
 		gotSignature := r.Header.Get(verifier.HashHeader)
 		if gotSignature == "" {
 			h.ServeHTTP(w, r)
+			return
 		}
 
 		body, err := io.ReadAll(r.Body)
