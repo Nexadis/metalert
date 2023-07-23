@@ -12,6 +12,7 @@ type Config struct {
 	ReportInterval int64  `env:"REPORT_INTERVAL"`
 	PollInterval   int64  `env:"POLL_INTERVAL"`
 	Key            string `env:"KEY"`
+	RateLimit      int64  `env:"RATE_LIMIT"`
 }
 
 func NewConfig() *Config {
@@ -23,6 +24,7 @@ func (c *Config) parseCmd() {
 	flag.Int64Var(&c.PollInterval, "p", 2, "Poll Interval")
 	flag.Int64Var(&c.ReportInterval, "r", 10, "Report Interval")
 	flag.StringVar(&c.Key, "k", "", "Key to sign body")
+	flag.Int64Var(&c.RateLimit, "l", 5, "Workers for report")
 	flag.Parse()
 }
 
