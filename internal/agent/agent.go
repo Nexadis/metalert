@@ -7,6 +7,9 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/shirou/gopsutil/v3/cpu"
+	memStat "github.com/shirou/gopsutil/v3/mem"
+
 	"github.com/Nexadis/metalert/internal/agent/client"
 	"github.com/Nexadis/metalert/internal/metrx"
 	"github.com/Nexadis/metalert/internal/storage/mem"
@@ -74,6 +77,26 @@ func (ha *httpAgent) pullCustom(mchan chan *metrx.MetricsString) {
 		ID:    "PollCount",
 		MType: metrx.CounterType,
 		Value: ha.counter.String(),
+	}
+	v, _ := memStat.VirtualMemory()
+	totalMemory := metrx.Gauge(v.Total)
+	mchan <- &metrx.MetricsString{
+		ID:    "TotalMemory",
+		MType: metrx.GaugeType,
+		Value: totalMemory.String(),
+	}
+	freeMemory := metrx.Gauge(v.Free)
+	mchan <- &metrx.MetricsString{
+		ID:    "TotalMemory",
+		MType: metrx.GaugeType,
+		Value: freeMemory.String(),
+	}
+	c, _ := cpu.Percent(0, false)
+	CPUUtilization := metrx.Gauge(c[0])
+	mchan <- &metrx.MetricsString{
+		ID:    "CPUUtilization1",
+		MType: metrx.GaugeType,
+		Value: CPUUtilization.String(),
 	}
 }
 
