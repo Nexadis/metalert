@@ -24,7 +24,7 @@ func (c *Config) parseCmd() {
 	flag.Int64Var(&c.PollInterval, "p", 2, "Poll Interval")
 	flag.Int64Var(&c.ReportInterval, "r", 10, "Report Interval")
 	flag.StringVar(&c.Key, "k", "", "Key to sign body")
-	flag.Int64Var(&c.RateLimit, "l", 5, "Workers for report")
+	flag.Int64Var(&c.RateLimit, "l", 1, "Workers for report")
 	flag.Parse()
 }
 

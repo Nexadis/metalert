@@ -3,6 +3,7 @@ package client
 import (
 	"bytes"
 	"compress/gzip"
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"time"
@@ -12,8 +13,8 @@ import (
 )
 
 type MetricPoster interface {
-	Post(path, valType, name, value string) error
-	PostObj(path string, obj interface{}) error
+	Post(ctx context.Context, path, valType, name, value string) error
+	PostObj(ctx context.Context, path string, obj interface{}) error
 }
 
 type httpClient struct {
@@ -34,8 +35,9 @@ func NewHTTP(options ...func(*httpClient)) MetricPoster {
 	return client
 }
 
-func (c *httpClient) Post(path, valType, name, value string) error {
+func (c *httpClient) Post(ctx context.Context, path, valType, name, value string) error {
 	_, err := c.client.R().
+		SetContext(ctx).
 		SetHeader("Content-type", "text/plain").
 		SetHeader("Accept-Encoding", "gzip").
 		SetPathParams(map[string]string{
@@ -47,7 +49,7 @@ func (c *httpClient) Post(path, valType, name, value string) error {
 	return err
 }
 
-func (c *httpClient) PostObj(path string, obj interface{}) error {
+func (c *httpClient) PostObj(ctx context.Context, path string, obj interface{}) error {
 	buf, err := json.Marshal(obj)
 	if err != nil {
 		return err
@@ -70,6 +72,7 @@ func (c *httpClient) PostObj(path string, obj interface{}) error {
 	}
 
 	_, err = c.client.R().
+		SetContext(ctx).
 		SetHeaders(Headers).
 		SetBody(body).
 		Post(path)
