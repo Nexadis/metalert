@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"context"
 	"testing"
 
 	"github.com/Nexadis/metalert/internal/metrx"
@@ -95,7 +96,7 @@ func TestPull(t *testing.T) {
 		storage: storage,
 		client:  nil,
 	}
-	mchan := ha.Pull()
+	mchan := ha.Pull(context.Background())
 	metrics := make(map[string]metrx.MetricsString, len(RuntimeNames))
 	for m := range mchan {
 		metrics[m.ID] = *m

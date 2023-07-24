@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"context"
 	"fmt"
 	"math/rand"
 	"reflect"
@@ -17,8 +18,8 @@ import (
 )
 
 type Watcher interface {
-	Run() error
-	Pull() chan *metrx.MetricsString
+	Run(ctx context.Context) error
+	Pull(ctx context.Context) chan *metrx.MetricsString
 	Report(input chan *metrx.MetricsString, errs chan error)
 }
 
@@ -49,13 +50,13 @@ func New(config *Config) Watcher {
 	return agent
 }
 
-func (ha *httpAgent) Run() error {
+func (ha *httpAgent) Run(ctx context.Context) error {
 	errs := make(chan error)
 	reportTicker := time.NewTicker(time.Duration(ha.config.ReportInterval) * time.Second)
 	for {
 		select {
 		case <-reportTicker.C:
-			mchan := ha.Pull()
+			mchan := ha.Pull(ctx)
 			go ha.Report(mchan, errs)
 		case err := <-errs:
 			if err != nil {
@@ -65,46 +66,55 @@ func (ha *httpAgent) Run() error {
 	}
 }
 
-func (ha *httpAgent) pullCustom(mchan chan *metrx.MetricsString) {
+func (ha *httpAgent) pullCustom(ctx context.Context, mchan chan *metrx.MetricsString) {
+	var customMetrics []metrx.MetricsString
+
 	randValue := metrx.Gauge(rand.Float64()).String()
-	mchan <- &metrx.MetricsString{
+	customMetrics = append(customMetrics, metrx.MetricsString{
 		ID:    "RandomValue",
 		MType: metrx.GaugeType,
 		Value: randValue,
-	}
+	})
 	ha.counter += 1
-	mchan <- &metrx.MetricsString{
+	customMetrics = append(customMetrics, metrx.MetricsString{
 		ID:    "PollCount",
 		MType: metrx.CounterType,
 		Value: ha.counter.String(),
-	}
+	})
 	v, _ := memStat.VirtualMemory()
 	totalMemory := metrx.Gauge(v.Total)
-	mchan <- &metrx.MetricsString{
+	customMetrics = append(customMetrics, metrx.MetricsString{
 		ID:    "TotalMemory",
 		MType: metrx.GaugeType,
 		Value: totalMemory.String(),
-	}
+	})
 	freeMemory := metrx.Gauge(v.Free)
-	mchan <- &metrx.MetricsString{
-		ID:    "TotalMemory",
+	customMetrics = append(customMetrics, metrx.MetricsString{
+		ID:    "FreeMemory",
 		MType: metrx.GaugeType,
 		Value: freeMemory.String(),
-	}
-	c, _ := cpu.Percent(0, false)
+	})
+	c, _ := cpu.PercentWithContext(ctx, 0, false)
 	CPUUtilization := metrx.Gauge(c[0])
-	mchan <- &metrx.MetricsString{
+	customMetrics = append(customMetrics, metrx.MetricsString{
 		ID:    "CPUUtilization1",
 		MType: metrx.GaugeType,
 		Value: CPUUtilization.String(),
+	})
+	for _, m := range customMetrics {
+		select {
+		case mchan <- &m:
+		case <-ctx.Done():
+			return
+		}
 	}
 }
 
-func (ha *httpAgent) pullRuntime(mchan chan *metrx.MetricsString) {
+func (ha *httpAgent) pullRuntime(ctx context.Context, mchan chan *metrx.MetricsString) {
 	var val string
-	m := &runtime.MemStats{}
-	runtime.ReadMemStats(m)
-	mstruct := reflect.ValueOf(*m)
+	memStats := &runtime.MemStats{}
+	runtime.ReadMemStats(memStats)
+	mstruct := reflect.ValueOf(*memStats)
 	for _, gaugeName := range RuntimeNames {
 		value := mstruct.FieldByName(gaugeName)
 		switch value.Kind() {
@@ -113,22 +123,28 @@ func (ha *httpAgent) pullRuntime(mchan chan *metrx.MetricsString) {
 		case reflect.Uint32, reflect.Uint64:
 			val = metrx.Gauge(value.Uint()).String()
 		}
-		mchan <- &metrx.MetricsString{
+		m := &metrx.MetricsString{
 			ID:    gaugeName,
 			MType: metrx.GaugeType,
 			Value: val,
 		}
+		select {
+		case mchan <- m:
+		case <-ctx.Done():
+			return
+		}
 	}
-	logger.Info("Metrics pulled")
 }
 
-func (ha *httpAgent) Pull() chan *metrx.MetricsString {
-	logger.Info("Pull Custom")
+func (ha *httpAgent) Pull(ctx context.Context) chan *metrx.MetricsString {
 	mchan := make(chan *metrx.MetricsString)
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
 	go func() {
-		ha.pullCustom(mchan)
-		ha.pullRuntime(mchan)
+		ha.pullCustom(ctx, mchan)
+		ha.pullRuntime(ctx, mchan)
 		close(mchan)
+		logger.Info("Metrics pulled")
 	}()
 	return mchan
 }
