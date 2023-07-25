@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -9,7 +10,7 @@ import (
 	"testing"
 
 	"github.com/Nexadis/metalert/internal/metrx"
-	"github.com/Nexadis/metalert/internal/storage"
+	"github.com/Nexadis/metalert/internal/storage/mem"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -167,14 +168,12 @@ var valuesTests = []testReq{
 }
 
 func testServer() *httpServer {
-	storage := storage.NewMetricsStorage()
+	storage := mem.NewMetricsStorage()
 	config := NewConfig()
 	server := &httpServer{
 		nil,
 		storage,
-		nil,
 		config,
-		nil,
 	}
 	server.MountHandlers()
 	return server
@@ -182,6 +181,7 @@ func testServer() *httpServer {
 
 func TestUpdateHandlerURL(t *testing.T) {
 	server := testServer()
+	ctx := context.TODO()
 
 	for _, test := range updateTests {
 		t.Run(test.name, func(t *testing.T) {
@@ -191,7 +191,7 @@ func TestUpdateHandlerURL(t *testing.T) {
 			result := w.Result()
 			assert.Equal(t, result.StatusCode, test.want.statusCode)
 			defer result.Body.Close()
-			getted, _ := server.storage.Get(test.want.valType, test.want.name)
+			getted, _ := server.storage.Get(ctx, test.want.valType, test.want.name)
 			assert.Equal(t, getted.GetValue(), test.want.value)
 		})
 	}
@@ -199,9 +199,10 @@ func TestUpdateHandlerURL(t *testing.T) {
 
 func TestValueHandlerURL(t *testing.T) {
 	server := testServer()
+	ctx := context.TODO()
 	for _, test := range valueTests {
 		t.Run(test.name, func(t *testing.T) {
-			err := server.storage.Set(test.want.valType, test.want.name, test.want.value)
+			err := server.storage.Set(ctx, test.want.valType, test.want.name, test.want.value)
 			assert.NoError(t, err)
 			r := httptest.NewRequest(test.request.method, test.request.url, nil)
 			w := httptest.NewRecorder()
@@ -217,8 +218,9 @@ func TestValueHandlerURL(t *testing.T) {
 
 func TestValuesHandlerURL(t *testing.T) {
 	server := testServer()
+	ctx := context.TODO()
 	for _, test := range valueTests {
-		err := server.storage.Set(test.want.valType, test.want.name, test.want.value)
+		err := server.storage.Set(ctx, test.want.valType, test.want.name, test.want.value)
 		assert.NoError(t, err)
 	}
 	for _, test := range valuesTests {
@@ -425,7 +427,7 @@ var JSONValueTests = []testReq{
 
 func TestUpdateHandlerJSON(t *testing.T) {
 	server := testServer()
-
+	ctx := context.TODO()
 	for _, test := range JSONUpdateTests {
 		t.Run(test.name, func(t *testing.T) {
 			r := httptest.NewRequest(test.request.method, test.request.url, strings.NewReader(test.request.body))
@@ -436,7 +438,7 @@ func TestUpdateHandlerJSON(t *testing.T) {
 			assert.Equal(t, test.want.statusCode, result.StatusCode)
 			defer result.Body.Close()
 			if result.StatusCode == http.StatusOK {
-				getted, _ := server.storage.Get(test.want.valType, test.want.name)
+				getted, _ := server.storage.Get(ctx, test.want.valType, test.want.name)
 				assert.Equal(t, getted.GetValue(), test.want.value)
 			}
 		})
@@ -446,12 +448,13 @@ func TestUpdateHandlerJSON(t *testing.T) {
 func TestValueHandlerJSON(t *testing.T) {
 	server := testServer()
 
+	ctx := context.TODO()
 	for _, test := range JSONValueTests {
 		t.Run(test.name, func(t *testing.T) {
 			r := httptest.NewRequest(test.request.method, test.request.url, strings.NewReader(test.request.body))
 			r.Header = test.request.headers
 			w := httptest.NewRecorder()
-			server.storage.Set(test.want.valType, test.want.name, test.want.value)
+			server.storage.Set(ctx, test.want.valType, test.want.name, test.want.value)
 			server.router.ServeHTTP(w, r)
 			result := w.Result()
 			assert.Equal(t, test.want.statusCode, result.StatusCode)

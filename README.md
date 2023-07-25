@@ -19,7 +19,7 @@ git remote add -m main template https://github.com/Yandex-Practicum/go-musthave-
 
 ```
 git fetch template && git checkout template/main .github
-```
+```postgres=# 
 
 Затем добавьте полученные изменения в свой репозиторий.
 
@@ -42,9 +42,20 @@ docker run -d \                                                                 
 
 psql postgres://postgres:secret@localhost:5432
 
-postgres=# create database metrics;
+postgres=# create database test;
 postgres=# create user test with encrypted password 'test';
 postgres=# grant all privileges on database metrics to test;
+postgres=# grant all on SCHEMA public TO test;
+
+psql postgres://test:test@localhost:5432/test
+
+postgres=# 
+CREATE TABLE Metrics (
+"name" VARCHAR(250) NOT NULL,
+"type" VARCHAR(100) NOT NULL,
+"delta" DOUBLE PRECISION,
+"value" BIGINT,
+CONSTRAINT ID PRIMARY KEY (name,type) );
 
 ```
 

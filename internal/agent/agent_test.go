@@ -1,10 +1,11 @@
 package agent
 
 import (
+	"context"
 	"testing"
 
 	"github.com/Nexadis/metalert/internal/metrx"
-	"github.com/Nexadis/metalert/internal/storage"
+	"github.com/Nexadis/metalert/internal/storage/mem"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -12,7 +13,7 @@ var endpoint = "http://localhost:8080"
 
 func TestPull(t *testing.T) {
 	defineRuntimes()
-	storage := storage.NewMetricsStorage()
+	storage := mem.NewMetricsStorage()
 	ha := &httpAgent{
 		listener:       endpoint,
 		pullInterval:   0,
@@ -96,16 +97,17 @@ func TestPull(t *testing.T) {
 			},
 		},
 	}
+	ctx := context.TODO()
 	for _, test := range testsRuntime {
 		t.Run(test.name, func(t *testing.T) {
-			value, err := ha.storage.Get(test.want.valType, test.want.name)
+			value, err := ha.storage.Get(ctx, test.want.valType, test.want.name)
 			assert.ErrorIs(t, nil, err)
 			assert.NotEmpty(t, value)
 		})
 	}
 	for _, test := range testsCounter {
 		t.Run(test.name, func(t *testing.T) {
-			value, err := ha.storage.Get(test.want.valType, test.want.name)
+			value, err := ha.storage.Get(ctx, test.want.valType, test.want.name)
 			assert.ErrorIs(t, nil, err)
 			assert.NotEmpty(t, value)
 			assert.Equal(t, test.want.value, value.GetValue())
@@ -199,10 +201,11 @@ func TestReport(t *testing.T) {
 			},
 		},
 	}
+	ctx := context.TODO()
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			testClient := &testClient{}
-			storage := storage.NewMetricsStorage()
+			storage := mem.NewMetricsStorage()
 			ha := &httpAgent{
 				listener:       endpoint,
 				pullInterval:   0,
@@ -210,7 +213,7 @@ func TestReport(t *testing.T) {
 				storage:        storage,
 				client:         testClient,
 			}
-			err := ha.storage.Set(test.want.valType, test.want.name, test.want.value)
+			err := ha.storage.Set(ctx, test.want.valType, test.want.name, test.want.value)
 			assert.NoError(t, err)
 			err = ha.Report()
 			assert.NoError(t, err)

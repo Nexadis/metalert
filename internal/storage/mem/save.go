@@ -1,15 +1,24 @@
-package storage
+package mem
 
 import (
+	"context"
 	"encoding/json"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/Nexadis/metalert/internal/metrx"
 	"github.com/Nexadis/metalert/internal/utils/logger"
 )
 
-func (ms *MetricsStorage) Save(FileStoragePath string) error {
+type StateSaver interface {
+	Restore(ctx context.Context, FileStoragePath string, Restore bool) error
+	Save(ctx context.Context, FileStoragePath string) error
+	SaveTimer(ctx context.Context, FileStoragePath string, interval int64)
+}
+
+func (ms *Storage) Save(ctx context.Context, FileStoragePath string) error {
 	fileName := FileStoragePath
 	if fileName == "" {
 		return nil
@@ -20,7 +29,7 @@ func (ms *MetricsStorage) Save(FileStoragePath string) error {
 		return err
 	}
 	defer file.Close()
-	metrics, err := ms.GetAll()
+	metrics, err := ms.GetAll(ctx)
 	if err != nil {
 		return err
 	}
@@ -30,7 +39,7 @@ func (ms *MetricsStorage) Save(FileStoragePath string) error {
 	return nil
 }
 
-func (ms *MetricsStorage) Restore(FileStoragePath string, Restore bool) error {
+func (ms *Storage) Restore(ctx context.Context, FileStoragePath string, Restore bool) error {
 	fileName := FileStoragePath
 	if fileName == "" {
 		return nil
@@ -51,7 +60,7 @@ func (ms *MetricsStorage) Restore(FileStoragePath string, Restore bool) error {
 		return err
 	}
 	for _, m := range metrics {
-		err = ms.Set(m.MType, m.ID, m.Value)
+		err = ms.Set(ctx, m.MType, m.ID, m.Value)
 		if err != nil {
 			return err
 		}
@@ -59,16 +68,28 @@ func (ms *MetricsStorage) Restore(FileStoragePath string, Restore bool) error {
 	return nil
 }
 
-func (ms *MetricsStorage) SaveTimer(FileStoragePath string, interval int64) {
+func (ms *Storage) SaveTimer(ctx context.Context, FileStoragePath string, interval int64) {
 	if interval <= 0 {
 		interval = 1
 	}
+
+	exit, stop := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM|syscall.SIGINT|syscall.SIGQUIT)
+	defer stop()
+
 	ticker := time.NewTicker(time.Duration(interval) * time.Second)
 	for {
-		<-ticker.C
-		err := ms.Save(FileStoragePath)
-		if err != nil {
-			logger.Info("Can't save storage")
+		select {
+		case <-ticker.C:
+			err := ms.Save(ctx, FileStoragePath)
+			if err != nil {
+				logger.Info("Can't save storage")
+			}
+		case <-exit.Done():
+			err := ms.Save(ctx, FileStoragePath)
+			if err != nil {
+				logger.Info("Can't save storage")
+			}
+			os.Exit(0)
 		}
 	}
 }
