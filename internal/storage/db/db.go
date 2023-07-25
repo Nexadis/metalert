@@ -3,10 +3,13 @@ package db
 import (
 	"context"
 	"database/sql"
+	"fmt"
+	"time"
 
 	"github.com/Nexadis/metalert/internal/metrx"
 	"github.com/Nexadis/metalert/internal/storage"
 	"github.com/Nexadis/metalert/internal/utils/logger"
+	"github.com/jackc/pgerrcode"
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
@@ -40,18 +43,44 @@ type DataBase interface {
 type DB struct {
 	db   *sql.DB
 	size int
+	conn connection
 }
 
-func New() DataBase {
+type connection struct {
+	retries int
+	timeout time.Duration
+}
+
+func New(config *Config) DataBase {
+	return new(
+		SetRetries(config.Retry),
+		SetTimeout(time.Duration(config.Timeout)),
+	)
+}
+
+func new(options ...func(*DB)) DataBase {
 	db := &sql.DB{}
-	return &DB{
+	DB := &DB{
 		db:   db,
 		size: 0,
 	}
+	for _, o := range options {
+		o(DB)
+	}
+	return DB
 }
 
 func (db *DB) Open(ctx context.Context, DSN string) error {
-	pgx, err := sql.Open("pgx", DSN)
+	var pgx *sql.DB
+	err := db.retry(func() error {
+		var err error
+		pgx, err = sql.Open("pgx", DSN)
+		if err != nil {
+			logger.Info("Unable to connect to database:", err)
+			return err
+		}
+		return pgx.Ping()
+	})
 	logger.Info("Connect to:", DSN)
 	if err != nil {
 		logger.Error("Unable to connect to database:", err)
@@ -71,7 +100,7 @@ func (db *DB) Close() error {
 }
 
 func (db *DB) Ping() error {
-	return db.db.Ping()
+	return db.retry(db.db.Ping)
 }
 
 func (db *DB) Get(ctx context.Context, mtype, id string) (storage.ObjectGetter, error) {
@@ -80,10 +109,18 @@ func (db *DB) Get(ctx context.Context, mtype, id string) (storage.ObjectGetter, 
 	if err != nil {
 		return nil, err
 	}
-	row := stmt.QueryRowContext(ctx,
-		mtype, id,
-	)
-	if row.Err() != nil {
+	var row *sql.Row
+	err = db.retry(func() error {
+		row = stmt.QueryRowContext(ctx,
+			mtype, id,
+		)
+		err = row.Err()
+		if err != nil {
+			return checkConnection(err)
+		}
+		return nil
+	})
+	if err != nil {
 		return nil, err
 	}
 	m := &metrx.Metrics{
@@ -104,7 +141,17 @@ func (db *DB) GetAll(ctx context.Context) ([]storage.ObjectGetter, error) {
 		return nil, err
 	}
 	metrics := make([]storage.ObjectGetter, 0, db.size)
-	rows, err := stmt.QueryContext(ctx)
+	var rows *sql.Rows
+	err = db.retry(func() error {
+		rows, err = stmt.QueryContext(ctx)
+		if err != nil {
+			return checkConnection(err)
+		}
+		if rows.Err() != nil {
+			return checkConnection(err)
+		}
+		return nil
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -152,15 +199,42 @@ func (db *DB) Set(ctx context.Context, mtype, id, value string) error {
 	if err != nil {
 		return err
 	}
-	_, err = stmt.ExecContext(ctx,
-		m.ID,
-		m.MType,
-		m.Delta,
-		m.Value,
-	)
-	if err != nil {
-		return err
-	}
+	db.retry(func() error {
+		_, err = stmt.ExecContext(ctx,
+			m.ID,
+			m.MType,
+			m.Delta,
+			m.Value,
+		)
+		if err != nil {
+			return checkConnection(err)
+		}
+		return nil
+	})
 	db.size += 1
 	return tx.Commit()
+}
+
+func checkConnection(err error) error {
+	if pgerrcode.IsConnectionException(err.Error()) {
+		return fmt.Errorf("db conenction problem %w", err)
+	}
+	return err
+}
+
+func (db *DB) retry(fn func() error) error {
+	attempt := db.conn.retries
+	var err error
+	for attempt > 0 {
+		err = fn()
+		if err != nil {
+			logger.Info("Retry", attempt)
+			attempt--
+			time.Sleep(db.conn.timeout)
+		} else {
+			logger.Info("Don't retry all is good ")
+			return nil
+		}
+	}
+	return fmt.Errorf("retry db %w", err)
 }

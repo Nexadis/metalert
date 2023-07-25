@@ -34,7 +34,7 @@ func chooseStorage(config *Config) storage.Storage {
 	switch {
 	case config.DB.DSN != "":
 		logger.Info("Start with DB")
-		db := db.New()
+		db := db.New(config.DB)
 		dbctx, cancel := context.WithTimeout(context.Background(), time.Duration(time.Second))
 		defer cancel()
 		err := db.Open(dbctx, config.DB.DSN)

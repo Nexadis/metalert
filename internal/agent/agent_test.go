@@ -1,7 +1,6 @@
 package agent
 
 import (
-	"context"
 	"testing"
 
 	"github.com/Nexadis/metalert/internal/metrx"
@@ -14,17 +13,6 @@ var endpoint = "http://localhost:8080"
 func TestPull(t *testing.T) {
 	defineRuntimes()
 	storage := mem.NewMetricsStorage()
-	ha := &httpAgent{
-		listener:       endpoint,
-		pullInterval:   0,
-		reportInterval: 0,
-		storage:        storage,
-		client:         nil,
-	}
-	err := ha.Pull()
-	if err != nil {
-		t.Error(err)
-	}
 	type want struct {
 		name    string
 		valType string
@@ -97,20 +85,30 @@ func TestPull(t *testing.T) {
 			},
 		},
 	}
-	ctx := context.TODO()
+	ha := &httpAgent{
+		listener:       endpoint,
+		pullInterval:   0,
+		reportInterval: 0,
+		storage:        storage,
+		client:         nil,
+	}
+	mchan := ha.Pull()
+	metrics := make(map[string]metrx.MetricsString, len(RuntimeNames))
+	for m := range mchan {
+		metrics[m.ID] = *m
+	}
 	for _, test := range testsRuntime {
 		t.Run(test.name, func(t *testing.T) {
-			value, err := ha.storage.Get(ctx, test.want.valType, test.want.name)
-			assert.ErrorIs(t, nil, err)
-			assert.NotEmpty(t, value)
+			_, ok := metrics[test.want.name]
+			assert.True(t, ok)
 		})
 	}
 	for _, test := range testsCounter {
 		t.Run(test.name, func(t *testing.T) {
-			value, err := ha.storage.Get(ctx, test.want.valType, test.want.name)
-			assert.ErrorIs(t, nil, err)
+			value, ok := metrics[test.want.name]
+			assert.True(t, ok)
 			assert.NotEmpty(t, value)
-			assert.Equal(t, test.want.value, value.GetValue())
+			assert.Equal(t, test.want.value, value.Value)
 		})
 	}
 }
@@ -135,6 +133,7 @@ func (c *testClient) PostObj(path string, obj interface{}) error {
 }
 
 func TestReport(t *testing.T) {
+	t.Log("Run goroutine report")
 	type want struct {
 		name    string
 		valType string
@@ -201,7 +200,6 @@ func TestReport(t *testing.T) {
 			},
 		},
 	}
-	ctx := context.TODO()
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			testClient := &testClient{}
@@ -213,13 +211,19 @@ func TestReport(t *testing.T) {
 				storage:        storage,
 				client:         testClient,
 			}
-			err := ha.storage.Set(ctx, test.want.valType, test.want.name, test.want.value)
-			assert.NoError(t, err)
-			err = ha.Report()
-			assert.NoError(t, err)
+			mchan := make(chan *metrx.MetricsString, 1000)
+			mchan <- &metrx.MetricsString{
+				ID:    test.want.name,
+				MType: test.want.valType,
+				Value: test.want.value,
+			}
+			close(mchan)
+			errs := make(chan error, 1)
+			ha.Report(mchan, errs)
 			assert.Equal(t, test.want.name, testClient.name)
 			assert.Equal(t, test.want.valType, testClient.valType)
 			assert.Equal(t, test.want.value, testClient.value)
+			close(errs)
 		})
 	}
 }
