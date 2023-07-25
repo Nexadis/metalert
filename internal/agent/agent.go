@@ -30,7 +30,7 @@ type httpAgent struct {
 	listener       string
 	pullInterval   int64
 	reportInterval int64
-	storage        storage.MemStorage
+	storage        storage.Storage
 	client         client.MetricPoster
 }
 

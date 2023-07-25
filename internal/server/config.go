@@ -3,6 +3,7 @@ package server
 import (
 	"flag"
 
+	"github.com/Nexadis/metalert/internal/db"
 	"github.com/Nexadis/metalert/internal/utils/logger"
 	"github.com/caarlos0/env/v8"
 )
@@ -12,10 +13,14 @@ type Config struct {
 	StoreInterval   int64  `env:"STORE_INTERVAL"`
 	FileStoragePath string `env:"FILE_STORAGE_PATH"`
 	Restore         bool   `env:"RESTORE"`
+	DB              *db.Config
 }
 
 func NewConfig() *Config {
-	return &Config{}
+	db := db.NewConfig()
+	return &Config{
+		DB: db,
+	}
 }
 
 func (c *Config) parseCmd() {
@@ -29,7 +34,6 @@ func (c *Config) parseCmd() {
 		"File Storage Path", c.FileStoragePath,
 		"Restore", c.Restore,
 	)
-	flag.Parse()
 }
 
 func (c *Config) parseEnv() {
@@ -46,6 +50,9 @@ func (c *Config) parseEnv() {
 }
 
 func (c *Config) ParseConfig() {
+	c.DB.ParseCmd()
 	c.parseCmd()
+	flag.Parse()
 	c.parseEnv()
+	c.DB.ParseEnv()
 }

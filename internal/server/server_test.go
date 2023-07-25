@@ -172,6 +172,7 @@ func testServer() *httpServer {
 	server := &httpServer{
 		nil,
 		storage,
+		nil,
 		config,
 		nil,
 	}
