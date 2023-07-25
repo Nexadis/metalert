@@ -11,7 +11,7 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-func (s *httpServer) UpdateHandler(w http.ResponseWriter, r *http.Request) {
+func (s *httpServer) Update(w http.ResponseWriter, r *http.Request) {
 	mtype := chi.URLParam(r, "mtype")
 	id := chi.URLParam(r, "id")
 	value := chi.URLParam(r, "value")
@@ -32,7 +32,7 @@ func (s *httpServer) UpdateHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *httpServer) ValueHandler(w http.ResponseWriter, r *http.Request) {
+func (s *httpServer) Value(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-type", "text/plain")
 	mtype := chi.URLParam(r, "mtype")
 	id := chi.URLParam(r, "id")
@@ -54,7 +54,7 @@ func (s *httpServer) ValueHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *httpServer) ValuesHandler(w http.ResponseWriter, r *http.Request) {
+func (s *httpServer) Values(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-type", "text/plain")
 	values, err := s.storage.GetAll(r.Context())
 	if err != nil {
@@ -72,7 +72,7 @@ func (s *httpServer) ValuesHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *httpServer) UpdateJSONHandler(w http.ResponseWriter, r *http.Request) {
+func (s *httpServer) UpdateJSON(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
 	m := &metrx.Metrics{}
 	err := decoder.Decode(m)
@@ -93,7 +93,31 @@ func (s *httpServer) UpdateJSONHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *httpServer) ValueJSONHandler(w http.ResponseWriter, r *http.Request) {
+func (s *httpServer) Updates(w http.ResponseWriter, r *http.Request) {
+	decoder := json.NewDecoder(r.Body)
+	mxs := make([]metrx.Metrics, 0, 50)
+	err := decoder.Decode(&mxs)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	defer r.Body.Close()
+	logger.Info("Parse metrics in Updates handler")
+	for _, m := range mxs {
+		ms, err := m.GetMetricsString()
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		err = s.storage.Set(r.Context(), ms.MType, ms.ID, ms.Value)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+	}
+}
+
+func (s *httpServer) ValueJSON(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-type", "application/json")
 	decoder := json.NewDecoder(r.Body)
 	m := &metrx.Metrics{}

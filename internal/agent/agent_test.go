@@ -130,7 +130,7 @@ func (c *testClient) Post(path, valType, name, value string) error {
 	return nil
 }
 
-func (c *testClient) PostJSON(path string, m *metrx.Metrics) error {
+func (c *testClient) PostObj(path string, obj interface{}) error {
 	return nil
 }
 

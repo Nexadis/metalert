@@ -13,8 +13,8 @@ import (
 const schema = `CREATE TABLE Metrics(
 "id" VARCHAR(250) NOT NULL,
 "type" VARCHAR(100) NOT NULL,
-"delta" DOUBLE PRECISION,
-"value" BIGINT,
+"delta" BIGINT,
+"value" DOUBLE PRECISION,
 CONSTRAINT ID PRIMARY KEY (id,type));
 `
 
@@ -45,7 +45,8 @@ type DB struct {
 func New() DataBase {
 	db := &sql.DB{}
 	return &DB{
-		db: db,
+		db:   db,
+		size: 0,
 	}
 }
 
@@ -74,12 +75,22 @@ func (db *DB) Ping() error {
 }
 
 func (db *DB) Get(ctx context.Context, mtype, id string) (storage.ObjectGetter, error) {
-	row := db.db.QueryRowContext(ctx,
-		`SELECT delta, value FROM Metrics WHERE type = $1 AND id = $2`,
+	stmt, err := db.db.PrepareContext(ctx,
+		`SELECT delta, value FROM Metrics WHERE type=$1 AND id= $2`)
+	if err != nil {
+		return nil, err
+	}
+	row := stmt.QueryRowContext(ctx,
 		mtype, id,
 	)
-	m := &metrx.Metrics{}
-	err := row.Scan(&m.Delta, &m.Value)
+	if row.Err() != nil {
+		return nil, err
+	}
+	m := &metrx.Metrics{
+		ID:    id,
+		MType: mtype,
+	}
+	err = row.Scan(&m.Delta, &m.Value)
 	if err != nil {
 		return nil, err
 	}
@@ -87,10 +98,13 @@ func (db *DB) Get(ctx context.Context, mtype, id string) (storage.ObjectGetter, 
 }
 
 func (db *DB) GetAll(ctx context.Context) ([]storage.ObjectGetter, error) {
+	stmt, err := db.db.PrepareContext(ctx,
+		`SELECT * FROM Metrics`)
+	if err != nil {
+		return nil, err
+	}
 	metrics := make([]storage.ObjectGetter, 0, db.size)
-	rows, err := db.db.QueryContext(ctx,
-		`SELECT * FROM Metrics`,
-	)
+	rows, err := stmt.QueryContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -126,23 +140,27 @@ func (db *DB) Set(ctx context.Context, mtype, id, value string) error {
 	if err != nil {
 		return err
 	}
-	logger.Info("Begin transaction for db!")
-	_, err = db.db.ExecContext(ctx, "INSERT INTO Metrics (id, type, delta, value)"+
-		" VALUES ($1,$2,$3,$4)",
-		m.ID,
-		m.MType,
-		m.Delta,
-		m.Value,
-	)
-	if err == nil {
-		db.size += 1
-		return nil
+	tx, err := db.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
 	}
-	_, err = db.db.ExecContext(ctx, "UPDATE Metrics SET delta=delta + $3, value=$4 WHERE id=$1 AND type=$2 ",
+	defer tx.Rollback()
+	stmt, err := tx.PrepareContext(ctx, "INSERT INTO Metrics (id, type, delta, value) "+
+		"VALUES ($1,$2,$3,$4) ON CONFLICT(id,type) "+
+		"DO UPDATE SET delta=metrics.delta + $3, value=$4",
+	)
+	if err != nil {
+		return err
+	}
+	_, err = stmt.ExecContext(ctx,
 		m.ID,
 		m.MType,
 		m.Delta,
 		m.Value,
 	)
-	return err
+	if err != nil {
+		return err
+	}
+	db.size += 1
+	return tx.Commit()
 }
