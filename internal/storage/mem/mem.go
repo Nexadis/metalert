@@ -87,6 +87,7 @@ func (ms *Storage) Get(ctx context.Context, mtype, id string) (storage.ObjectGet
 func (ms *Storage) GetAll(ctx context.Context) ([]storage.ObjectGetter, error) {
 	m := make([]storage.ObjectGetter, 0, len(ms.Gauges)+len(ms.Counters))
 	ms.mutex.RLock()
+	defer ms.mutex.Unlock()
 	for name, value := range ms.Gauges {
 		val := value.String()
 		m = append(m, &metrx.MetricsString{
@@ -104,6 +105,5 @@ func (ms *Storage) GetAll(ctx context.Context) ([]storage.ObjectGetter, error) {
 		})
 
 	}
-	ms.mutex.RUnlock()
 	return m, nil
 }
