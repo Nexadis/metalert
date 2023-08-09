@@ -11,6 +11,8 @@ type Config struct {
 	Address        string `env:"ADDRESS"`
 	ReportInterval int64  `env:"REPORT_INTERVAL"`
 	PollInterval   int64  `env:"POLL_INTERVAL"`
+	Key            string `env:"KEY"`
+	RateLimit      int64  `env:"RATE_LIMIT"`
 }
 
 func NewConfig() *Config {
@@ -21,19 +23,13 @@ func (c *Config) parseCmd() {
 	flag.StringVar(&c.Address, "a", "localhost:8080", "Server for metrics")
 	flag.Int64Var(&c.PollInterval, "p", 2, "Poll Interval")
 	flag.Int64Var(&c.ReportInterval, "r", 10, "Report Interval")
-	logger.Info("Parse command flags:",
-		"Address", c.Address,
-		"ReportInterval", c.ReportInterval,
-		"PollInterval", c.PollInterval)
+	flag.StringVar(&c.Key, "k", "", "Key to sign body")
+	flag.Int64Var(&c.RateLimit, "l", 1, "Workers for report")
 	flag.Parse()
 }
 
 func (c *Config) parseEnv() {
 	err := env.Parse(c)
-	logger.Info("Parse environment:",
-		"Address", c.Address,
-		"ReportInterval", c.ReportInterval,
-		"PollInterval", c.PollInterval)
 	if err != nil {
 		logger.Error(err.Error())
 	}
@@ -42,4 +38,9 @@ func (c *Config) parseEnv() {
 func (c *Config) ParseConfig() {
 	c.parseCmd()
 	c.parseEnv()
+	logger.Info("Parsed Config:",
+		"Address", c.Address,
+		"ReportInterval", c.ReportInterval,
+		"PollInterval", c.PollInterval,
+		"Key", c.Key)
 }

@@ -1,10 +1,10 @@
 package agent
 
 import (
+	"context"
 	"testing"
 
 	"github.com/Nexadis/metalert/internal/metrx"
-	"github.com/Nexadis/metalert/internal/storage/mem"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -12,7 +12,6 @@ var endpoint = "http://localhost:8080"
 
 func TestPull(t *testing.T) {
 	defineRuntimes()
-	storage := mem.NewMetricsStorage()
 	type want struct {
 		name    string
 		valType string
@@ -85,15 +84,20 @@ func TestPull(t *testing.T) {
 			},
 		},
 	}
-	ha := &httpAgent{
-		listener:       endpoint,
-		pullInterval:   0,
-		reportInterval: 0,
-		storage:        storage,
-		client:         nil,
+	config := &Config{
+		Address:        endpoint,
+		PollInterval:   0,
+		ReportInterval: 0,
 	}
-	mchan := ha.Pull()
-	metrics := make(map[string]metrx.MetricsString, len(RuntimeNames))
+	ha := &httpAgent{
+		config:  config,
+		client:  nil,
+		counter: 0,
+	}
+	mchan := make(chan *metrx.MetricsString, 100)
+	ha.Pull(context.Background(), mchan)
+	close(mchan)
+	metrics := make(map[string]metrx.MetricsString, 100)
 	for m := range mchan {
 		metrics[m.ID] = *m
 	}
@@ -120,7 +124,7 @@ type testClient struct {
 	value   string
 }
 
-func (c *testClient) Post(path, valType, name, value string) error {
+func (c *testClient) Post(ctx context.Context, path, valType, name, value string) error {
 	c.path = path
 	c.valType = valType
 	c.name = name
@@ -128,7 +132,7 @@ func (c *testClient) Post(path, valType, name, value string) error {
 	return nil
 }
 
-func (c *testClient) PostObj(path string, obj interface{}) error {
+func (c *testClient) PostObj(ctx context.Context, path string, obj interface{}) error {
 	return nil
 }
 
@@ -203,23 +207,26 @@ func TestReport(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			testClient := &testClient{}
-			storage := mem.NewMetricsStorage()
-			ha := &httpAgent{
-				listener:       endpoint,
-				pullInterval:   0,
-				reportInterval: 0,
-				storage:        storage,
-				client:         testClient,
+			config := &Config{
+				Address:        endpoint,
+				PollInterval:   0,
+				ReportInterval: 0,
 			}
-			mchan := make(chan *metrx.MetricsString, 1000)
+			ha := &httpAgent{
+				config: config,
+				client: testClient,
+			}
+			mchan := make(chan *metrx.MetricsString, 1)
+			errs := make(chan error, 1)
+			ctx := context.Background()
 			mchan <- &metrx.MetricsString{
 				ID:    test.want.name,
 				MType: test.want.valType,
 				Value: test.want.value,
 			}
 			close(mchan)
-			errs := make(chan error, 1)
-			ha.Report(mchan, errs)
+			ha.Report(ctx, mchan, errs)
+			ctx.Done()
 			assert.Equal(t, test.want.name, testClient.name)
 			assert.Equal(t, test.want.valType, testClient.valType)
 			assert.Equal(t, test.want.value, testClient.value)

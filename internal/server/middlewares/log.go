@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/Nexadis/metalert/internal/utils/logger"
@@ -73,6 +74,10 @@ func WithLogging(h http.Handler) http.Handler {
 			"Size", responseData.size,
 			"Recieved Body", string(recvBody),
 			"Sended Body", responseData.body)
+		logger.Info("Headers:")
+		for k, v := range r.Header {
+			logger.Info(k, strings.Join(v, ", "))
+		}
 	}
 	return http.HandlerFunc(logFunc)
 }

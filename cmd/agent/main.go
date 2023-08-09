@@ -1,6 +1,8 @@
 package main
 
 import (
+	"context"
+
 	"github.com/Nexadis/metalert/internal/agent"
 	"github.com/Nexadis/metalert/internal/utils/logger"
 )
@@ -8,12 +10,9 @@ import (
 func main() {
 	config := agent.NewConfig()
 	config.ParseConfig()
-	agent := agent.NewAgent(
-		config.Address,
-		config.PollInterval,
-		config.ReportInterval)
+	agent := agent.New(config)
 	logger.Info("Agent", config.Address)
-	err := agent.Run()
+	err := agent.Run(context.Background())
 	if err != nil {
 		panic(err)
 	}
