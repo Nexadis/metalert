@@ -171,3 +171,31 @@ func TestGet(t *testing.T) {
 		})
 	}
 }
+
+func BenchmarkGet(b *testing.B) {
+	storage := Storage{
+		Gauges: map[string]metrx.Gauge{
+			"positive": metrx.Gauge(102391),
+			"small":    metrx.Gauge(0.000000000001),
+			"neg":      metrx.Gauge(-102391),
+		},
+		Counters: map[string]metrx.Counter{
+			"positive": metrx.Counter(2),
+			"big":      metrx.Counter(2985198054390),
+		},
+	}
+	ctx := context.Background()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		storage.Get(ctx, "counter", "big")
+	}
+}
+
+func BenchmarkSet(b *testing.B) {
+	storage := NewMetricsStorage()
+	ctx := context.Background()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		storage.Set(ctx, "counter", "big", "48902183409")
+	}
+}
