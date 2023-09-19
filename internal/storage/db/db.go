@@ -52,22 +52,22 @@ type connection struct {
 }
 
 func New(config *Config) DataBase {
-	return new(
-		SetRetries(config.Retry),
-		SetTimeout(time.Duration(config.Timeout)),
-	)
-}
-
-func new(options ...func(*DB)) DataBase {
 	db := &sql.DB{}
 	DB := &DB{
 		db:   db,
 		size: 0,
 	}
-	for _, o := range options {
-		o(DB)
-	}
+	configure(DB,
+		SetRetries(config.Retry),
+		SetTimeout(time.Duration(config.Timeout)),
+	)
 	return DB
+}
+
+func configure(db *DB, options ...func(*DB)) {
+	for _, o := range options {
+		o(db)
+	}
 }
 
 func (db *DB) Open(ctx context.Context, DSN string) error {
