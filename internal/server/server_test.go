@@ -553,3 +553,30 @@ func TestUpdatesJSON(t *testing.T) {
 		})
 	}
 }
+
+func BenchmarkUpdateURL(b *testing.B) {
+	server := testServer()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		b.StopTimer()
+		test := updateTests[0]
+		r := httptest.NewRequest(test.request.method, test.request.url, nil)
+		w := httptest.NewRecorder()
+		b.StartTimer()
+		server.router.ServeHTTP(w, r)
+	}
+}
+
+func BenchmarkUpdateJSON(b *testing.B) {
+	server := testServer()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		b.StopTimer()
+		test := JSONUpdateTests[0]
+		r := httptest.NewRequest(test.request.method, test.request.url, strings.NewReader(test.request.body))
+		r.Header = test.request.headers
+		w := httptest.NewRecorder()
+		b.StartTimer()
+		server.router.ServeHTTP(w, r)
+	}
+}
