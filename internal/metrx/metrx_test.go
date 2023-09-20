@@ -43,3 +43,16 @@ func TestConversions(t *testing.T) {
 		})
 	}
 }
+
+func BenchmarkConversion(b *testing.B) {
+	ms := MetricsString{
+		MType: GaugeType,
+		ID:    "gaugename",
+		Value: "123.547568",
+	}
+	m := Metrics{}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		m.ParseMetricsString(&ms)
+	}
+}
