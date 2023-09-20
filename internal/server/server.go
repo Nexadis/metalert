@@ -23,6 +23,7 @@ type httpServer struct {
 	router  http.Handler
 	storage storage.Storage
 	config  *Config
+	// logger  *logger.Logger
 }
 
 func (s *httpServer) Run() error {

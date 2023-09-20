@@ -1,7 +1,6 @@
 package logger
 
 import (
-	"github.com/fatih/color"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -18,6 +17,12 @@ type Logger interface {
 	Info(...interface{})
 	Debug(...interface{})
 	Error(...interface{})
+	LoggerEnabler
+}
+
+type LoggerEnabler interface {
+	Enable()
+	Disable()
 }
 
 type Log struct {
@@ -47,28 +52,48 @@ func NewLogger(level Level) Logger {
 	log := Log{
 		Zap: logger.Sugar(),
 	}
-	return log
+	return &log
 }
 
 func (l Log) Info(args ...interface{}) {
-	color.Blue("[INFO] ")
 	l.Zap.Infoln(args...)
 }
 
 func (l Log) Debug(args ...interface{}) {
-	color.Green("[DEBUG] ")
 	l.Zap.Debugln(args...)
 }
 
 func (l Log) Error(args ...interface{}) {
-	color.Red("[ERROR] ")
 	l.Zap.Errorln(args...)
+}
+
+func (l *Log) Disable() {
+	z := zap.NewNop()
+	l.Zap = z.Sugar()
+}
+
+func (l *Log) Enable() {
+	logger, err := zap.NewDevelopment()
+	if err != nil {
+		panic(err)
+	}
+
+	l.Zap = logger.Sugar()
+}
+
+func Disable() {
+	StandardLogger.Disable()
+}
+
+func Enable() {
+	StandardLogger.Enable()
 }
 
 var StandardLogger Logger
 
 func init() {
 	StandardLogger = NewLogger(DebugLevel)
+	StandardLogger.Disable()
 }
 
 func Info(args ...interface{}) {
