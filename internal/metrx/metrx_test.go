@@ -1,6 +1,8 @@
 package metrx
 
 import (
+	"fmt"
+	"math/rand"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -44,15 +46,32 @@ func TestConversions(t *testing.T) {
 	}
 }
 
-func BenchmarkConversion(b *testing.B) {
-	ms := MetricsString{
-		MType: GaugeType,
-		ID:    "gaugename",
-		Value: "123.547568",
+func randomMS() MetricsString {
+	var mtype, val string
+	value := rand.Int()
+	if value%2 == 0 {
+		mtype = "gauge"
+		val = fmt.Sprintf("%d.%d", value, value)
+	} else {
+		mtype = "counter"
+		val = fmt.Sprintf("%d", value)
 	}
+
+	name := val
+	return MetricsString{
+		ID:    name,
+		MType: mtype,
+		Value: val,
+	}
+}
+
+func BenchmarkConversion(b *testing.B) {
 	m := Metrics{}
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
+		b.StopTimer()
+		ms := randomMS()
+		b.StartTimer()
 		m.ParseMetricsString(&ms)
 	}
 }
