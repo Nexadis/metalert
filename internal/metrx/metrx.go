@@ -48,12 +48,12 @@ type Metrics struct {
 }
 
 func NewMetrics(id, mtype, value string) (Metrics, error) {
-	m := Metrics{
+	m := &Metrics{
 		ID:    id,
 		MType: strings.ToLower(mtype),
 	}
 	err := m.SetValue(value)
-	return m, err
+	return *m, err
 }
 
 func (m *Metrics) SetValue(value string) error {
@@ -72,8 +72,10 @@ func (m *Metrics) SetValue(value string) error {
 		}
 		m.Value = &v
 		m.Delta = nil
+	default:
+		return fmt.Errorf("%v: %v", ErrorType, m)
 	}
-	return fmt.Errorf("%v: %v", ErrorType, m.MType)
+	return nil
 }
 
 func (m Metrics) GetValue() (string, error) {
