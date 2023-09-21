@@ -14,12 +14,12 @@ type ObjectGetter interface {
 }
 
 type Getter interface {
-	Get(ctx context.Context, mtype, id string) (*metrx.MetricsString, error)
-	GetAll(ctx context.Context) ([]*metrx.MetricsString, error)
+	Get(ctx context.Context, mtype, id string) (metrx.Metrics, error)
+	GetAll(ctx context.Context) ([]metrx.Metrics, error)
 }
 
 type Setter interface {
-	Set(ctx context.Context, mtype, id, value string) error
+	Set(ctx context.Context, m metrx.Metrics) error
 }
 
 type Storage interface {

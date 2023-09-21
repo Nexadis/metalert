@@ -60,7 +60,9 @@ func (ms *Storage) Restore(ctx context.Context, FileStoragePath string, Restore 
 		return err
 	}
 	for _, m := range metrics {
-		err = ms.Set(ctx, m.MType, m.ID, m.Value)
+		metrica := metrx.Metrics{}
+		metrica.ParseMetricsString(*m)
+		err = ms.Set(ctx, metrica)
 		if err != nil {
 			return err
 		}

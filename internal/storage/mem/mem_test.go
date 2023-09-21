@@ -88,14 +88,19 @@ func TestSet(t *testing.T) {
 	ctx := context.TODO()
 	for _, test := range testCasesCounters {
 		t.Run(test.name, func(t *testing.T) {
-			err := storage.Set(ctx, test.request.valType, test.request.name, test.request.value)
+			m, err := metrx.NewMetrics(test.request.name, test.request.valType, test.request.value)
+			assert.NoError(t, err)
+
+			err = storage.Set(ctx, m)
 			assert.Equal(t, storage.Counters[test.request.name], test.want)
 			assert.NoError(t, err)
 		})
 	}
 	for _, test := range testCasesGauges {
 		t.Run(test.name, func(t *testing.T) {
-			err := storage.Set(ctx, test.request.valType, test.request.name, test.request.value)
+			m, err := metrx.NewMetrics(test.request.name, test.request.valType, test.request.value)
+			assert.NoError(t, err)
+			err = storage.Set(ctx, m)
 			assert.Equal(t, storage.Gauges[test.request.name], test.want)
 			assert.NoError(t, err)
 		})
@@ -168,7 +173,8 @@ func TestGet(t *testing.T) {
 	for _, test := range testCases {
 		t.Run(test.name, func(t *testing.T) {
 			res, err := storage.Get(ctx, test.request.valType, test.request.name)
-			assert.Equal(t, res.GetValue(), test.want)
+			ms, _ := res.GetMetricsString()
+			assert.Equal(t, ms.Value, test.want)
 			assert.NoError(t, err)
 		})
 	}
@@ -217,7 +223,10 @@ func BenchmarkGetAll(b *testing.B) {
 	ctx := context.Background()
 	for i := 0; i < 10000; i++ {
 		ms := randomMS()
-		storage.Set(ctx, ms.GetMType(), ms.GetID(), ms.GetValue())
+		m := metrx.Metrics{}
+		m.ParseMetricsString(ms)
+
+		storage.Set(ctx, m)
 	}
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -232,7 +241,9 @@ func BenchmarkSet(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		b.StopTimer()
 		ms := randomMS()
+		m := metrx.Metrics{}
+		m.ParseMetricsString(ms)
 		b.StartTimer()
-		storage.Set(ctx, ms.MType, ms.ID, ms.Value)
+		storage.Set(ctx, m)
 	}
 }
