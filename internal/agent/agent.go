@@ -163,7 +163,7 @@ func (ha *httpAgent) Report(ctx context.Context, input chan *metrx.MetricsString
 				errs <- fmt.Errorf("can't report metrics: %w", err)
 				return
 			}
-			m.ParseMetricsString(ms)
+			m.ParseMetricsString(*ms)
 			err = ha.client.PostObj(ctx, pathJSON, m)
 			if err != nil {
 				logger.Error("Can't report metrics", err)

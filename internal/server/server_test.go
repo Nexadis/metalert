@@ -68,12 +68,12 @@ var updateTests = []testReq{
 		name: "Gauge type, positive",
 		request: req{
 			method: http.MethodPost,
-			url:    `/update/gauge/positive/2`,
+			url:    `/update/gauge/positiveg/2`,
 		},
 		want: want{
 			statusCode: http.StatusOK,
 			valType:    "gauge",
-			name:       "positive",
+			name:       "positiveg",
 			value:      "2",
 		},
 	},
@@ -123,12 +123,12 @@ var valueTests = []testReq{
 		name: "Gauge type, positive",
 		request: req{
 			method: http.MethodGet,
-			url:    `/value/gauge/positive`,
+			url:    `/value/gauge/positiveg`,
 		},
 		want: want{
 			statusCode: http.StatusOK,
 			valType:    "gauge",
-			name:       "positive",
+			name:       "positiveg",
 			value:      "2",
 		},
 	},
@@ -194,7 +194,8 @@ func TestUpdateURL(t *testing.T) {
 			assert.Equal(t, result.StatusCode, test.want.statusCode)
 			defer result.Body.Close()
 			getted, _ := server.storage.Get(ctx, test.want.valType, test.want.name)
-			assert.Equal(t, getted.GetValue(), test.want.value)
+			ms, _ := getted.GetMetricsString()
+			assert.Equal(t, ms.GetValue(), test.want.value)
 		})
 	}
 }
@@ -204,7 +205,13 @@ func TestValueURL(t *testing.T) {
 	ctx := context.TODO()
 	for _, test := range valueTests {
 		t.Run(test.name, func(t *testing.T) {
-			err := server.storage.Set(ctx, test.want.valType, test.want.name, test.want.value)
+			m, err := metrx.NewMetrics(
+				test.want.name,
+				test.want.valType,
+				test.want.value,
+			)
+			assert.NoError(t, err)
+			err = server.storage.Set(ctx, m)
 			assert.NoError(t, err)
 			r := httptest.NewRequest(test.request.method, test.request.url, nil)
 			w := httptest.NewRecorder()
@@ -222,7 +229,13 @@ func TestValuesURL(t *testing.T) {
 	server := testServer()
 	ctx := context.TODO()
 	for _, test := range valueTests {
-		err := server.storage.Set(ctx, test.want.valType, test.want.name, test.want.value)
+		m, err := metrx.NewMetrics(
+			test.want.name,
+			test.want.valType,
+			test.want.value,
+		)
+		assert.NoError(t, err)
+		err = server.storage.Set(ctx, m)
 		assert.NoError(t, err)
 	}
 	for _, test := range valuesTests {
@@ -236,7 +249,6 @@ func TestValuesURL(t *testing.T) {
 			body, _ := io.ReadAll(result.Body)
 			getted := strings.Split(string(body), "\n")
 			wanted := strings.Split(test.want.body, "\n")
-
 			assert.ElementsMatch(t, getted, wanted)
 		})
 	}
@@ -441,7 +453,8 @@ func TestUpdateJSON(t *testing.T) {
 			defer result.Body.Close()
 			if result.StatusCode == http.StatusOK {
 				getted, _ := server.storage.Get(ctx, test.want.valType, test.want.name)
-				assert.Equal(t, getted.GetValue(), test.want.value)
+				ms, _ := getted.GetMetricsString()
+				assert.Equal(t, ms.GetValue(), test.want.value)
 			}
 		})
 	}
@@ -456,9 +469,17 @@ func TestValueJSON(t *testing.T) {
 			r := httptest.NewRequest(test.request.method, test.request.url, strings.NewReader(test.request.body))
 			r.Header = test.request.headers
 			w := httptest.NewRecorder()
-			server.storage.Set(ctx, test.want.valType, test.want.name, test.want.value)
+			m, err := metrx.NewMetrics(
+				test.want.name,
+				test.want.valType,
+				test.want.value,
+			)
+			assert.NoError(t, err)
+			t.Log(m)
+			server.storage.Set(ctx, m)
 			server.router.ServeHTTP(w, r)
 			result := w.Result()
+			t.Log(result)
 			assert.Equal(t, test.want.statusCode, result.StatusCode)
 			defer result.Body.Close()
 			if result.StatusCode == http.StatusOK {
@@ -547,7 +568,8 @@ func TestUpdatesJSON(t *testing.T) {
 			if result.StatusCode == http.StatusOK {
 				for _, want := range test.want.values {
 					value, _ := server.storage.Get(ctx, want.GetMType(), want.GetID())
-					assert.Equal(t, want.GetValue(), value.GetValue())
+					ms, _ := value.GetMetricsString()
+					assert.Equal(t, want.GetValue(), ms.GetValue())
 				}
 			}
 		})

@@ -19,7 +19,12 @@ func (s *httpServer) Update(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	err := s.storage.Set(r.Context(), mtype, id, value)
+	m, err := metrx.NewMetrics(id, mtype, value)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	err = s.storage.Set(r.Context(), m)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -47,7 +52,12 @@ func (s *httpServer) Value(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	_, err = w.Write([]byte(m.GetValue()))
+	ms, err := m.GetMetricsString()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	_, err = w.Write([]byte(ms.GetValue()))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -63,7 +73,13 @@ func (s *httpServer) Values(w http.ResponseWriter, r *http.Request) {
 	}
 	var answer string
 	for _, metric := range values {
-		answer = answer + fmt.Sprintf("%s=%s\n", metric.GetID(), metric.GetValue())
+		ms, err := metric.GetMetricsString()
+		if err != nil {
+
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		answer = answer + fmt.Sprintf("%s=%s\n", ms.GetID(), ms.GetValue())
 	}
 	_, err = w.Write([]byte(answer))
 	if err != nil {
@@ -81,12 +97,12 @@ func (s *httpServer) UpdateJSON(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer r.Body.Close()
-	ms, err := m.GetMetricsString()
+	err = m.CheckType()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	err = s.storage.Set(r.Context(), ms.MType, ms.ID, ms.Value)
+	err = s.storage.Set(r.Context(), *m)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -104,12 +120,12 @@ func (s *httpServer) Updates(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 	logger.Info("Parse metrics in Updates handler")
 	for _, m := range mxs {
-		ms, err := m.GetMetricsString()
+		err = m.CheckType()
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-		err = s.storage.Set(r.Context(), ms.MType, ms.ID, ms.Value)
+		err = s.storage.Set(r.Context(), m)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
@@ -132,9 +148,8 @@ func (s *httpServer) ValueJSON(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
-	m.ParseMetricsString(ms)
 	encoder := json.NewEncoder(w)
-	err = encoder.Encode(m)
+	err = encoder.Encode(ms)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
