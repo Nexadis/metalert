@@ -38,7 +38,7 @@ func TestConversions(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			m := Metrics{}
-			m.ParseMetricsString(&test.metrics)
+			m.ParseMetricsString(test.metrics)
 			newMetric, err := m.GetMetricsString()
 			require.Equal(t, test.metrics, *newMetric)
 			assert.NoError(t, err)
@@ -72,6 +72,6 @@ func BenchmarkConversion(b *testing.B) {
 		b.StopTimer()
 		ms := randomMS()
 		b.StartTimer()
-		m.ParseMetricsString(&ms)
+		m.ParseMetricsString(ms)
 	}
 }

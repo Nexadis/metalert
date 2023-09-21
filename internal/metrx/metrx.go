@@ -2,7 +2,9 @@ package metrx
 
 import (
 	"errors"
+	"fmt"
 	"strconv"
+	"strings"
 )
 
 type (
@@ -60,7 +62,32 @@ type Metrics struct {
 	Value *Gauge   `json:"value,omitempty"` // значение метрики в случае передачи gauge
 }
 
-func (m *Metrics) ParseMetricsString(ms *MetricsString) error {
+func (m Metrics) CheckType() error {
+	switch strings.ToLower(m.MType) {
+	case GaugeType:
+		if m.Value == nil {
+			return fmt.Errorf("%v: %v", ErrorMetrics, m)
+		}
+	case CounterType:
+		if m.Delta == nil {
+			return fmt.Errorf("%v: %v", ErrorMetrics, m)
+		}
+	}
+	return nil
+}
+
+func NewMetrics(id, mtype, value string) (Metrics, error) {
+	m := Metrics{}
+	ms := MetricsString{
+		ID:    id,
+		MType: mtype,
+		Value: value,
+	}
+	err := m.ParseMetricsString(ms)
+	return m, err
+}
+
+func (m *Metrics) ParseMetricsString(ms MetricsString) error {
 	m.ID = ms.ID
 	m.MType = ms.MType
 	switch ms.MType {
