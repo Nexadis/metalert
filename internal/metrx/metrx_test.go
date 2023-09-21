@@ -9,15 +9,21 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestConversions(t *testing.T) {
+type test_metric struct {
+	ID    string
+	MType string
+	Value string
+}
+
+func TestParsing(t *testing.T) {
 	tests := []struct {
 		name      string
-		metrics   MetricsString
+		metrics   test_metric
 		errStatus error
 	}{
 		{
 			name: "Counter conversion",
-			metrics: MetricsString{
+			metrics: test_metric{
 				MType: CounterType,
 				ID:    "name",
 				Value: "1243123",
@@ -27,7 +33,7 @@ func TestConversions(t *testing.T) {
 
 		{
 			name: "Gauge conversion",
-			metrics: MetricsString{
+			metrics: test_metric{
 				MType: GaugeType,
 				ID:    "name",
 				Value: "124.857832974",
@@ -37,41 +43,34 @@ func TestConversions(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			m := Metrics{}
-			m.ParseMetricsString(test.metrics)
-			newMetric, err := m.GetMetricsString()
-			require.Equal(t, test.metrics, *newMetric)
+			newMetric, err := NewMetrics(test.metrics.ID, test.metrics.MType, test.metrics.Value)
 			assert.NoError(t, err)
+			require.Equal(t, test.metrics.ID, newMetric.ID)
+			require.Equal(t, test.metrics.MType, newMetric.MType)
+			val, err := newMetric.GetValue()
+			assert.NoError(t, err)
+			require.Equal(t, test.metrics.Value, val)
 		})
 	}
 }
 
-func randomMS() MetricsString {
-	var mtype, val string
+func randomMS(b *testing.B) Metrics {
+	b.StopTimer()
+	var val string
 	value := rand.Int()
 	if value%2 == 0 {
-		mtype = "gauge"
 		val = fmt.Sprintf("%d.%d", value, value)
 	} else {
-		mtype = "counter"
 		val = fmt.Sprintf("%d", value)
 	}
-
-	name := val
-	return MetricsString{
-		ID:    name,
-		MType: mtype,
-		Value: val,
-	}
+	b.StartTimer()
+	m, _ := NewMetrics(val, GaugeType, val)
+	return m
 }
 
 func BenchmarkConversion(b *testing.B) {
-	m := Metrics{}
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		b.StopTimer()
-		ms := randomMS()
-		b.StartTimer()
-		m.ParseMetricsString(ms)
+		randomMS(b)
 	}
 }

@@ -17,7 +17,10 @@ const (
 	CounterType = `counter`
 )
 
-var ErrorMetrics = errors.New("invalid metrics")
+var (
+	ErrorMetrics = errors.New("invalid metrics")
+	ErrorType    = errors.New("invalid type")
+)
 
 func (g Gauge) String() string {
 	return strconv.FormatFloat(float64(g), 'f', -1, 64)
@@ -37,24 +40,6 @@ func ParseGauge(value string) (Gauge, error) {
 	return Gauge(val), err
 }
 
-type MetricsString struct {
-	MType string
-	ID    string
-	Value string
-}
-
-func (m MetricsString) GetMType() string {
-	return m.MType
-}
-
-func (m MetricsString) GetID() string {
-	return m.ID
-}
-
-func (m MetricsString) GetValue() string {
-	return m.Value
-}
-
 type Metrics struct {
 	ID    string   `json:"id"`              // имя метрики
 	MType string   `json:"type"`            // параметр, принимающий значение gauge или counter
@@ -62,69 +47,47 @@ type Metrics struct {
 	Value *Gauge   `json:"value,omitempty"` // значение метрики в случае передачи gauge
 }
 
-func (m Metrics) CheckType() error {
-	switch strings.ToLower(m.MType) {
-	case GaugeType:
-		if m.Value == nil {
-			return fmt.Errorf("%v: %v", ErrorMetrics, m)
-		}
-	case CounterType:
-		if m.Delta == nil {
-			return fmt.Errorf("%v: %v", ErrorMetrics, m)
-		}
-	}
-	return nil
-}
-
 func NewMetrics(id, mtype, value string) (Metrics, error) {
-	m := Metrics{}
-	ms := MetricsString{
+	m := Metrics{
 		ID:    id,
-		MType: mtype,
-		Value: value,
+		MType: strings.ToLower(mtype),
 	}
-	err := m.ParseMetricsString(ms)
+	err := m.SetValue(value)
 	return m, err
 }
 
-func (m *Metrics) ParseMetricsString(ms MetricsString) error {
-	m.ID = ms.ID
-	m.MType = ms.MType
-	switch ms.MType {
+func (m *Metrics) SetValue(value string) error {
+	switch m.MType {
 	case CounterType:
-		v, err := ParseCounter(ms.Value)
+		v, err := ParseCounter(value)
 		if err != nil {
-			return err
+			return fmt.Errorf("%v: %v", ErrorMetrics, err)
 		}
 		m.Delta = &v
 		m.Value = nil
 	case GaugeType:
-		v, err := ParseGauge(ms.Value)
+		v, err := ParseGauge(value)
 		if err != nil {
-			return err
+			return fmt.Errorf("%v: %v", ErrorMetrics, err)
 		}
 		m.Value = &v
 		m.Delta = nil
 	}
-	return nil
+	return fmt.Errorf("%v: %v", ErrorType, m.MType)
 }
 
-func (m *Metrics) GetMetricsString() (*MetricsString, error) {
-	ms := &MetricsString{
-		ID:    m.ID,
-		MType: m.MType,
-	}
+func (m Metrics) GetValue() (string, error) {
 	switch m.MType {
 	case CounterType:
 		if m.Delta == nil {
-			return nil, ErrorMetrics
+			return "", ErrorMetrics
 		}
-		ms.Value = m.Delta.String()
+		return m.Delta.String(), nil
 	case GaugeType:
 		if m.Value == nil {
-			return nil, ErrorMetrics
+			return "", ErrorMetrics
 		}
-		ms.Value = m.Value.String()
+		return m.Value.String(), nil
 	}
-	return ms, nil
+	return "", fmt.Errorf("%v: %v", ErrorType, m.MType)
 }
