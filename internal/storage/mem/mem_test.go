@@ -212,6 +212,19 @@ func randomMS() metrx.MetricsString {
 	}
 }
 
+func BenchmarkGetAll(b *testing.B) {
+	storage := NewMetricsStorage()
+	ctx := context.Background()
+	for i := 0; i < 10000; i++ {
+		ms := randomMS()
+		storage.Set(ctx, ms.GetMType(), ms.GetID(), ms.GetValue())
+	}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		storage.GetAll(ctx)
+	}
+}
+
 func BenchmarkSet(b *testing.B) {
 	storage := NewMetricsStorage()
 	ctx := context.Background()
