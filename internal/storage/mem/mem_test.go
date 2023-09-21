@@ -2,6 +2,8 @@ package mem
 
 import (
 	"context"
+	"fmt"
+	"math/rand"
 	"testing"
 
 	"github.com/Nexadis/metalert/internal/metrx"
@@ -191,11 +193,33 @@ func BenchmarkGet(b *testing.B) {
 	}
 }
 
+func randomMS() metrx.MetricsString {
+	var mtype, val string
+	value := rand.Int()
+	if value%2 == 0 {
+		mtype = "gauge"
+		val = fmt.Sprintf("%d.%d", value, value)
+	} else {
+		mtype = "counter"
+		val = fmt.Sprintf("%d", value)
+	}
+
+	name := val
+	return metrx.MetricsString{
+		ID:    name,
+		MType: mtype,
+		Value: val,
+	}
+}
+
 func BenchmarkSet(b *testing.B) {
 	storage := NewMetricsStorage()
 	ctx := context.Background()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		storage.Set(ctx, "counter", "big", "48902183409")
+		b.StopTimer()
+		ms := randomMS()
+		b.StartTimer()
+		storage.Set(ctx, ms.MType, ms.ID, ms.Value)
 	}
 }

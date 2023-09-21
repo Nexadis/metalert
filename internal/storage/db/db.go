@@ -103,7 +103,7 @@ func (db *DB) Ping() error {
 	return db.retry(db.db.Ping)
 }
 
-func (db *DB) Get(ctx context.Context, mtype, id string) (storage.ObjectGetter, error) {
+func (db *DB) Get(ctx context.Context, mtype, id string) (*metrx.MetricsString, error) {
 	stmt, err := db.db.PrepareContext(ctx,
 		`SELECT delta, value FROM Metrics WHERE type=$1 AND id= $2`)
 	if err != nil {
@@ -134,13 +134,13 @@ func (db *DB) Get(ctx context.Context, mtype, id string) (storage.ObjectGetter, 
 	return m.GetMetricsString()
 }
 
-func (db *DB) GetAll(ctx context.Context) ([]storage.ObjectGetter, error) {
+func (db *DB) GetAll(ctx context.Context) ([]*metrx.MetricsString, error) {
 	stmt, err := db.db.PrepareContext(ctx,
 		`SELECT * FROM Metrics`)
 	if err != nil {
 		return nil, err
 	}
-	metrics := make([]storage.ObjectGetter, 0, db.size)
+	metrics := make([]*metrx.MetricsString, 0, db.size)
 	var rows *sql.Rows
 	err = db.retry(func() error {
 		rows, err = stmt.QueryContext(ctx)

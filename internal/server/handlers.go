@@ -132,7 +132,7 @@ func (s *httpServer) ValueJSON(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
-	m.ParseMetricsString(ms.(*metrx.MetricsString))
+	m.ParseMetricsString(ms)
 	encoder := json.NewEncoder(w)
 	err = encoder.Encode(m)
 	if err != nil {

@@ -3,6 +3,8 @@ package storage
 import (
 	"context"
 	"errors"
+
+	"github.com/Nexadis/metalert/internal/metrx"
 )
 
 type ObjectGetter interface {
@@ -12,8 +14,8 @@ type ObjectGetter interface {
 }
 
 type Getter interface {
-	Get(ctx context.Context, mtype, id string) (ObjectGetter, error)
-	GetAll(ctx context.Context) ([]ObjectGetter, error)
+	Get(ctx context.Context, mtype, id string) (*metrx.MetricsString, error)
+	GetAll(ctx context.Context) ([]*metrx.MetricsString, error)
 }
 
 type Setter interface {
