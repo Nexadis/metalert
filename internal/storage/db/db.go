@@ -46,12 +46,14 @@ type DB struct {
 	conn connection
 }
 
+var _ DataBase = &DB{}
+
 type connection struct {
 	retries int
 	timeout time.Duration
 }
 
-func New(config *Config) DataBase {
+func New(config *Config) *DB {
 	db := &sql.DB{}
 	DB := &DB{
 		db:   db,
@@ -103,11 +105,11 @@ func (db *DB) Ping() error {
 	return db.retry(db.db.Ping)
 }
 
-func (db *DB) Get(ctx context.Context, mtype, id string) (storage.ObjectGetter, error) {
+func (db *DB) Get(ctx context.Context, mtype, id string) (metrx.Metrics, error) {
 	stmt, err := db.db.PrepareContext(ctx,
 		`SELECT delta, value FROM Metrics WHERE type=$1 AND id= $2`)
 	if err != nil {
-		return nil, err
+		return metrx.Metrics{}, err
 	}
 	var row *sql.Row
 	err = db.retry(func() error {
@@ -121,26 +123,26 @@ func (db *DB) Get(ctx context.Context, mtype, id string) (storage.ObjectGetter, 
 		return nil
 	})
 	if err != nil {
-		return nil, err
+		return metrx.Metrics{}, err
 	}
-	m := &metrx.Metrics{
+	m := metrx.Metrics{
 		ID:    id,
 		MType: mtype,
 	}
 	err = row.Scan(&m.Delta, &m.Value)
 	if err != nil {
-		return nil, err
+		return metrx.Metrics{}, err
 	}
-	return m.GetMetricsString()
+	return m, nil
 }
 
-func (db *DB) GetAll(ctx context.Context) ([]storage.ObjectGetter, error) {
+func (db *DB) GetAll(ctx context.Context) ([]metrx.Metrics, error) {
 	stmt, err := db.db.PrepareContext(ctx,
 		`SELECT * FROM Metrics`)
 	if err != nil {
 		return nil, err
 	}
-	metrics := make([]storage.ObjectGetter, 0, db.size)
+	metrics := make([]metrx.Metrics, 0, db.size)
 	var rows *sql.Rows
 	err = db.retry(func() error {
 		rows, err = stmt.QueryContext(ctx)
@@ -157,12 +159,8 @@ func (db *DB) GetAll(ctx context.Context) ([]storage.ObjectGetter, error) {
 	}
 	defer rows.Close()
 	for rows.Next() {
-		m := &metrx.Metrics{}
-		err = rows.Scan(&m.ID, &m.MType, &m.Delta, &m.Value)
-		if err != nil {
-			return nil, err
-		}
-		metric, err := m.GetMetricsString()
+		metric := metrx.Metrics{}
+		err = rows.Scan(&metric.ID, &metric.MType, &metric.Delta, &metric.Value)
 		if err != nil {
 			return nil, err
 		}
@@ -175,18 +173,7 @@ func (db *DB) GetAll(ctx context.Context) ([]storage.ObjectGetter, error) {
 	return metrics, nil
 }
 
-func (db *DB) Set(ctx context.Context, mtype, id, value string) error {
-	m := metrx.Metrics{}
-	err := m.ParseMetricsString(
-		&metrx.MetricsString{
-			ID:    id,
-			MType: mtype,
-			Value: value,
-		},
-	)
-	if err != nil {
-		return err
-	}
+func (db *DB) Set(ctx context.Context, m metrx.Metrics) error {
 	tx, err := db.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err

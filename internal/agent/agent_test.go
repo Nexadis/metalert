@@ -94,10 +94,10 @@ func TestPull(t *testing.T) {
 		client:  nil,
 		counter: 0,
 	}
-	mchan := make(chan *metrx.MetricsString, 100)
+	mchan := make(chan *metrx.Metrics, 100)
 	ha.Pull(context.Background(), mchan)
 	close(mchan)
-	metrics := make(map[string]metrx.MetricsString, 100)
+	metrics := make(map[string]metrx.Metrics, 100)
 	for m := range mchan {
 		metrics[m.ID] = *m
 	}
@@ -112,7 +112,9 @@ func TestPull(t *testing.T) {
 			value, ok := metrics[test.want.name]
 			assert.True(t, ok)
 			assert.NotEmpty(t, value)
-			assert.Equal(t, test.want.value, value.Value)
+			v, err := value.GetValue()
+			assert.NoError(t, err)
+			assert.Equal(t, test.want.value, v)
 		})
 	}
 }
@@ -216,14 +218,12 @@ func TestReport(t *testing.T) {
 				config: config,
 				client: testClient,
 			}
-			mchan := make(chan *metrx.MetricsString, 1)
+			mchan := make(chan *metrx.Metrics, 1)
 			errs := make(chan error, 1)
 			ctx := context.Background()
-			mchan <- &metrx.MetricsString{
-				ID:    test.want.name,
-				MType: test.want.valType,
-				Value: test.want.value,
-			}
+			m, err := metrx.NewMetrics(test.want.name, test.want.valType, test.want.value)
+			assert.NoError(t, err)
+			mchan <- &m
 			close(mchan)
 			ha.Report(ctx, mchan, errs)
 			ctx.Done()

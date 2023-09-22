@@ -53,14 +53,14 @@ func (ms *Storage) Restore(ctx context.Context, FileStoragePath string, Restore 
 		return err
 	}
 	defer file.Close()
-	metrics := make([]*metrx.MetricsString, 1)
+	metrics := make([]*metrx.Metrics, 1)
 	decoder := json.NewDecoder(file)
 	err = decoder.Decode(&metrics)
 	if err != nil {
 		return err
 	}
 	for _, m := range metrics {
-		err = ms.Set(ctx, m.MType, m.ID, m.Value)
+		err = ms.Set(ctx, *m)
 		if err != nil {
 			return err
 		}

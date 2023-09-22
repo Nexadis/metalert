@@ -2,10 +2,12 @@ package server
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 
 	"github.com/Nexadis/metalert/internal/metrx"
+	"github.com/Nexadis/metalert/internal/storage"
 	"github.com/Nexadis/metalert/internal/storage/db"
 	"github.com/Nexadis/metalert/internal/utils/logger"
 	"github.com/go-chi/chi/v5"
@@ -19,7 +21,12 @@ func (s *httpServer) Update(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	err := s.storage.Set(r.Context(), mtype, id, value)
+	m, err := metrx.NewMetrics(id, mtype, value)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	err = s.storage.Set(r.Context(), m)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -42,12 +49,17 @@ func (s *httpServer) Value(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	m, err := s.storage.Get(r.Context(), mtype, id)
-	if err != nil {
+	if errors.Is(err, storage.ErrNotFound) {
 		logger.Error(err)
 		http.NotFound(w, r)
 		return
 	}
-	_, err = w.Write([]byte(m.GetValue()))
+	val, err := m.GetValue()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	_, err = w.Write([]byte(val))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -63,7 +75,12 @@ func (s *httpServer) Values(w http.ResponseWriter, r *http.Request) {
 	}
 	var answer string
 	for _, metric := range values {
-		answer = answer + fmt.Sprintf("%s=%s\n", metric.GetID(), metric.GetValue())
+		val, err := metric.GetValue()
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		answer = answer + fmt.Sprintf("%s=%s\n", metric.ID, val)
 	}
 	_, err = w.Write([]byte(answer))
 	if err != nil {
@@ -81,12 +98,11 @@ func (s *httpServer) UpdateJSON(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer r.Body.Close()
-	ms, err := m.GetMetricsString()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	err = s.storage.Set(r.Context(), ms.MType, ms.ID, ms.Value)
+	err = s.storage.Set(r.Context(), *m)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -95,21 +111,16 @@ func (s *httpServer) UpdateJSON(w http.ResponseWriter, r *http.Request) {
 
 func (s *httpServer) Updates(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
-	mxs := make([]metrx.Metrics, 0, 50)
-	err := decoder.Decode(&mxs)
+	metrics := make([]metrx.Metrics, 0, 50)
+	err := decoder.Decode(&metrics)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 	defer r.Body.Close()
 	logger.Info("Parse metrics in Updates handler")
-	for _, m := range mxs {
-		ms, err := m.GetMetricsString()
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
-		err = s.storage.Set(r.Context(), ms.MType, ms.ID, ms.Value)
+	for _, m := range metrics {
+		err = s.storage.Set(r.Context(), m)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
@@ -132,9 +143,8 @@ func (s *httpServer) ValueJSON(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
-	m.ParseMetricsString(ms.(*metrx.MetricsString))
 	encoder := json.NewEncoder(w)
-	err = encoder.Encode(m)
+	err = encoder.Encode(ms)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
