@@ -31,6 +31,10 @@ func NewMetricsStorage() *Storage {
 }
 
 func (ms *Storage) Set(ctx context.Context, m metrx.Metrics) error {
+	_, err := m.GetValue()
+	if err != nil {
+		return err
+	}
 	switch strings.ToLower(m.MType) {
 	case metrx.CounterType:
 		ms.mutex.Lock()
@@ -55,11 +59,7 @@ func (ms *Storage) Get(ctx context.Context, mtype, id string) (metrx.Metrics, er
 		if !ok {
 			return metrx.Metrics{}, storage.ErrNotFound
 		}
-		return metrx.Metrics{
-			ID:    id,
-			MType: mtype,
-			Delta: &value,
-		}, nil
+		return metrx.NewMetrics(id, mtype, value.String())
 	case metrx.GaugeType:
 		ms.mutex.RLock()
 		value, ok := ms.Gauges[id]
@@ -67,11 +67,7 @@ func (ms *Storage) Get(ctx context.Context, mtype, id string) (metrx.Metrics, er
 		if !ok {
 			return metrx.Metrics{}, storage.ErrNotFound
 		}
-		return metrx.Metrics{
-			ID:    id,
-			MType: mtype,
-			Value: &value,
-		}, nil
+		return metrx.NewMetrics(id, mtype, value.String())
 	}
 
 	return metrx.Metrics{}, storage.ErrInvalidType

@@ -173,9 +173,10 @@ func TestGet(t *testing.T) {
 	for _, test := range testCases {
 		t.Run(test.name, func(t *testing.T) {
 			res, err := storage.Get(ctx, test.request.valType, test.request.name)
-			ms, _ := res.GetMetricsString()
-			assert.Equal(t, ms.Value, test.want)
 			assert.NoError(t, err)
+			ms, err := res.GetValue()
+			assert.NoError(t, err)
+			assert.Equal(t, ms, test.want)
 		})
 	}
 }
@@ -199,7 +200,7 @@ func BenchmarkGet(b *testing.B) {
 	}
 }
 
-func randomMS() metrx.MetricsString {
+func randomMS(b *testing.B) metrx.Metrics {
 	var mtype, val string
 	value := rand.Int()
 	if value%2 == 0 {
@@ -209,23 +210,17 @@ func randomMS() metrx.MetricsString {
 		mtype = "counter"
 		val = fmt.Sprintf("%d", value)
 	}
-
 	name := val
-	return metrx.MetricsString{
-		ID:    name,
-		MType: mtype,
-		Value: val,
-	}
+	m, err := metrx.NewMetrics(name, mtype, val)
+	assert.NoError(b, err)
+	return m
 }
 
 func BenchmarkGetAll(b *testing.B) {
 	storage := NewMetricsStorage()
 	ctx := context.Background()
 	for i := 0; i < 10000; i++ {
-		ms := randomMS()
-		m := metrx.Metrics{}
-		m.ParseMetricsString(ms)
-
+		m := randomMS(b)
 		storage.Set(ctx, m)
 	}
 	b.ResetTimer()
@@ -240,9 +235,7 @@ func BenchmarkSet(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		b.StopTimer()
-		ms := randomMS()
-		m := metrx.Metrics{}
-		m.ParseMetricsString(ms)
+		m := randomMS(b)
 		b.StartTimer()
 		storage.Set(ctx, m)
 	}
