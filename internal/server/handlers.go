@@ -98,10 +98,6 @@ func (s *httpServer) UpdateJSON(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer r.Body.Close()
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
 	err = s.storage.Set(r.Context(), *m)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
