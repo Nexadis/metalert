@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-type test_metric struct {
+type testMetric struct {
 	ID    string
 	MType string
 	Value string
@@ -18,12 +18,12 @@ type test_metric struct {
 func TestParsing(t *testing.T) {
 	tests := []struct {
 		name      string
-		metrics   test_metric
+		metrics   testMetric
 		errStatus error
 	}{
 		{
 			name: "Counter conversion",
-			metrics: test_metric{
+			metrics: testMetric{
 				MType: CounterType,
 				ID:    "name",
 				Value: "1243123",
@@ -33,7 +33,7 @@ func TestParsing(t *testing.T) {
 
 		{
 			name: "Gauge conversion",
-			metrics: test_metric{
+			metrics: testMetric{
 				MType: GaugeType,
 				ID:    "name",
 				Value: "124.857832974",
