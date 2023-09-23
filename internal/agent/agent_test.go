@@ -4,8 +4,9 @@ import (
 	"context"
 	"testing"
 
-	"github.com/Nexadis/metalert/internal/metrx"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/Nexadis/metalert/internal/metrx"
 )
 
 var endpoint = "http://localhost:8080"

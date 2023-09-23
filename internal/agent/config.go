@@ -3,8 +3,9 @@ package agent
 import (
 	"flag"
 
-	"github.com/Nexadis/metalert/internal/utils/logger"
 	"github.com/caarlos0/env/v8"
+
+	"github.com/Nexadis/metalert/internal/utils/logger"
 )
 
 type Config struct {

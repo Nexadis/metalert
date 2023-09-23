@@ -6,11 +6,12 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/jackc/pgerrcode"
+	_ "github.com/jackc/pgx/v5/stdlib"
+
 	"github.com/Nexadis/metalert/internal/metrx"
 	"github.com/Nexadis/metalert/internal/storage"
 	"github.com/Nexadis/metalert/internal/utils/logger"
-	"github.com/jackc/pgerrcode"
-	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
 const schema = `CREATE TABLE Metrics(
