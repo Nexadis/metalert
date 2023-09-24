@@ -1,11 +1,13 @@
 package client
 
 import (
+	"compress/gzip"
 	"context"
 	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -106,6 +108,47 @@ func TestPost(t *testing.T) {
 			assert.NoError(t, err)
 			assert.Equal(t, test.want.url, r.url)
 			assert.Equal(t, test.want.body, r.body)
+			assert.Equal(t, test.want.method, r.method)
+		},
+		)
+	}
+}
+
+var postObjTests = []testReq{
+	{
+		"Just object",
+		metric{
+			"name",
+			"",
+			"",
+		},
+		want{
+			http.MethodPost,
+			"\"name\"",
+			"/update",
+		},
+	},
+}
+
+func TestPostObj(t *testing.T) {
+	r := reqLogger{}
+	s := httptest.NewServer(http.HandlerFunc(r.showHandler))
+	defer s.Close()
+	c := NewHTTP(SetKey("test-key"))
+	ctx := context.Background()
+	path := fmt.Sprintf("%s%s", s.URL, "/update")
+	for _, test := range postObjTests {
+		t.Run(test.name, func(t *testing.T) {
+			err := c.PostObj(ctx, path, test.m.name)
+			assert.NoError(t, err)
+			assert.Equal(t, test.want.url, r.url)
+			body := strings.NewReader(r.body)
+			g, err := gzip.NewReader(body)
+			assert.NoError(t, err)
+			buf, err := io.ReadAll(g)
+			assert.NoError(t, err)
+			g.Close()
+			assert.JSONEq(t, test.want.body, string(buf))
 			assert.Equal(t, test.want.method, r.method)
 		},
 		)
