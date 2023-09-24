@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"io"
 	"net/http"
@@ -12,7 +13,9 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/Nexadis/metalert/internal/metrx"
+	"github.com/Nexadis/metalert/internal/storage/db"
 	"github.com/Nexadis/metalert/internal/storage/mem"
+	"github.com/Nexadis/metalert/internal/utils/verifier"
 )
 
 type req struct {
@@ -41,6 +44,20 @@ type testReq struct {
 	name    string
 	request req
 	want    want
+}
+
+func TestNewServer(t *testing.T) {
+	c := Config{
+		DB: db.NewConfig(),
+	}
+
+	_, err := NewServer(&c)
+	assert.NoError(t, err)
+
+	c.DB.DSN = "invalid dsn"
+
+	_, err = NewServer(&c)
+	assert.Error(t, err)
 }
 
 var updateTests = []testReq{
@@ -175,10 +192,11 @@ var valuesTests = []testReq{
 	},
 }
 
-func testServer() *httpServer {
+func testServer() *HttpServer {
 	storage := mem.NewMetricsStorage()
 	config := NewConfig()
-	server := &httpServer{
+	config.Key = "test_key"
+	server := &HttpServer{
 		nil,
 		storage,
 		config,
@@ -453,7 +471,9 @@ func TestUpdateJSON(t *testing.T) {
 	for _, test := range JSONUpdateTests {
 		t.Run(test.name, func(t *testing.T) {
 			r := httptest.NewRequest(test.request.method, test.request.url, strings.NewReader(test.request.body))
-			r.Header = test.request.headers
+			signature, err := verifier.Sign([]byte(test.request.body), []byte(server.config.Key))
+			assert.NoError(t, err)
+			r.Header.Set(verifier.HashHeader, base64.StdEncoding.EncodeToString(signature))
 			w := httptest.NewRecorder()
 			server.router.ServeHTTP(w, r)
 			result := w.Result()

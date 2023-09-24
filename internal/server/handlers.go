@@ -14,7 +14,7 @@ import (
 	"github.com/Nexadis/metalert/internal/utils/logger"
 )
 
-func (s *httpServer) Update(w http.ResponseWriter, r *http.Request) {
+func (s *HttpServer) Update(w http.ResponseWriter, r *http.Request) {
 	mtype := chi.URLParam(r, "mtype")
 	id := chi.URLParam(r, "id")
 	value := chi.URLParam(r, "value")
@@ -40,7 +40,7 @@ func (s *httpServer) Update(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *httpServer) Value(w http.ResponseWriter, r *http.Request) {
+func (s *HttpServer) Value(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-type", "text/plain")
 	mtype := chi.URLParam(r, "mtype")
 	id := chi.URLParam(r, "id")
@@ -67,7 +67,7 @@ func (s *httpServer) Value(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *httpServer) Values(w http.ResponseWriter, r *http.Request) {
+func (s *HttpServer) Values(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-type", "text/plain")
 	values, err := s.storage.GetAll(r.Context())
 	if err != nil {
@@ -90,7 +90,7 @@ func (s *httpServer) Values(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *httpServer) UpdateJSON(w http.ResponseWriter, r *http.Request) {
+func (s *HttpServer) UpdateJSON(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
 	m := &metrx.Metrics{}
 	err := decoder.Decode(m)
@@ -106,7 +106,7 @@ func (s *httpServer) UpdateJSON(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *httpServer) Updates(w http.ResponseWriter, r *http.Request) {
+func (s *HttpServer) Updates(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
 	metrics := make([]metrx.Metrics, 0, 50)
 	err := decoder.Decode(&metrics)
@@ -125,7 +125,7 @@ func (s *httpServer) Updates(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *httpServer) ValueJSON(w http.ResponseWriter, r *http.Request) {
+func (s *HttpServer) ValueJSON(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-type", "application/json")
 	decoder := json.NewDecoder(r.Body)
 	m := &metrx.Metrics{}
@@ -148,12 +148,12 @@ func (s *httpServer) ValueJSON(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *httpServer) InfoPage(w http.ResponseWriter, r *http.Request) {
+func (s *HttpServer) InfoPage(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-type", "text/html")
 	w.Write([]byte("<html><h1>Info page</h1></html>"))
 }
 
-func (s *httpServer) DBPing(w http.ResponseWriter, r *http.Request) {
+func (s *HttpServer) DBPing(w http.ResponseWriter, r *http.Request) {
 	db, ok := s.storage.(*db.DB)
 	if ok {
 		err := db.Ping()
