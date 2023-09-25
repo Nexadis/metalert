@@ -74,3 +74,50 @@ func BenchmarkConversion(b *testing.B) {
 		randomMS(b)
 	}
 }
+
+func ExampleMetrics() {
+	m, err := NewMetrics("test", GaugeType, "1.1")
+	if err != nil {
+		panic(err)
+	}
+	v, err := m.GetValue()
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(v)
+	err = m.SetValue("2.2")
+	if err != nil {
+		panic(err)
+	}
+	v, err = m.GetValue()
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(v)
+
+	m, err = NewMetrics("test", CounterType, "434")
+	if err != nil {
+		panic(err)
+	}
+	v, err = m.GetValue()
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(v)
+
+	err = m.SetValue("567")
+	if err != nil {
+		panic(err)
+	}
+	v, err = m.GetValue()
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(v)
+
+	// Output:
+	// 1.1
+	// 2.2
+	// 434
+	// 567
+}
