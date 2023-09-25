@@ -1,10 +1,13 @@
 package server
 
 import (
+	"bytes"
 	"context"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -633,4 +636,164 @@ func BenchmarkUpdateJSON(b *testing.B) {
 		b.StartTimer()
 		server.router.ServeHTTP(w, r)
 	}
+}
+
+func init() {
+	c := NewConfig()
+	c.Address = ":8080"
+	c.DB = db.NewConfig()
+	s, err := NewServer(c)
+	if err != nil {
+		log.Fatal(err)
+	}
+	s.MountHandlers()
+	go s.Run()
+}
+
+func ExampleNewServer() {
+	c := NewConfig()
+	c.ParseConfig()
+	s, err := NewServer(c)
+	if err != nil {
+		log.Fatal(err)
+	}
+	s.MountHandlers()
+	log.Fatal(s.Run())
+}
+
+func ExampleHTTPServer_DBPing() {
+	addr := fmt.Sprintf("http://localhost:8080/%s", "ping")
+	r, err := http.Get(addr)
+	if err != nil {
+		panic(err)
+	}
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		panic(err)
+	}
+	defer r.Body.Close()
+	fmt.Println(string(body))
+
+	// Output:
+	// DB is not connected
+}
+
+func ExampleHTTPServer_Update() {
+	addr := fmt.Sprintf("http://localhost:8080/%s", "update/gauge/name/123.123")
+	r, err := http.Post(addr, "", nil)
+	if err != nil {
+		panic(err)
+	}
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		panic(err)
+	}
+	defer r.Body.Close()
+	fmt.Println(string(body))
+
+	// Output:
+	// Value name type gauge updated
+}
+
+func ExampleHTTPServer_Value() {
+	addr := fmt.Sprintf("http://localhost:8080/%s", "value/gauge/name")
+	r, err := http.Get(addr)
+	if err != nil {
+		panic(err)
+	}
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		panic(err)
+	}
+	defer r.Body.Close()
+	fmt.Println(string(body))
+
+	// Output:
+	// 123.123
+}
+
+func ExampleHTTPServer_Values() {
+	addr := fmt.Sprintf("http://localhost:8080/%s", "value")
+	r, err := http.Get(addr)
+	if err != nil {
+		panic(err)
+	}
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		panic(err)
+	}
+	defer r.Body.Close()
+	fmt.Println(string(body))
+
+	// Output:
+	// name=123.123
+}
+
+func ExampleHTTPServer_UpdateJSON() {
+	addr := fmt.Sprintf("http://localhost:8080/%s", "update")
+	m, err := metrx.NewMetrics("name", "gauge", "123.123")
+	if err != nil {
+		panic(err)
+	}
+	data, err := json.Marshal(m)
+	if err != nil {
+		panic(err)
+	}
+	rd := bytes.NewReader(data)
+	r, err := http.Post(addr, "application/json", rd)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(r.Status)
+
+	// Output:
+	// 200 OK
+}
+
+func ExampleHTTPServer_Updates() {
+	addr := fmt.Sprintf("http://localhost:8080/%s", "updates/")
+	ms := make([]metrx.Metrics, 0, 10)
+	for i := 0; i < 10; i++ {
+		val := fmt.Sprintf("%d", i)
+		m, err := metrx.NewMetrics(val, "gauge", val)
+		if err != nil {
+			panic(err)
+		}
+		ms = append(ms, m)
+	}
+
+	data, err := json.Marshal(ms)
+	if err != nil {
+		panic(err)
+	}
+	rd := bytes.NewReader(data)
+	r, err := http.Post(addr, "application/json", rd)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(r.Status)
+
+	// Output:
+	// 200 OK
+}
+
+func ExampleHTTPServer_ValueJSON() {
+	addr := fmt.Sprintf("http://localhost:8080/%s", "value")
+	m, err := metrx.NewMetrics("name", "gauge", "123.123")
+	if err != nil {
+		panic(err)
+	}
+	data, err := json.Marshal(m)
+	if err != nil {
+		panic(err)
+	}
+	rd := bytes.NewReader(data)
+	r, err := http.Post(addr, "application/json", rd)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(r.Status)
+
+	// Output:
+	// 200 OK
 }
