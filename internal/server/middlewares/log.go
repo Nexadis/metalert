@@ -43,6 +43,11 @@ func (lw *logWrite) Header() http.Header {
 	return lw.w.Header()
 }
 
+// Логирует информацию о запросе
+// Method
+// Status
+// Duration
+// Size
 func WithLogging(h http.Handler) http.Handler {
 	logFunc := func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
