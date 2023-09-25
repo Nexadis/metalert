@@ -8,18 +8,20 @@ import (
 	"github.com/Nexadis/metalert/internal/utils/logger"
 )
 
+// Config содержит в себе конфигурацию агента
 type Config struct {
-	Address        string `env:"ADDRESS"`
+	Address        string `env:"ADDRESS"` // адрес сервера для отправки метрик
 	ReportInterval int64  `env:"REPORT_INTERVAL"`
 	PollInterval   int64  `env:"POLL_INTERVAL"`
-	Key            string `env:"KEY"`
-	RateLimit      int64  `env:"RATE_LIMIT"`
+	Key            string `env:"KEY"`        // ключ для подписи отправляемых метрик
+	RateLimit      int64  `env:"RATE_LIMIT"` // количество воркеров для отправки метрик
 }
 
 func NewConfig() *Config {
 	return &Config{}
 }
 
+// Парсинг командной строки
 func (c *Config) parseCmd() {
 	flag.StringVar(&c.Address, "a", "localhost:8080", "Server for metrics")
 	flag.Int64Var(&c.PollInterval, "p", 2, "Poll Interval")
@@ -29,6 +31,7 @@ func (c *Config) parseCmd() {
 	flag.Parse()
 }
 
+// Парсинг переменных окружения
 func (c *Config) parseEnv() {
 	err := env.Parse(c)
 	if err != nil {
