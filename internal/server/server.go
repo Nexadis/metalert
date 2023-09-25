@@ -1,3 +1,4 @@
+// server для сбора метрик
 package server
 
 import (
@@ -19,13 +20,14 @@ type Listener interface {
 	MountHandlers()
 }
 
-type HttpServer struct {
+// H
+type HTTPServer struct {
 	router  http.Handler
 	storage storage.Storage
 	config  *Config
 }
 
-func (s *HttpServer) Run() error {
+func (s *HTTPServer) Run() error {
 	return http.ListenAndServe(s.config.Address, s.router)
 }
 
@@ -61,12 +63,12 @@ func chooseStorage(config *Config) (storage.Storage, error) {
 	}
 }
 
-func NewServer(config *Config) (*HttpServer, error) {
+func NewServer(config *Config) (*HTTPServer, error) {
 	storage, err := chooseStorage(config)
 	if err != nil {
 		return nil, err
 	}
-	server := &HttpServer{
+	server := &HTTPServer{
 		nil,
 		storage,
 		config,
@@ -74,7 +76,7 @@ func NewServer(config *Config) (*HttpServer, error) {
 	return server, nil
 }
 
-func (s *HttpServer) MountHandlers() {
+func (s *HTTPServer) MountHandlers() {
 	router := chi.NewRouter()
 	router.Route("/", func(r chi.Router) {
 		r.Get("/", s.InfoPage)

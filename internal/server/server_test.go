@@ -192,11 +192,11 @@ var valuesTests = []testReq{
 	},
 }
 
-func testServer() *HttpServer {
+func testServer() *HTTPServer {
 	storage := mem.NewMetricsStorage()
 	config := NewConfig()
 	config.Key = "test_key"
-	server := &HttpServer{
+	server := &HTTPServer{
 		nil,
 		storage,
 		config,

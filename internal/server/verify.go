@@ -32,7 +32,7 @@ func (vw *verifiedWriter) Write(data []byte) (int, error) {
 	return vw.Writer.Write(data)
 }
 
-func (s *HttpServer) WithVerify(h http.Handler) http.HandlerFunc {
+func (s *HTTPServer) WithVerify(h http.Handler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if s.config.Key == "" {
 			h.ServeHTTP(w, r)
