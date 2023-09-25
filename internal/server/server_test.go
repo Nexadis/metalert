@@ -744,6 +744,7 @@ func ExampleHTTPServer_UpdateJSON() {
 	if err != nil {
 		panic(err)
 	}
+	r.Body.Close()
 	fmt.Println(r.Status)
 
 	// Output:
@@ -771,6 +772,7 @@ func ExampleHTTPServer_Updates() {
 	if err != nil {
 		panic(err)
 	}
+	r.Body.Close()
 	fmt.Println(r.Status)
 
 	// Output:
@@ -792,6 +794,7 @@ func ExampleHTTPServer_ValueJSON() {
 	if err != nil {
 		panic(err)
 	}
+	r.Body.Close()
 	fmt.Println(r.Status)
 
 	// Output:
