@@ -1,3 +1,4 @@
+// Пакет для работы с PostgreSQL
 package db
 
 import (
@@ -8,8 +9,9 @@ import (
 	"github.com/Nexadis/metalert/internal/utils/logger"
 )
 
+// Конфиг БД
 type Config struct {
-	DSN     string `env:"DATABASE_DSN"`
+	DSN     string `env:"DATABASE_DSN"` // Адрес БД
 	Retry   int    `env:"DATABASE_CONN_RETRY"`
 	Timeout int    `env:"DATABASE_TIMEOUT"`
 }
