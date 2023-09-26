@@ -43,7 +43,7 @@ func (lw *logWrite) Header() http.Header {
 	return lw.w.Header()
 }
 
-// Логирует информацию о запросе
+// WithLogging() Логирует информацию о запросе
 // Method
 // Status
 // Duration

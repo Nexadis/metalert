@@ -21,7 +21,7 @@ func NewConfig() *Config {
 	return &Config{}
 }
 
-// Парсинг командной строки
+// parseCmd парсит командную строку
 func (c *Config) parseCmd() {
 	flag.StringVar(&c.Address, "a", "localhost:8080", "Server for metrics")
 	flag.Int64Var(&c.PollInterval, "p", 2, "Poll Interval")
@@ -31,7 +31,7 @@ func (c *Config) parseCmd() {
 	flag.Parse()
 }
 
-// Парсинг переменных окружения
+// parseEnv парсит переменные окружения
 func (c *Config) parseEnv() {
 	err := env.Parse(c)
 	if err != nil {

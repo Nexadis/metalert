@@ -9,7 +9,7 @@ import (
 	"github.com/Nexadis/metalert/internal/utils/logger"
 )
 
-// Конфиг БД
+// Config - Конфиг БД
 type Config struct {
 	DSN     string `env:"DATABASE_DSN"` // Адрес БД
 	Retry   int    `env:"DATABASE_CONN_RETRY"`

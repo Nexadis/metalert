@@ -14,7 +14,7 @@ import (
 	"github.com/Nexadis/metalert/internal/utils/logger"
 )
 
-// Обновление метрики с помощью REST
+// Update Обновление метрики с помощью REST
 func (s *HTTPServer) Update(w http.ResponseWriter, r *http.Request) {
 	mtype := chi.URLParam(r, "mtype")
 	id := chi.URLParam(r, "id")
@@ -41,7 +41,7 @@ func (s *HTTPServer) Update(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// Получение метрики с помощью REST
+// Value Получение метрики с помощью REST
 func (s *HTTPServer) Value(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-type", "text/plain")
 	mtype := chi.URLParam(r, "mtype")
@@ -69,7 +69,7 @@ func (s *HTTPServer) Value(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// Возвращает все значения в текстовом формате
+// Values Возвращает все значения в текстовом формате
 func (s *HTTPServer) Values(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-type", "text/plain")
 	values, err := s.storage.GetAll(r.Context())
@@ -93,7 +93,7 @@ func (s *HTTPServer) Values(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// Обработчик для записи одиночных метрик в JSON-формате
+// UpdateJSON Обработчик для записи одиночных метрик в JSON-формате
 func (s *HTTPServer) UpdateJSON(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
 	m := &metrx.Metrics{}
@@ -110,7 +110,7 @@ func (s *HTTPServer) UpdateJSON(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// Обработчик для записи списка метрик в JSON-формате
+// Updates Обработчик для записи списка метрик в JSON-формате
 func (s *HTTPServer) Updates(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
 	metrics := make([]metrx.Metrics, 0, 50)
@@ -130,7 +130,7 @@ func (s *HTTPServer) Updates(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// Обработчик для получения одиночных метрик в JSON-формате
+// ValueJSON Обработчик для получения одиночных метрик в JSON-формате
 func (s *HTTPServer) ValueJSON(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-type", "application/json")
 	decoder := json.NewDecoder(r.Body)
@@ -154,13 +154,13 @@ func (s *HTTPServer) ValueJSON(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// Главная страница - заглушка
+// InfoPage Главная страница - заглушка
 func (s *HTTPServer) InfoPage(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-type", "text/html")
 	w.Write([]byte("<html><h1>Info page</h1></html>"))
 }
 
-// Проверяет состояние подключения к базе данных
+// DBPing Проверяет состояние подключения к базе данных
 func (s *HTTPServer) DBPing(w http.ResponseWriter, r *http.Request) {
 	db, ok := s.storage.(*db.DB)
 	if ok {

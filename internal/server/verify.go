@@ -18,14 +18,14 @@ var (
 	ErrorInvalidHash = errors.New("invalid hash")
 )
 
-// Обёртка для создания подписей
+// verifiedWriter Обёртка для создания подписей
 type verifiedWriter struct {
 	http.ResponseWriter
 	Writer io.Writer
 	key    string
 }
 
-// Подписывает данные и создает заголовок с подписью
+// Write Подписывает данные и создает заголовок с подписью
 func (vw *verifiedWriter) Write(data []byte) (int, error) {
 	signature, err := verifier.Sign(data, []byte(vw.key))
 	if err != nil {
@@ -35,7 +35,7 @@ func (vw *verifiedWriter) Write(data []byte) (int, error) {
 	return vw.Writer.Write(data)
 }
 
-// Middleware для подписи body запроса
+// WithVerify Middleware для подписи body запроса
 func (s *HTTPServer) WithVerify(h http.Handler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if s.config.Key == "" {

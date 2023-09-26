@@ -27,12 +27,12 @@ type HTTPServer struct {
 	config  *Config
 }
 
-// Запуск сервера
+// Run Запуск сервера
 func (s *HTTPServer) Run() error {
 	return http.ListenAndServe(s.config.Address, s.router)
 }
 
-// Определяет по конфигу какое хранилище использовать
+// chooseStorage Определяет по конфигу какое хранилище использовать
 func chooseStorage(config *Config) (storage.Storage, error) {
 	ctx := context.TODO()
 	switch {
@@ -65,7 +65,7 @@ func chooseStorage(config *Config) (storage.Storage, error) {
 	}
 }
 
-// Конструктор HTTPServer, для инциализации использует Config
+// NewServer Конструктор HTTPServer, для инциализации использует Config
 func NewServer(config *Config) (*HTTPServer, error) {
 	storage, err := chooseStorage(config)
 	if err != nil {
@@ -79,7 +79,7 @@ func NewServer(config *Config) (*HTTPServer, error) {
 	return server, nil
 }
 
-// Подключает все обработчики и middlewares к роутеру
+// MountHandlers Подключает все обработчики и middlewares к роутеру
 func (s *HTTPServer) MountHandlers() {
 	router := chi.NewRouter()
 	router.Route("/", func(r chi.Router) {

@@ -17,7 +17,7 @@ type Setter interface {
 	Set(ctx context.Context, m metrx.Metrics) error
 }
 
-// Интерфейс для хранилищ. Позволяет использовать pg и mem хранилища.
+// Storage Интерфейс для хранилищ. Позволяет использовать pg и mem хранилища.
 type Storage interface {
 	Getter
 	Setter

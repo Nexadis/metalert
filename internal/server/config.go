@@ -9,7 +9,7 @@ import (
 	"github.com/Nexadis/metalert/internal/utils/logger"
 )
 
-// Конфиг сервера
+// Config - Конфиг сервера
 type Config struct {
 	Address         string `env:"ADDRESS"`
 	StoreInterval   int64  `env:"STORE_INTERVAL"`    // интервал сохранения данных
@@ -20,7 +20,7 @@ type Config struct {
 	DB              *db.Config
 }
 
-// Конструктор для конфига
+// NewConfig() Конструктор для конфига
 func NewConfig() *Config {
 	db := db.NewConfig()
 	return &Config{
@@ -44,7 +44,7 @@ func (c *Config) parseEnv() {
 	}
 }
 
-// Парсинг всех конфига сервера
+// ParseConfig() выполняет парсинг всех конфига сервера
 func (c *Config) ParseConfig() {
 	c.parseCmd()
 	flag.Parse()

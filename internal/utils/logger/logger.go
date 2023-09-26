@@ -8,7 +8,7 @@ import (
 
 type Level int
 
-// Уровни логгирования
+// Level - Определяет уровни логгирования
 const (
 	DebugLevel Level = iota
 	InfoLevel
@@ -45,7 +45,7 @@ func chooseLevel(level Level) zapcore.Level {
 	return zapLevel
 }
 
-// Создаёт логгер на основе zap.NewDevelopment()
+// NewLogger Создаёт логгер на основе zap.NewDevelopment()
 func NewLogger(level Level) Logger {
 	zapLevel := chooseLevel(level)
 	zap.NewAtomicLevelAt(zapLevel)
@@ -71,13 +71,13 @@ func (l Log) Error(args ...interface{}) {
 	l.Zap.Errorln(args...)
 }
 
-// Выключает логгирование
+// Disable Выключает логгирование
 func (l *Log) Disable() {
 	z := zap.NewNop()
 	l.Zap = z.Sugar()
 }
 
-// Включает логгирование
+// Enable Включает логгирование
 func (l *Log) Enable() {
 	logger, err := zap.NewDevelopment()
 	if err != nil {
@@ -95,7 +95,7 @@ func Enable() {
 	StandardLogger.Enable()
 }
 
-// Стандартный логгер, чтоб не приходилось создавать новый
+// StandardLogger Стандартный логгер, чтоб не приходилось создавать новый
 var StandardLogger Logger
 
 func init() {

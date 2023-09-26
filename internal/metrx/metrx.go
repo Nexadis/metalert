@@ -33,19 +33,19 @@ func (c Counter) String() string {
 	return strconv.FormatInt(int64(c), 10)
 }
 
-// Получает Counter из строки
+// PrseCounter Получает Counter из строки
 func ParseCounter(value string) (Counter, error) {
 	val, err := strconv.Atoi(value)
 	return Counter(val), err
 }
 
-// Получает Gauge из строки
+// ParseGauge Получает Gauge из строки
 func ParseGauge(value string) (Gauge, error) {
 	val, err := strconv.ParseFloat(value, 64)
 	return Gauge(val), err
 }
 
-// Структура для хранения метрики
+// Metrics - Структура для хранения метрики
 type Metrics struct {
 	ID    string   `json:"id"`              // имя метрики
 	MType string   `json:"type"`            // параметр, принимающий значение gauge или counter
@@ -53,7 +53,7 @@ type Metrics struct {
 	Value *Gauge   `json:"value,omitempty"` // значение метрики в случае передачи gauge
 }
 
-// Конструктор метрики, сам конвертирует строку в значение на основе типа
+// NewMetrics - Конструктор метрики, сам конвертирует строку в значение на основе типа
 func NewMetrics(id, mtype, value string) (Metrics, error) {
 	m := &Metrics{
 		ID:    id,
@@ -63,7 +63,7 @@ func NewMetrics(id, mtype, value string) (Metrics, error) {
 	return *m, err
 }
 
-// Парсит строку и сохраняет значение метрики. Определяет тип по MType
+// SetValue() Парсит строку и сохраняет значение метрики. Определяет тип по MType
 func (m *Metrics) SetValue(value string) error {
 	switch m.MType {
 	case CounterType:
@@ -86,7 +86,7 @@ func (m *Metrics) SetValue(value string) error {
 	return nil
 }
 
-// Возвращает значение метрики в виде строки
+// GetValue() Возвращает значение метрики в виде строки
 func (m Metrics) GetValue() (string, error) {
 	switch m.MType {
 	case CounterType:

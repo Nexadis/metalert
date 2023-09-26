@@ -36,7 +36,7 @@ const (
 
 const MetricsBufSize = 100
 
-// Набор Runtime метрик, список которых заполняется один раз с помощью reflect и многократно используется
+// RuntimeNames - набор Runtime метрик, список которых заполняется один раз с помощью reflect и многократно используется
 var RuntimeNames []string
 
 // HTTPAgent реализует интерфейс Watcher, собирает и отправляет метрики
@@ -46,7 +46,7 @@ type HTTPAgent struct {
 	client  client.MetricPoster
 }
 
-// Конструктор для HTTPAgent
+// New - Конструктор для HTTPAgent
 func New(config *Config) *HTTPAgent {
 	defineRuntimes()
 	client := client.NewHTTP(client.SetKey(config.Key))
@@ -193,7 +193,7 @@ func (ha *HTTPAgent) Report(ctx context.Context, input chan *metrx.Metrics, errs
 	}
 }
 
-// defineRuntimes имена всех метрик из runtime
+// defineRuntimes получает имена всех метрик из runtime
 func defineRuntimes() {
 	if RuntimeNames != nil {
 		return
