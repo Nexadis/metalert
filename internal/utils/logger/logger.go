@@ -51,7 +51,7 @@ func NewLogger(level Level) Logger {
 	zap.NewAtomicLevelAt(zapLevel)
 	logger, err := zap.NewDevelopment()
 	if err != nil {
-		panic(err)
+		return nil
 	}
 	log := Log{
 		Zap: logger.Sugar(),
@@ -81,7 +81,7 @@ func (l *Log) Disable() {
 func (l *Log) Enable() {
 	logger, err := zap.NewDevelopment()
 	if err != nil {
-		panic(err)
+		return
 	}
 
 	l.Zap = logger.Sugar()

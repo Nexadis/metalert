@@ -88,33 +88,38 @@ func (ha *HTTPAgent) pullCustom(ctx context.Context, mchan chan *metrx.Metrics) 
 	randValue := metrx.Gauge(rand.Float64())
 	m, err := metrx.NewMetrics("RandomValue", metrx.GaugeType, randValue.String())
 	if err != nil {
-		panic(err)
+		logger.Error(err)
+		return
 	}
 	customMetrics = append(customMetrics, m)
 	ha.counter += 1
 	m, err = metrx.NewMetrics("PollCount", metrx.CounterType, ha.counter.String())
 	if err != nil {
-		panic(err)
+		logger.Error(err)
+		return
 	}
 	customMetrics = append(customMetrics, m)
 	v, _ := memStat.VirtualMemory()
 	totalMemory := metrx.Gauge(v.Total)
 	m, err = metrx.NewMetrics("TotalMemory", metrx.GaugeType, totalMemory.String())
 	if err != nil {
-		panic(err)
+		logger.Error(err)
+		return
 	}
 	customMetrics = append(customMetrics, m)
 	freeMemory := metrx.Gauge(v.Free)
 	m, err = metrx.NewMetrics("FreeMemory", metrx.GaugeType, freeMemory.String())
 	if err != nil {
-		panic(err)
+		logger.Error(err)
+		return
 	}
 	customMetrics = append(customMetrics, m)
 	c, _ := cpu.PercentWithContext(ctx, 0, false)
 	CPUUtilization := metrx.Gauge(c[0])
 	m, err = metrx.NewMetrics("CPUUtilization1", metrx.GaugeType, CPUUtilization.String())
 	if err != nil {
-		panic(err)
+		logger.Error(err)
+		return
 	}
 	customMetrics = append(customMetrics, m)
 	for _, m := range customMetrics {
@@ -144,7 +149,8 @@ func (ha *HTTPAgent) pullRuntime(ctx context.Context, mchan chan *metrx.Metrics)
 		}
 		m, err := metrx.NewMetrics(gaugeName, metrx.GaugeType, val)
 		if err != nil {
-			panic(err)
+			logger.Error(err)
+			return
 		}
 		select {
 		case mchan <- &m:

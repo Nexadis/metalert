@@ -24,10 +24,10 @@ type logWrite struct {
 func (lw *logWrite) Write(b []byte) (int, error) {
 	body := bytes.NewReader(b)
 	read, err := io.ReadAll(body)
-	lw.rd.body = string(read)
 	if err != nil {
-		panic(err)
+		return 0, err
 	}
+	lw.rd.body = string(read)
 
 	size, err := lw.w.Write(b)
 	lw.rd.size += size
