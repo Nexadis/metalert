@@ -10,7 +10,6 @@ import (
 	"testing"
 
 	"github.com/Nexadis/metalert/internal/metrx"
-	"github.com/Nexadis/metalert/internal/storage"
 	"github.com/Nexadis/metalert/internal/storage/mem"
 	"github.com/stretchr/testify/assert"
 )
@@ -26,9 +25,15 @@ type want struct {
 	name       string
 	valType    string
 	value      string
-	values     []storage.ObjectGetter
+	values     []stringMetrics
 	body       string
 	headers    http.Header
+}
+
+type stringMetrics struct {
+	name    string
+	valType string
+	value   string
 }
 
 type testReq struct {
@@ -68,12 +73,12 @@ var updateTests = []testReq{
 		name: "Gauge type, positive",
 		request: req{
 			method: http.MethodPost,
-			url:    `/update/gauge/positive/2`,
+			url:    `/update/gauge/positiveg/2`,
 		},
 		want: want{
 			statusCode: http.StatusOK,
 			valType:    "gauge",
-			name:       "positive",
+			name:       "positiveg",
 			value:      "2",
 		},
 	},
@@ -123,12 +128,12 @@ var valueTests = []testReq{
 		name: "Gauge type, positive",
 		request: req{
 			method: http.MethodGet,
-			url:    `/value/gauge/positive`,
+			url:    `/value/gauge/positiveg`,
 		},
 		want: want{
 			statusCode: http.StatusOK,
 			valType:    "gauge",
-			name:       "positive",
+			name:       "positiveg",
 			value:      "2",
 		},
 	},
@@ -193,8 +198,11 @@ func TestUpdateURL(t *testing.T) {
 			result := w.Result()
 			assert.Equal(t, result.StatusCode, test.want.statusCode)
 			defer result.Body.Close()
-			getted, _ := server.storage.Get(ctx, test.want.valType, test.want.name)
-			assert.Equal(t, getted.GetValue(), test.want.value)
+			getted, err := server.storage.Get(ctx, test.want.valType, test.want.name)
+			assert.NoError(t, err)
+			val, err := getted.GetValue()
+			assert.NoError(t, err)
+			assert.Equal(t, val, test.want.value)
 		})
 	}
 }
@@ -204,7 +212,13 @@ func TestValueURL(t *testing.T) {
 	ctx := context.TODO()
 	for _, test := range valueTests {
 		t.Run(test.name, func(t *testing.T) {
-			err := server.storage.Set(ctx, test.want.valType, test.want.name, test.want.value)
+			m, err := metrx.NewMetrics(
+				test.want.name,
+				test.want.valType,
+				test.want.value,
+			)
+			assert.NoError(t, err)
+			err = server.storage.Set(ctx, m)
 			assert.NoError(t, err)
 			r := httptest.NewRequest(test.request.method, test.request.url, nil)
 			w := httptest.NewRecorder()
@@ -222,7 +236,13 @@ func TestValuesURL(t *testing.T) {
 	server := testServer()
 	ctx := context.TODO()
 	for _, test := range valueTests {
-		err := server.storage.Set(ctx, test.want.valType, test.want.name, test.want.value)
+		m, err := metrx.NewMetrics(
+			test.want.name,
+			test.want.valType,
+			test.want.value,
+		)
+		assert.NoError(t, err)
+		err = server.storage.Set(ctx, m)
 		assert.NoError(t, err)
 	}
 	for _, test := range valuesTests {
@@ -236,7 +256,6 @@ func TestValuesURL(t *testing.T) {
 			body, _ := io.ReadAll(result.Body)
 			getted := strings.Split(string(body), "\n")
 			wanted := strings.Split(test.want.body, "\n")
-
 			assert.ElementsMatch(t, getted, wanted)
 		})
 	}
@@ -440,8 +459,11 @@ func TestUpdateJSON(t *testing.T) {
 			assert.Equal(t, test.want.statusCode, result.StatusCode)
 			defer result.Body.Close()
 			if result.StatusCode == http.StatusOK {
-				getted, _ := server.storage.Get(ctx, test.want.valType, test.want.name)
-				assert.Equal(t, getted.GetValue(), test.want.value)
+				getted, err := server.storage.Get(ctx, test.want.valType, test.want.name)
+				assert.NoError(t, err)
+				val, err := getted.GetValue()
+				assert.NoError(t, err)
+				assert.Equal(t, val, test.want.value)
 			}
 		})
 	}
@@ -456,7 +478,15 @@ func TestValueJSON(t *testing.T) {
 			r := httptest.NewRequest(test.request.method, test.request.url, strings.NewReader(test.request.body))
 			r.Header = test.request.headers
 			w := httptest.NewRecorder()
-			server.storage.Set(ctx, test.want.valType, test.want.name, test.want.value)
+			if test.want.statusCode == http.StatusOK {
+				m, err := metrx.NewMetrics(
+					test.want.name,
+					test.want.valType,
+					test.want.value,
+				)
+				assert.NoError(t, err)
+				server.storage.Set(ctx, m)
+			}
 			server.router.ServeHTTP(w, r)
 			result := w.Result()
 			assert.Equal(t, test.want.statusCode, result.StatusCode)
@@ -506,26 +536,26 @@ var JSONUpdatesTests = []testReq{
 		},
 		want: want{
 			statusCode: http.StatusOK,
-			values: []storage.ObjectGetter{
-				&metrx.MetricsString{
-					ID:    "name",
-					MType: "gauge",
-					Value: "123.123",
+			values: []stringMetrics{
+				{
+					name:    "name",
+					valType: "gauge",
+					value:   "123.123",
 				},
-				&metrx.MetricsString{
-					ID:    "someGauge",
-					MType: "gauge",
-					Value: "435.435",
+				{
+					name:    "someGauge",
+					valType: "gauge",
+					value:   "435.435",
 				},
-				&metrx.MetricsString{
-					ID:    "ctr",
-					MType: "counter",
-					Value: "2846",
+				{
+					name:    "ctr",
+					valType: "counter",
+					value:   "2846",
 				},
-				&metrx.MetricsString{
-					ID:    "SomeCtr",
-					MType: "counter",
-					Value: "1445309",
+				{
+					name:    "SomeCtr",
+					valType: "counter",
+					value:   "1445309",
 				},
 			},
 		},
@@ -546,10 +576,40 @@ func TestUpdatesJSON(t *testing.T) {
 			defer result.Body.Close()
 			if result.StatusCode == http.StatusOK {
 				for _, want := range test.want.values {
-					value, _ := server.storage.Get(ctx, want.GetMType(), want.GetID())
-					assert.Equal(t, want.GetValue(), value.GetValue())
+					m, err := server.storage.Get(ctx, want.valType, want.name)
+					assert.NoError(t, err)
+					value, err := m.GetValue()
+					assert.NoError(t, err)
+					assert.Equal(t, want.value, value)
 				}
 			}
 		})
+	}
+}
+
+func BenchmarkUpdateURL(b *testing.B) {
+	server := testServer()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		b.StopTimer()
+		test := updateTests[0]
+		r := httptest.NewRequest(test.request.method, test.request.url, nil)
+		w := httptest.NewRecorder()
+		b.StartTimer()
+		server.router.ServeHTTP(w, r)
+	}
+}
+
+func BenchmarkUpdateJSON(b *testing.B) {
+	server := testServer()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		b.StopTimer()
+		test := JSONUpdateTests[0]
+		r := httptest.NewRequest(test.request.method, test.request.url, strings.NewReader(test.request.body))
+		r.Header = test.request.headers
+		w := httptest.NewRecorder()
+		b.StartTimer()
+		server.router.ServeHTTP(w, r)
 	}
 }

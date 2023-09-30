@@ -2,6 +2,8 @@ package mem
 
 import (
 	"context"
+	"fmt"
+	"math/rand"
 	"testing"
 
 	"github.com/Nexadis/metalert/internal/metrx"
@@ -86,14 +88,19 @@ func TestSet(t *testing.T) {
 	ctx := context.TODO()
 	for _, test := range testCasesCounters {
 		t.Run(test.name, func(t *testing.T) {
-			err := storage.Set(ctx, test.request.valType, test.request.name, test.request.value)
+			m, err := metrx.NewMetrics(test.request.name, test.request.valType, test.request.value)
+			assert.NoError(t, err)
+
+			err = storage.Set(ctx, m)
 			assert.Equal(t, storage.Counters[test.request.name], test.want)
 			assert.NoError(t, err)
 		})
 	}
 	for _, test := range testCasesGauges {
 		t.Run(test.name, func(t *testing.T) {
-			err := storage.Set(ctx, test.request.valType, test.request.name, test.request.value)
+			m, err := metrx.NewMetrics(test.request.name, test.request.valType, test.request.value)
+			assert.NoError(t, err)
+			err = storage.Set(ctx, m)
 			assert.Equal(t, storage.Gauges[test.request.name], test.want)
 			assert.NoError(t, err)
 		})
@@ -166,8 +173,70 @@ func TestGet(t *testing.T) {
 	for _, test := range testCases {
 		t.Run(test.name, func(t *testing.T) {
 			res, err := storage.Get(ctx, test.request.valType, test.request.name)
-			assert.Equal(t, res.GetValue(), test.want)
 			assert.NoError(t, err)
+			ms, err := res.GetValue()
+			assert.NoError(t, err)
+			assert.Equal(t, ms, test.want)
 		})
+	}
+}
+
+func BenchmarkGet(b *testing.B) {
+	storage := Storage{
+		Gauges: map[string]metrx.Gauge{
+			"positive": metrx.Gauge(102391),
+			"small":    metrx.Gauge(0.000000000001),
+			"neg":      metrx.Gauge(-102391),
+		},
+		Counters: map[string]metrx.Counter{
+			"positive": metrx.Counter(2),
+			"big":      metrx.Counter(2985198054390),
+		},
+	}
+	ctx := context.Background()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		storage.Get(ctx, "counter", "big")
+	}
+}
+
+func randomMS(b *testing.B) metrx.Metrics {
+	var mtype, val string
+	value := rand.Int()
+	if value%2 == 0 {
+		mtype = "gauge"
+		val = fmt.Sprintf("%d.%d", value, value)
+	} else {
+		mtype = "counter"
+		val = fmt.Sprintf("%d", value)
+	}
+	name := val
+	m, err := metrx.NewMetrics(name, mtype, val)
+	assert.NoError(b, err)
+	return m
+}
+
+func BenchmarkGetAll(b *testing.B) {
+	storage := NewMetricsStorage()
+	ctx := context.Background()
+	for i := 0; i < 10000; i++ {
+		m := randomMS(b)
+		storage.Set(ctx, m)
+	}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		storage.GetAll(ctx)
+	}
+}
+
+func BenchmarkSet(b *testing.B) {
+	storage := NewMetricsStorage()
+	ctx := context.Background()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		b.StopTimer()
+		m := randomMS(b)
+		b.StartTimer()
+		storage.Set(ctx, m)
 	}
 }

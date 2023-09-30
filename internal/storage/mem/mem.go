@@ -2,6 +2,7 @@ package mem
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"sync"
 
@@ -14,94 +15,82 @@ type MetricsStorage interface {
 	StateSaver
 }
 
+var _ MetricsStorage = &Storage{}
+
 type Storage struct {
 	Gauges   map[string]metrx.Gauge
 	Counters map[string]metrx.Counter
 	mutex    sync.RWMutex
 }
 
-func NewMetricsStorage() MetricsStorage {
+func NewMetricsStorage() *Storage {
 	ms := new(Storage)
 	ms.Gauges = make(map[string]metrx.Gauge)
 	ms.Counters = make(map[string]metrx.Counter)
 	return ms
 }
 
-func (ms *Storage) Set(ctx context.Context, mtype, id, value string) error {
-	switch strings.ToLower(mtype) {
+func (ms *Storage) Set(ctx context.Context, m metrx.Metrics) error {
+	_, err := m.GetValue()
+	if err != nil {
+		return err
+	}
+	switch strings.ToLower(m.MType) {
 	case metrx.CounterType:
-		val, err := metrx.ParseCounter(value)
-		if err != nil {
-			return err
-		}
 		ms.mutex.Lock()
-		ms.Counters[id] += val
+		ms.Counters[m.ID] += *m.Delta
 		ms.mutex.Unlock()
 		return nil
 	case metrx.GaugeType:
-		val, err := metrx.ParseGauge(value)
-		if err != nil {
-			return err
-		}
 		ms.mutex.Lock()
-		ms.Gauges[id] = val
+		ms.Gauges[m.ID] = *m.Value
 		ms.mutex.Unlock()
 		return nil
 	}
-	return storage.ErrInvalidType
+	return fmt.Errorf("%v: %v", storage.ErrInvalidType, m)
 }
 
-func (ms *Storage) Get(ctx context.Context, mtype, id string) (storage.ObjectGetter, error) {
+func (ms *Storage) Get(ctx context.Context, mtype, id string) (metrx.Metrics, error) {
 	switch strings.ToLower(mtype) {
 	case metrx.CounterType:
 		ms.mutex.RLock()
 		value, ok := ms.Counters[id]
 		ms.mutex.RUnlock()
 		if !ok {
-			return nil, storage.ErrNotFound
+			return metrx.Metrics{}, storage.ErrNotFound
 		}
-		val := &metrx.MetricsString{
-			ID:    id,
-			MType: metrx.CounterType,
-			Value: value.String(),
-		}
-		return val, nil
+		return metrx.NewMetrics(id, mtype, value.String())
 	case metrx.GaugeType:
 		ms.mutex.RLock()
 		value, ok := ms.Gauges[id]
 		ms.mutex.RUnlock()
 		if !ok {
-			return nil, storage.ErrNotFound
+			return metrx.Metrics{}, storage.ErrNotFound
 		}
-		val := &metrx.MetricsString{
-			ID:    id,
-			MType: metrx.GaugeType,
-			Value: value.String(),
-		}
-		return val, nil
+		return metrx.NewMetrics(id, mtype, value.String())
 	}
 
-	return nil, storage.ErrInvalidType
+	return metrx.Metrics{}, storage.ErrInvalidType
 }
 
-func (ms *Storage) GetAll(ctx context.Context) ([]storage.ObjectGetter, error) {
-	m := make([]storage.ObjectGetter, 0, len(ms.Gauges)+len(ms.Counters))
+func (ms *Storage) GetAll(ctx context.Context) ([]metrx.Metrics, error) {
+	m := make([]metrx.Metrics, 0, len(ms.Gauges)+len(ms.Counters))
 	ms.mutex.RLock()
 	defer ms.mutex.RUnlock()
 	for name, value := range ms.Gauges {
-		val := value.String()
-		m = append(m, &metrx.MetricsString{
+		v := value
+		m = append(m, metrx.Metrics{
 			MType: metrx.GaugeType,
 			ID:    name,
-			Value: val,
+			Value: &v,
 		})
 	}
 	for name, value := range ms.Counters {
-		val := value.String()
-		m = append(m, &metrx.MetricsString{
+		v := value
+		m = append(m, metrx.Metrics{
 			MType: metrx.CounterType,
 			ID:    name,
-			Value: val,
+			Delta: &v,
 		})
 	}
 	return m, nil
