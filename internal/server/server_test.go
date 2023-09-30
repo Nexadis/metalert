@@ -1,9 +1,13 @@
 package server
 
 import (
+	"bytes"
 	"context"
+	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -12,7 +16,9 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/Nexadis/metalert/internal/metrx"
+	"github.com/Nexadis/metalert/internal/storage/db"
 	"github.com/Nexadis/metalert/internal/storage/mem"
+	"github.com/Nexadis/metalert/internal/utils/verifier"
 )
 
 type req struct {
@@ -41,6 +47,20 @@ type testReq struct {
 	name    string
 	request req
 	want    want
+}
+
+func TestNewServer(t *testing.T) {
+	c := Config{
+		DB: db.NewConfig(),
+	}
+
+	_, err := NewServer(&c)
+	assert.NoError(t, err)
+
+	c.DB.DSN = "invalid dsn"
+
+	_, err = NewServer(&c)
+	assert.Error(t, err)
 }
 
 var updateTests = []testReq{
@@ -175,10 +195,11 @@ var valuesTests = []testReq{
 	},
 }
 
-func testServer() *httpServer {
+func testServer() *HTTPServer {
 	storage := mem.NewMetricsStorage()
 	config := NewConfig()
-	server := &httpServer{
+	config.Key = "test_key"
+	server := &HTTPServer{
 		nil,
 		storage,
 		config,
@@ -453,7 +474,9 @@ func TestUpdateJSON(t *testing.T) {
 	for _, test := range JSONUpdateTests {
 		t.Run(test.name, func(t *testing.T) {
 			r := httptest.NewRequest(test.request.method, test.request.url, strings.NewReader(test.request.body))
-			r.Header = test.request.headers
+			signature, err := verifier.Sign([]byte(test.request.body), []byte(server.config.Key))
+			assert.NoError(t, err)
+			r.Header.Set(verifier.HashHeader, base64.StdEncoding.EncodeToString(signature))
 			w := httptest.NewRecorder()
 			server.router.ServeHTTP(w, r)
 			result := w.Result()
@@ -613,4 +636,167 @@ func BenchmarkUpdateJSON(b *testing.B) {
 		b.StartTimer()
 		server.router.ServeHTTP(w, r)
 	}
+}
+
+func init() {
+	c := NewConfig()
+	c.Address = ":8080"
+	c.DB = db.NewConfig()
+	s, err := NewServer(c)
+	if err != nil {
+		log.Fatal(err)
+	}
+	s.MountHandlers()
+	go s.Run()
+}
+
+func ExampleNewServer() {
+	c := NewConfig()
+	c.ParseConfig()
+	s, err := NewServer(c)
+	if err != nil {
+		log.Fatal(err)
+	}
+	s.MountHandlers()
+	log.Fatal(s.Run())
+}
+
+func ExampleHTTPServer_DBPing() {
+	addr := fmt.Sprintf("http://localhost:8080/%s", "ping")
+	r, err := http.Get(addr)
+	if err != nil {
+		// ... Handle error
+	}
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		// ... Handle error
+	}
+	defer r.Body.Close()
+	fmt.Println(string(body))
+
+	// Output:
+	// DB is not connected
+}
+
+func ExampleHTTPServer_Update() {
+	addr := fmt.Sprintf("http://localhost:8080/%s", "update/gauge/name/123.123")
+	r, err := http.Post(addr, "", nil)
+	if err != nil {
+		// ... Handle error
+	}
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		// ... Handle error
+	}
+	defer r.Body.Close()
+	fmt.Println(string(body))
+
+	// Output:
+	// Value name type gauge updated
+}
+
+func ExampleHTTPServer_Value() {
+	addr := fmt.Sprintf("http://localhost:8080/%s", "value/gauge/name")
+	r, err := http.Get(addr)
+	if err != nil {
+		// ... Handle error
+	}
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		// ... Handle error
+	}
+	defer r.Body.Close()
+	fmt.Println(string(body))
+
+	// Output:
+	// 123.123
+}
+
+func ExampleHTTPServer_Values() {
+	addr := fmt.Sprintf("http://localhost:8080/%s", "value")
+	r, err := http.Get(addr)
+	if err != nil {
+		// ... Handle error
+	}
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		// ... Handle error
+	}
+	defer r.Body.Close()
+	fmt.Println(string(body))
+
+	// Output:
+	// name=123.123
+}
+
+func ExampleHTTPServer_UpdateJSON() {
+	addr := fmt.Sprintf("http://localhost:8080/%s", "update")
+	m, err := metrx.NewMetrics("name", "gauge", "123.123")
+	if err != nil {
+		// ... Handle error
+	}
+	data, err := json.Marshal(m)
+	if err != nil {
+		// ... Handle error
+	}
+	rd := bytes.NewReader(data)
+	r, err := http.Post(addr, "application/json", rd)
+	if err != nil {
+		// ... Handle error
+	}
+	r.Body.Close()
+	fmt.Println(r.Status)
+
+	// Output:
+	// 200 OK
+}
+
+func ExampleHTTPServer_Updates() {
+	addr := fmt.Sprintf("http://localhost:8080/%s", "updates/")
+	ms := make([]metrx.Metrics, 0, 10)
+	for i := 0; i < 10; i++ {
+		val := fmt.Sprintf("%d", i)
+		m, err := metrx.NewMetrics(val, "gauge", val)
+		if err != nil {
+			// ... Handle error
+		}
+		ms = append(ms, m)
+	}
+
+	data, err := json.Marshal(ms)
+	if err != nil {
+		// ... Handle error
+	}
+	rd := bytes.NewReader(data)
+	r, err := http.Post(addr, "application/json", rd)
+	if err != nil {
+		// ... Handle error
+	}
+	r.Body.Close()
+	fmt.Println(r.Status)
+
+	// Output:
+	// 200 OK
+}
+
+func ExampleHTTPServer_ValueJSON() {
+	addr := fmt.Sprintf("http://localhost:8080/%s", "value")
+	m, err := metrx.NewMetrics("name", "gauge", "123.123")
+	if err != nil {
+		// ... Handle error
+	}
+	data, err := json.Marshal(m)
+	if err != nil {
+		// ... Handle error
+	}
+	rd := bytes.NewReader(data)
+	r, err := http.Post(addr, "application/json", rd)
+	if err != nil {
+		// ... Handle error
+	}
+	r.Body.Close()
+	fmt.Println(r.Status)
+
+	// Output:
+	// 200 OK
 }

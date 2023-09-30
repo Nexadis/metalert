@@ -9,16 +9,18 @@ import (
 	"github.com/Nexadis/metalert/internal/utils/logger"
 )
 
+// Config - Конфиг сервера
 type Config struct {
 	Address         string `env:"ADDRESS"`
-	StoreInterval   int64  `env:"STORE_INTERVAL"`
-	FileStoragePath string `env:"FILE_STORAGE_PATH"`
-	Restore         bool   `env:"RESTORE"`
-	Verbose         bool   `env:"VERBOSE"`
-	Key             string `env:"KEY"`
+	StoreInterval   int64  `env:"STORE_INTERVAL"`    // интервал сохранения данных
+	FileStoragePath string `env:"FILE_STORAGE_PATH"` // файл для сохранения базы метрик при использовании inmemory хранилища
+	Restore         bool   `env:"RESTORE"`           // восстановление данных из файл
+	Verbose         bool   `env:"VERBOSE"`           // Включить логгирование
+	Key             string `env:"KEY"`               // Ключ для подписи всех пакетов
 	DB              *db.Config
 }
 
+// NewConfig() Конструктор для конфига
 func NewConfig() *Config {
 	db := db.NewConfig()
 	return &Config{
@@ -42,6 +44,7 @@ func (c *Config) parseEnv() {
 	}
 }
 
+// ParseConfig() выполняет парсинг всех конфига сервера
 func (c *Config) ParseConfig() {
 	c.parseCmd()
 	flag.Parse()

@@ -1,3 +1,4 @@
+// client реализует клиента для отправки метрик по HTTP
 package client
 
 import (
@@ -13,17 +14,22 @@ import (
 	"github.com/Nexadis/metalert/internal/utils/verifier"
 )
 
+// MetricPoster интерфейс для отправки метрик как через URL, так и JSON-объектами.
 type MetricPoster interface {
 	Post(ctx context.Context, path, valType, name, value string) error
 	PostObj(ctx context.Context, path string, obj interface{}) error
 }
 
+// httpClient отправляет метрики и подписывает их ключом key.
 type httpClient struct {
 	client *resty.Client
 	key    string
 }
 
-func NewHTTP(options ...func(*httpClient)) MetricPoster {
+// NewHTTP - конструктор для httpClient, принимает в качестве аргументов функции, например:
+//
+//	func SetKey(key string) func(*httpClient)
+func NewHTTP(options ...func(*httpClient)) *httpClient {
 	client := &httpClient{
 		client: resty.New().
 			SetRetryCount(3).
@@ -36,6 +42,9 @@ func NewHTTP(options ...func(*httpClient)) MetricPoster {
 	return client
 }
 
+// Post отправляет метрику через Post-запрос, генерируя url по параметрам valType, name, value.
+//
+// path - адрес сервера, например "http://localhost:8080/update"
 func (c *httpClient) Post(ctx context.Context, path, valType, name, value string) error {
 	_, err := c.client.R().
 		SetContext(ctx).
@@ -50,6 +59,7 @@ func (c *httpClient) Post(ctx context.Context, path, valType, name, value string
 	return err
 }
 
+// PostObj отправляет метрику в виде JSON-строки, дополнительно сжимая её с помощью gzip и подписывая с помощью httpClient.key.
 func (c *httpClient) PostObj(ctx context.Context, path string, obj interface{}) error {
 	buf, err := json.Marshal(obj)
 	if err != nil {

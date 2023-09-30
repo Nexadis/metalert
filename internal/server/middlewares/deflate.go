@@ -1,3 +1,4 @@
+// middleware для работы с логированием и сжатием
 package middlewares
 
 import (
@@ -30,6 +31,7 @@ func (c *compressWriter) Write(data []byte) (int, error) {
 	return c.Writer.Write(data)
 }
 
+// WithDeflate() Сжимает тело запроса с помощью gzip
 func WithDeflate(h http.Handler) http.Handler {
 	deflate := func(w http.ResponseWriter, r *http.Request) {
 		if isEncoded(r, StandardCompression) {

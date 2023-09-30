@@ -1,6 +1,8 @@
 package main
 
 import (
+	"log"
+
 	"github.com/Nexadis/metalert/internal/server"
 	"github.com/Nexadis/metalert/internal/utils/logger"
 )
@@ -8,11 +10,14 @@ import (
 func main() {
 	config := server.NewConfig()
 	config.ParseConfig()
-	server := server.NewServer(config)
+	server, err := server.NewServer(config)
+	if err != nil {
+		log.Fatal(err)
+	}
 	server.MountHandlers()
 	logger.Info("Server", config.Address)
-	err := server.Run()
+	err = server.Run()
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 }

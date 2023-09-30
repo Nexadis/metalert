@@ -1,3 +1,6 @@
+// agent для сбора метрик
+//
+// Cобирает метрики, Отправляет метрики. Всё это происходит в фоновом режим с заданным интервалом.
 package agent
 
 import (
@@ -16,38 +19,46 @@ import (
 	"github.com/Nexadis/metalert/internal/utils/logger"
 )
 
+// Watcher - интерфейс агента, собирающего и отправляющего метрики.
 type Watcher interface {
 	Run(ctx context.Context) error
 	Pull(ctx context.Context, mchan chan *metrx.Metrics)
 	Report(ctx context.Context, input chan *metrx.Metrics, errs chan error)
 }
 
+// Endpoint'ы для отправки метрик.
 const (
-	UpdateURL      = "/update/{valType}/{name}/{value}"
-	JSONUpdateURL  = "/update/"
+	UpdateURL     = "/update/{valType}/{name}/{value}"
+	JSONUpdateURL = "/update/"
+	// Для отправки сразу пачки метрик
 	JSONUpdatesURL = "/updates/"
-	MetricsBufSize = 100
 )
 
+const MetricsBufSize = 100
+
+// RuntimeNames - набор Runtime метрик, список которых заполняется один раз с помощью reflect и многократно используется
 var RuntimeNames []string
 
-type httpAgent struct {
+// HTTPAgent реализует интерфейс Watcher, собирает и отправляет метрики
+type HTTPAgent struct {
 	config  *Config
 	counter metrx.Counter
 	client  client.MetricPoster
 }
 
-func New(config *Config) Watcher {
+// New - Конструктор для HTTPAgent
+func New(config *Config) *HTTPAgent {
 	defineRuntimes()
 	client := client.NewHTTP(client.SetKey(config.Key))
-	agent := &httpAgent{
+	agent := &HTTPAgent{
 		config: config,
 		client: client,
 	}
 	return agent
 }
 
-func (ha *httpAgent) Run(ctx context.Context) error {
+// Run запускает в фоне агент, начинает собирать и отправлять метрики с заданными интервалами
+func (ha *HTTPAgent) Run(ctx context.Context) error {
 	errs := make(chan error)
 	mchan := make(chan *metrx.Metrics, MetricsBufSize)
 	for i := 1; int64(i) <= ha.config.RateLimit; i++ {
@@ -70,39 +81,45 @@ func (ha *httpAgent) Run(ctx context.Context) error {
 	}
 }
 
-func (ha *httpAgent) pullCustom(ctx context.Context, mchan chan *metrx.Metrics) {
+// pullCustom получает нестандартные метрики, определенные разработчиком
+func (ha *HTTPAgent) pullCustom(ctx context.Context, mchan chan *metrx.Metrics) {
 	customMetrics := make([]metrx.Metrics, 0, 5)
 
 	randValue := metrx.Gauge(rand.Float64())
 	m, err := metrx.NewMetrics("RandomValue", metrx.GaugeType, randValue.String())
 	if err != nil {
-		panic(err)
+		logger.Error(err)
+		return
 	}
 	customMetrics = append(customMetrics, m)
 	ha.counter += 1
 	m, err = metrx.NewMetrics("PollCount", metrx.CounterType, ha.counter.String())
 	if err != nil {
-		panic(err)
+		logger.Error(err)
+		return
 	}
 	customMetrics = append(customMetrics, m)
 	v, _ := memStat.VirtualMemory()
 	totalMemory := metrx.Gauge(v.Total)
 	m, err = metrx.NewMetrics("TotalMemory", metrx.GaugeType, totalMemory.String())
 	if err != nil {
-		panic(err)
+		logger.Error(err)
+		return
 	}
 	customMetrics = append(customMetrics, m)
 	freeMemory := metrx.Gauge(v.Free)
 	m, err = metrx.NewMetrics("FreeMemory", metrx.GaugeType, freeMemory.String())
 	if err != nil {
-		panic(err)
+		logger.Error(err)
+		return
 	}
 	customMetrics = append(customMetrics, m)
 	c, _ := cpu.PercentWithContext(ctx, 0, false)
 	CPUUtilization := metrx.Gauge(c[0])
 	m, err = metrx.NewMetrics("CPUUtilization1", metrx.GaugeType, CPUUtilization.String())
 	if err != nil {
-		panic(err)
+		logger.Error(err)
+		return
 	}
 	customMetrics = append(customMetrics, m)
 	for _, m := range customMetrics {
@@ -116,7 +133,8 @@ func (ha *httpAgent) pullCustom(ctx context.Context, mchan chan *metrx.Metrics) 
 	logger.Info("Got custom metrics")
 }
 
-func (ha *httpAgent) pullRuntime(ctx context.Context, mchan chan *metrx.Metrics) {
+// pullRuntime получает метрики из стандартной библиотеки runtime
+func (ha *HTTPAgent) pullRuntime(ctx context.Context, mchan chan *metrx.Metrics) {
 	var val string
 	memStats := &runtime.MemStats{}
 	runtime.ReadMemStats(memStats)
@@ -131,7 +149,8 @@ func (ha *httpAgent) pullRuntime(ctx context.Context, mchan chan *metrx.Metrics)
 		}
 		m, err := metrx.NewMetrics(gaugeName, metrx.GaugeType, val)
 		if err != nil {
-			panic(err)
+			logger.Error(err)
+			return
 		}
 		select {
 		case mchan <- &m:
@@ -141,13 +160,15 @@ func (ha *httpAgent) pullRuntime(ctx context.Context, mchan chan *metrx.Metrics)
 	}
 }
 
-func (ha *httpAgent) Pull(ctx context.Context, mchan chan *metrx.Metrics) {
+// Pull внешняя функция для получения всех метрик
+func (ha *HTTPAgent) Pull(ctx context.Context, mchan chan *metrx.Metrics) {
 	ha.pullCustom(ctx, mchan)
 	ha.pullRuntime(ctx, mchan)
 	logger.Info("Metrics pulled")
 }
 
-func (ha *httpAgent) Report(ctx context.Context, input chan *metrx.Metrics, errs chan error) {
+// Report отправляет метрики на адрес, заданный в конфигурации, всеми доступными способами
+func (ha *HTTPAgent) Report(ctx context.Context, input chan *metrx.Metrics, errs chan error) {
 	path := fmt.Sprintf("http://%s%s", ha.config.Address, UpdateURL)
 	pathJSON := fmt.Sprintf("http://%s%s", ha.config.Address, JSONUpdateURL)
 	for m := range input {
@@ -178,6 +199,7 @@ func (ha *httpAgent) Report(ctx context.Context, input chan *metrx.Metrics, errs
 	}
 }
 
+// defineRuntimes получает имена всех метрик из runtime
 func defineRuntimes() {
 	if RuntimeNames != nil {
 		return

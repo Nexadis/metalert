@@ -16,7 +16,7 @@ func EmptyHandler(w http.ResponseWriter, r *http.Request) {
 func BenchmarkWithVerify(b *testing.B) {
 	c := NewConfig()
 	c.Key = "TestKey"
-	s := httpServer{
+	s := HTTPServer{
 		config: c,
 	}
 	verifier := s.WithVerify(http.HandlerFunc(EmptyHandler))

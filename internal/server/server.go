@@ -1,3 +1,4 @@
+// server для сбора метрик
 package server
 
 import (
@@ -19,18 +20,20 @@ type Listener interface {
 	MountHandlers()
 }
 
-type httpServer struct {
+// HTTPServer связывает все обработчики с базой данных
+type HTTPServer struct {
 	router  http.Handler
 	storage storage.Storage
 	config  *Config
-	// logger  *logger.Logger
 }
 
-func (s *httpServer) Run() error {
+// Run Запуск сервера
+func (s *HTTPServer) Run() error {
 	return http.ListenAndServe(s.config.Address, s.router)
 }
 
-func chooseStorage(config *Config) storage.Storage {
+// chooseStorage Определяет по конфигу какое хранилище использовать
+func chooseStorage(config *Config) (storage.Storage, error) {
 	ctx := context.TODO()
 	switch {
 	case config.DB.DSN != "":
@@ -41,31 +44,43 @@ func chooseStorage(config *Config) storage.Storage {
 		err := db.Open(dbctx, config.DB.DSN)
 		if err != nil {
 			logger.Error(err)
+			return nil, err
 		}
-		return db
+		err = db.Ping()
+		if err != nil {
+			logger.Error(err)
+			return nil, err
+		}
+		return db, nil
 	default:
 		logger.Info("Use in mem storage")
 		metricsStorage := mem.NewMetricsStorage()
 		err := metricsStorage.Restore(ctx, config.FileStoragePath, config.Restore)
 		if err != nil {
 			logger.Info(err)
+			return nil, err
 		}
 		go metricsStorage.SaveTimer(context.Background(), config.FileStoragePath, config.StoreInterval)
-		return metricsStorage
+		return metricsStorage, nil
 	}
 }
 
-func NewServer(config *Config) Listener {
-	storage := chooseStorage(config)
-	server := &httpServer{
+// NewServer Конструктор HTTPServer, для инциализации использует Config
+func NewServer(config *Config) (*HTTPServer, error) {
+	storage, err := chooseStorage(config)
+	if err != nil {
+		return nil, err
+	}
+	server := &HTTPServer{
 		nil,
 		storage,
 		config,
 	}
-	return server
+	return server, nil
 }
 
-func (s *httpServer) MountHandlers() {
+// MountHandlers Подключает все обработчики и middlewares к роутеру
+func (s *HTTPServer) MountHandlers() {
 	router := chi.NewRouter()
 	router.Route("/", func(r chi.Router) {
 		r.Get("/", s.InfoPage)

@@ -14,6 +14,7 @@ import (
 	"github.com/Nexadis/metalert/internal/utils/logger"
 )
 
+// schema - Схема для метрик
 const schema = `CREATE TABLE Metrics(
 "id" VARCHAR(250) NOT NULL,
 "type" VARCHAR(100) NOT NULL,
@@ -41,6 +42,7 @@ type DataBase interface {
 	DBCloser
 }
 
+// DB Реализует логику работы с БД.
 type DB struct {
 	db   *sql.DB
 	size int
@@ -54,25 +56,27 @@ type connection struct {
 	timeout time.Duration
 }
 
+// New Конструктор для БД. Настраивает политики retry
 func New(config *Config) *DB {
 	db := &sql.DB{}
 	DB := &DB{
 		db:   db,
 		size: 0,
 	}
-	configure(DB,
+	Configure(DB,
 		SetRetries(config.Retry),
 		SetTimeout(time.Duration(config.Timeout)),
 	)
 	return DB
 }
 
-func configure(db *DB, options ...func(*DB)) {
+func Configure(db *DB, options ...func(*DB)) {
 	for _, o := range options {
 		o(db)
 	}
 }
 
+// Open Открывает подключение к БД. Создаёт схемы
 func (db *DB) Open(ctx context.Context, DSN string) error {
 	var pgx *sql.DB
 	err := db.retry(func() error {
@@ -106,6 +110,7 @@ func (db *DB) Ping() error {
 	return db.retry(db.db.Ping)
 }
 
+// Get Получает значение метрики из БД.
 func (db *DB) Get(ctx context.Context, mtype, id string) (metrx.Metrics, error) {
 	stmt, err := db.db.PrepareContext(ctx,
 		`SELECT delta, value FROM Metrics WHERE type=$1 AND id= $2`)
@@ -137,6 +142,7 @@ func (db *DB) Get(ctx context.Context, mtype, id string) (metrx.Metrics, error) 
 	return m, nil
 }
 
+// GetAll Получает все метрики из БД.
 func (db *DB) GetAll(ctx context.Context) ([]metrx.Metrics, error) {
 	stmt, err := db.db.PrepareContext(ctx,
 		`SELECT * FROM Metrics`)
@@ -174,6 +180,7 @@ func (db *DB) GetAll(ctx context.Context) ([]metrx.Metrics, error) {
 	return metrics, nil
 }
 
+// Set Обновляет метрику в БД.
 func (db *DB) Set(ctx context.Context, m metrx.Metrics) error {
 	tx, err := db.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -210,6 +217,7 @@ func checkConnection(err error) error {
 	return err
 }
 
+// retry Выполняет функцию, обернув её в retry
 func (db *DB) retry(fn func() error) error {
 	attempt := db.conn.retries
 	var err error

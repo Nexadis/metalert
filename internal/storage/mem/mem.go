@@ -1,3 +1,4 @@
+// mem реализует хранилище с помощью map
 package mem
 
 import (
@@ -17,12 +18,14 @@ type MetricsStorage interface {
 
 var _ MetricsStorage = &Storage{}
 
+// Storage - Хранилище inmemory. Отдельно хранит Gauge и Counter метрики. Использует RWMutex Для доступа к элементам.
 type Storage struct {
 	Gauges   map[string]metrx.Gauge
 	Counters map[string]metrx.Counter
 	mutex    sync.RWMutex
 }
 
+// NewMetricsStorage Конструктор для Storage
 func NewMetricsStorage() *Storage {
 	ms := new(Storage)
 	ms.Gauges = make(map[string]metrx.Gauge)
@@ -30,6 +33,7 @@ func NewMetricsStorage() *Storage {
 	return ms
 }
 
+// Set Добавляет метрику
 func (ms *Storage) Set(ctx context.Context, m metrx.Metrics) error {
 	_, err := m.GetValue()
 	if err != nil {
@@ -50,6 +54,7 @@ func (ms *Storage) Set(ctx context.Context, m metrx.Metrics) error {
 	return fmt.Errorf("%v: %v", storage.ErrInvalidType, m)
 }
 
+// Get Получает метрику с типом mtype и именем id
 func (ms *Storage) Get(ctx context.Context, mtype, id string) (metrx.Metrics, error) {
 	switch strings.ToLower(mtype) {
 	case metrx.CounterType:
@@ -73,6 +78,7 @@ func (ms *Storage) Get(ctx context.Context, mtype, id string) (metrx.Metrics, er
 	return metrx.Metrics{}, storage.ErrInvalidType
 }
 
+// GetAll Получает все метрики из хранилища
 func (ms *Storage) GetAll(ctx context.Context) ([]metrx.Metrics, error) {
 	m := make([]metrx.Metrics, 0, len(ms.Gauges)+len(ms.Counters))
 	ms.mutex.RLock()

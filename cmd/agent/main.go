@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"log"
 
 	"github.com/Nexadis/metalert/internal/agent"
 	"github.com/Nexadis/metalert/internal/utils/logger"
@@ -12,8 +13,5 @@ func main() {
 	config.ParseConfig()
 	agent := agent.New(config)
 	logger.Info("Agent", config.Address)
-	err := agent.Run(context.Background())
-	if err != nil {
-		panic(err)
-	}
+	log.Fatal(agent.Run(context.Background()))
 }

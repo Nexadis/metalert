@@ -24,10 +24,10 @@ type logWrite struct {
 func (lw *logWrite) Write(b []byte) (int, error) {
 	body := bytes.NewReader(b)
 	read, err := io.ReadAll(body)
-	lw.rd.body = string(read)
 	if err != nil {
-		panic(err)
+		return 0, err
 	}
+	lw.rd.body = string(read)
 
 	size, err := lw.w.Write(b)
 	lw.rd.size += size
@@ -43,6 +43,11 @@ func (lw *logWrite) Header() http.Header {
 	return lw.w.Header()
 }
 
+// WithLogging() Логирует информацию о запросе
+// Method
+// Status
+// Duration
+// Size
 func WithLogging(h http.Handler) http.Handler {
 	logFunc := func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()

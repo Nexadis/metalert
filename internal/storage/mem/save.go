@@ -18,6 +18,7 @@ type StateSaver interface {
 	SaveTimer(ctx context.Context, FileStoragePath string, interval int64)
 }
 
+// Save Записывает все метрики в файл
 func (ms *Storage) Save(ctx context.Context, FileStoragePath string) error {
 	fileName := FileStoragePath
 	if fileName == "" {
@@ -39,6 +40,7 @@ func (ms *Storage) Save(ctx context.Context, FileStoragePath string) error {
 	return nil
 }
 
+// Restore Восстанавливает состояние хранилища из файла
 func (ms *Storage) Restore(ctx context.Context, FileStoragePath string, Restore bool) error {
 	fileName := FileStoragePath
 	if fileName == "" {
@@ -68,6 +70,7 @@ func (ms *Storage) Restore(ctx context.Context, FileStoragePath string, Restore 
 	return nil
 }
 
+// SaveTimer Сохраняет текущее состояние хранилища в файл с заданным интервалом. Также сохраняет всё при завершении контекста
 func (ms *Storage) SaveTimer(ctx context.Context, FileStoragePath string, interval int64) {
 	if interval <= 0 {
 		interval = 1

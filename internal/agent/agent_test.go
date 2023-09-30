@@ -90,7 +90,7 @@ func TestPull(t *testing.T) {
 		PollInterval:   0,
 		ReportInterval: 0,
 	}
-	ha := &httpAgent{
+	ha := &HTTPAgent{
 		config:  config,
 		client:  nil,
 		counter: 0,
@@ -215,7 +215,7 @@ func TestReport(t *testing.T) {
 				PollInterval:   0,
 				ReportInterval: 0,
 			}
-			ha := &httpAgent{
+			ha := &HTTPAgent{
 				config: config,
 				client: testClient,
 			}
