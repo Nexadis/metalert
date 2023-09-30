@@ -6,11 +6,12 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/go-chi/chi/v5"
+
 	"github.com/Nexadis/metalert/internal/metrx"
 	"github.com/Nexadis/metalert/internal/storage"
 	"github.com/Nexadis/metalert/internal/storage/db"
 	"github.com/Nexadis/metalert/internal/utils/logger"
-	"github.com/go-chi/chi/v5"
 )
 
 func (s *httpServer) Update(w http.ResponseWriter, r *http.Request) {

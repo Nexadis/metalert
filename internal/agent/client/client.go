@@ -8,8 +8,9 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/Nexadis/metalert/internal/utils/verifier"
 	"github.com/go-resty/resty/v2"
+
+	"github.com/Nexadis/metalert/internal/utils/verifier"
 )
 
 type MetricPoster interface {

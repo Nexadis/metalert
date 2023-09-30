@@ -6,8 +6,9 @@ import (
 	"math/rand"
 	"testing"
 
-	"github.com/Nexadis/metalert/internal/metrx"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/Nexadis/metalert/internal/metrx"
 )
 
 func TestSet(t *testing.T) {
