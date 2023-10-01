@@ -4,7 +4,8 @@ import (
 	"go/ast"
 	"strings"
 
-	"github.com/praetorian-inc/gokart/analyzers"
+	"github.com/kisielk/errcheck/errcheck"
+	"github.com/timakin/bodyclose/passes/bodyclose"
 	"golang.org/x/tools/go/analysis"
 	"golang.org/x/tools/go/analysis/passes/asmdecl"
 	"golang.org/x/tools/go/analysis/passes/assign"
@@ -126,8 +127,11 @@ func StaticChecks() []*analysis.Analyzer {
 	return staticchecks
 }
 
-func SecurityChecks() []*analysis.Analyzer {
-	return analyzers.Analyzers
+func ThirdChecks() []*analysis.Analyzer {
+	return []*analysis.Analyzer{
+		bodyclose.Analyzer,
+		errcheck.Analyzer,
+	}
 }
 
 func JoinAnalyzers(a ...[]*analysis.Analyzer) []*analysis.Analyzer {
@@ -142,7 +146,7 @@ func AllAnalyzers() []*analysis.Analyzer {
 	return JoinAnalyzers(
 		StaticChecks(),
 		StandardPasses(),
-		SecurityChecks(),
+		ThirdChecks(),
 		Analyzers,
 	)
 }
