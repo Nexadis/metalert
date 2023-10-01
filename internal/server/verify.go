@@ -53,7 +53,7 @@ func (s *HTTPServer) WithVerify(h http.Handler) http.HandlerFunc {
 			http.Error(w, fmt.Errorf(ErrorCheckHash, err).Error(), http.StatusInternalServerError)
 			return
 		}
-		defer r.Body.Close()
+		defer logger.Error(r.Body.Close())
 		newBody := io.NopCloser(bytes.NewBuffer(body))
 		r.Body = newBody
 		signature, err := verifier.Sign(body, []byte(s.config.Key))

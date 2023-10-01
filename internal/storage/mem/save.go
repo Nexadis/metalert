@@ -29,13 +29,13 @@ func (ms *Storage) Save(ctx context.Context, FileStoragePath string) error {
 	if err != nil {
 		return err
 	}
-	defer file.Close()
+	defer logger.Error(file.Close())
 	metrics, err := ms.GetAll(ctx)
 	if err != nil {
 		return err
 	}
 	encoder := json.NewEncoder(file)
-	encoder.Encode(metrics)
+	logger.Error(encoder.Encode(metrics))
 
 	return nil
 }
@@ -54,7 +54,7 @@ func (ms *Storage) Restore(ctx context.Context, FileStoragePath string, Restore 
 	if err != nil {
 		return err
 	}
-	defer file.Close()
+	defer logger.Error(file.Close())
 	metrics := make([]*metrx.Metrics, 1)
 	decoder := json.NewDecoder(file)
 	err = decoder.Decode(&metrics)

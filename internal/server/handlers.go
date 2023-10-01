@@ -102,7 +102,7 @@ func (s *HTTPServer) UpdateJSON(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	defer r.Body.Close()
+	defer logger.Error(r.Body.Close())
 	err = s.storage.Set(r.Context(), *m)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -119,7 +119,7 @@ func (s *HTTPServer) Updates(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	defer r.Body.Close()
+	defer logger.Error(r.Body.Close())
 	logger.Info("Parse metrics in Updates handler")
 	for _, m := range metrics {
 		err = s.storage.Set(r.Context(), m)
@@ -140,7 +140,7 @@ func (s *HTTPServer) ValueJSON(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	defer r.Body.Close()
+	defer logger.Error(r.Body.Close())
 	ms, err := s.storage.Get(r.Context(), m.MType, m.ID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
@@ -157,7 +157,8 @@ func (s *HTTPServer) ValueJSON(w http.ResponseWriter, r *http.Request) {
 // InfoPage Главная страница - заглушка
 func (s *HTTPServer) InfoPage(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-type", "text/html")
-	w.Write([]byte("<html><h1>Info page</h1></html>"))
+	_, err := w.Write([]byte("<html><h1>Info page</h1></html>"))
+	logger.Error(err)
 }
 
 // DBPing Проверяет состояние подключения к базе данных
@@ -166,7 +167,8 @@ func (s *HTTPServer) DBPing(w http.ResponseWriter, r *http.Request) {
 	if ok {
 		err := db.Ping()
 		if err == nil {
-			w.Write([]byte("DB is ok"))
+			_, err = w.Write([]byte("DB is ok"))
+			logger.Error(err)
 			return
 		}
 		logger.Error(err)

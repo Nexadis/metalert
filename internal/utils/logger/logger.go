@@ -68,6 +68,9 @@ func (l Log) Debug(args ...interface{}) {
 }
 
 func (l Log) Error(args ...interface{}) {
+	if args[0] == nil {
+		return
+	}
 	l.Zap.Errorln(args...)
 }
 

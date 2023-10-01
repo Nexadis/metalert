@@ -164,7 +164,7 @@ func (db *DB) GetAll(ctx context.Context) ([]metrx.Metrics, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer logger.Error(rows.Close())
 	for rows.Next() {
 		metric := metrx.Metrics{}
 		err = rows.Scan(&metric.ID, &metric.MType, &metric.Delta, &metric.Value)
@@ -186,7 +186,7 @@ func (db *DB) Set(ctx context.Context, m metrx.Metrics) error {
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer logger.Error(tx.Rollback())
 	stmt, err := tx.PrepareContext(ctx, "INSERT INTO Metrics (id, type, delta, value) "+
 		"VALUES ($1,$2,$3,$4) ON CONFLICT(id,type) "+
 		"DO UPDATE SET delta=metrics.delta + $3, value=$4",
@@ -194,7 +194,7 @@ func (db *DB) Set(ctx context.Context, m metrx.Metrics) error {
 	if err != nil {
 		return err
 	}
-	db.retry(func() error {
+	err = db.retry(func() error {
 		_, err = stmt.ExecContext(ctx,
 			m.ID,
 			m.MType,
@@ -206,6 +206,9 @@ func (db *DB) Set(ctx context.Context, m metrx.Metrics) error {
 		}
 		return nil
 	})
+	if err != nil {
+		return err
+	}
 	db.size += 1
 	return tx.Commit()
 }
