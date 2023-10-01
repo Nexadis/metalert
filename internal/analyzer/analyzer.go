@@ -4,6 +4,7 @@ import (
 	"go/ast"
 	"strings"
 
+	"github.com/praetorian-inc/gokart/analyzers"
 	"golang.org/x/tools/go/analysis"
 	"golang.org/x/tools/go/analysis/passes/asmdecl"
 	"golang.org/x/tools/go/analysis/passes/assign"
@@ -33,6 +34,14 @@ var ExitCheckAnalyzer = &analysis.Analyzer{
 	Name: "exitcheck",
 	Doc:  "Проверяет наличие exit функций в main функциях main-пакетов",
 	Run:  run,
+}
+
+var Analyzers = []*analysis.Analyzer{}
+
+func init() {
+	Analyzers = []*analysis.Analyzer{
+		ExitCheckAnalyzer,
+	}
 }
 
 func run(pass *analysis.Pass) (interface{}, error) {
@@ -117,10 +126,23 @@ func StaticChecks() []*analysis.Analyzer {
 	return staticchecks
 }
 
+func SecurityChecks() []*analysis.Analyzer {
+	return analyzers.Analyzers
+}
+
+func JoinAnalyzers(a ...[]*analysis.Analyzer) []*analysis.Analyzer {
+	joined := make([]*analysis.Analyzer, 0, 100)
+	for _, l := range a {
+		joined = append(joined, l...)
+	}
+	return joined
+}
+
 func AllAnalyzers() []*analysis.Analyzer {
-	a := make([]*analysis.Analyzer, 0, 100)
-	a = append(a, StaticChecks()...)
-	a = append(a, StandardPasses()...)
-	a = append(a, ExitCheckAnalyzer)
-	return a
+	return JoinAnalyzers(
+		StaticChecks(),
+		StandardPasses(),
+		SecurityChecks(),
+		Analyzers,
+	)
 }
