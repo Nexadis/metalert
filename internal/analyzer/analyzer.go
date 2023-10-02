@@ -1,3 +1,4 @@
+// analyzer содержит реализацию собственных анализаторов и подключает все используемые чекеры.
 package analyzer
 
 import (
@@ -31,12 +32,14 @@ import (
 	"honnef.co/go/tools/staticcheck"
 )
 
+// ExitCheckAnalyzer проверяет налачие os.Exit() в main функциях main пакетов.
 var ExitCheckAnalyzer = &analysis.Analyzer{
 	Name: "exitcheck",
-	Doc:  "Проверяет наличие exit функций в main функциях main-пакетов",
+	Doc:  "Проверяет наличие os.Exit() функций в main функциях main пакетов",
 	Run:  run,
 }
 
+// Analyzers содержит все Разработанные анализаторы.
 var Analyzers = []*analysis.Analyzer{}
 
 func init() {
@@ -79,6 +82,7 @@ func isNameFunc(node ast.Node, name string) bool {
 	return false
 }
 
+// StandardPasses возвращает все анализаторы из стандартной библиотеки.
 func StandardPasses() []*analysis.Analyzer {
 	return []*analysis.Analyzer{
 		asmdecl.Analyzer,
@@ -105,6 +109,7 @@ func StandardPasses() []*analysis.Analyzer {
 	}
 }
 
+// StaticChecks Возвращает используемые анализаторы из staticheck.io.
 func StaticChecks() []*analysis.Analyzer {
 	needChecks := []string{
 		"SA",
@@ -127,6 +132,7 @@ func StaticChecks() []*analysis.Analyzer {
 	return staticchecks
 }
 
+// ThirdChecks возвращает сторонние подключаемые анализаторы.
 func ThirdChecks() []*analysis.Analyzer {
 	return []*analysis.Analyzer{
 		bodyclose.Analyzer,
@@ -134,6 +140,7 @@ func ThirdChecks() []*analysis.Analyzer {
 	}
 }
 
+// JoinAnalyzers помогает соединить слайсы с анализаторами в один.
 func JoinAnalyzers(a ...[]*analysis.Analyzer) []*analysis.Analyzer {
 	joined := make([]*analysis.Analyzer, 0, 100)
 	for _, l := range a {
@@ -142,6 +149,7 @@ func JoinAnalyzers(a ...[]*analysis.Analyzer) []*analysis.Analyzer {
 	return joined
 }
 
+// AllAnalyzers возвращает список всех подключаемых анализаторов.
 func AllAnalyzers() []*analysis.Analyzer {
 	return JoinAnalyzers(
 		StaticChecks(),

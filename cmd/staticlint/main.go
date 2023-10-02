@@ -1,3 +1,5 @@
+// staticlint подключает все анализаторы к multichecker'у
+// Для использования достаточно запустить ./main ./...
 package main
 
 import (
