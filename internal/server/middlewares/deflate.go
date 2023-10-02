@@ -41,14 +41,14 @@ func WithDeflate(h http.Handler) http.Handler {
 				http.Error(w, err.Error(), http.StatusBadRequest)
 				return
 			}
-			defer logger.Error(gz.Close())
+			defer gz.Close()
 			r.Body = gz
 		}
 		if canEncode(r, StandardCompression) {
 			logger.Info("Send compressed content")
 			w.Header().Set("Content-Encoding", StandardCompression)
 			gz := gzip.NewWriter(w)
-			defer logger.Error(gz.Close())
+			defer gz.Close()
 			w = &compressWriter{
 				ResponseWriter: w,
 				Writer:         gz,
