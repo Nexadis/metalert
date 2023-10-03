@@ -5,6 +5,7 @@ import (
 	"go/ast"
 	"strings"
 
+	"github.com/Nexadis/metalert/internal/utils/logger"
 	"github.com/kisielk/errcheck/errcheck"
 	"github.com/timakin/bodyclose/passes/bodyclose"
 	"golang.org/x/tools/go/analysis"
@@ -49,20 +50,33 @@ func init() {
 }
 
 func run(pass *analysis.Pass) (interface{}, error) {
+	logger.Enable()
 	for _, file := range pass.Files {
 		if !isMainPackage(file) {
 			continue
 		}
 		inMain := false
+		parents := []*ast.Node{}
 		ast.Inspect(file, func(node ast.Node) bool {
-			if isNameFunc(node, "main") {
-				inMain = true
-				return true
-			}
-			if inMain && isNameFunc(node, "Exit") {
+			if inMain && isExit(node) {
 				pass.Reportf(node.Pos(), "don't use exit in main")
 			}
-
+			if node == nil {
+				logger.Info("Pop parent")
+				if isMain(*parents[len(parents)-1]) {
+					logger.Info("Not in main")
+					inMain = false
+				}
+				parents = parents[:len(parents)-1]
+			} else {
+				logger.Info("Add parent")
+				if isMain(node) {
+					logger.Info("In Main")
+					inMain = true
+				}
+				parents = append(parents, &node)
+			}
+			logger.Info(parents)
 			return true
 		})
 	}
@@ -73,8 +87,23 @@ func isMainPackage(file *ast.File) bool {
 	return file.Name.Name == "main"
 }
 
-func isNameFunc(node ast.Node, name string) bool {
+func isMain(node ast.Node) bool {
+	if f, ok := node.(*ast.FuncDecl); ok {
+		logger.Info("Is func decl")
+		if isName(f.Name, "main") {
+			return true
+		}
+	}
+	return false
+}
+
+func isExit(node ast.Node) bool {
+	return isName(node, "Exit")
+}
+
+func isName(node ast.Node, name string) bool {
 	if id, ok := node.(*ast.Ident); ok {
+		logger.Info(id.Name)
 		if id.Name == name {
 			return true
 		}
