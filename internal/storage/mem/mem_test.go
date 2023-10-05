@@ -9,20 +9,11 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/Nexadis/metalert/internal/metrx"
+	"github.com/Nexadis/metalert/internal/storage"
 )
 
 func TestSet(t *testing.T) {
-	storage := Storage{
-		Gauges: map[string]metrx.Gauge{
-			"positive": metrx.Gauge(0),
-			"small":    metrx.Gauge(0),
-			"neg":      metrx.Gauge(0),
-		},
-		Counters: map[string]metrx.Counter{
-			"positive": metrx.Counter(0),
-			"big":      metrx.Counter(0),
-		},
-	}
+	storage := NewMetricsStorage()
 	type setReq struct {
 		valType string
 		name    string
@@ -108,26 +99,31 @@ func TestSet(t *testing.T) {
 	}
 }
 
+type getReq struct {
+	valType string
+	name    string
+}
+type getWant struct {
+	value string
+	err   error
+}
+
 func TestGet(t *testing.T) {
-	storage := Storage{
-		Gauges: map[string]metrx.Gauge{
-			"positive": metrx.Gauge(102391),
-			"small":    metrx.Gauge(0.000000000001),
-			"neg":      metrx.Gauge(-102391),
-		},
-		Counters: map[string]metrx.Counter{
-			"positive": metrx.Counter(2),
-			"big":      metrx.Counter(2985198054390),
-		},
+	s := NewMetricsStorage()
+	s.Gauges = map[string]metrx.Gauge{
+		"positive": metrx.Gauge(102391),
+		"small":    metrx.Gauge(0.000000000001),
+		"neg":      metrx.Gauge(-102391),
 	}
-	type getReq struct {
-		valType string
-		name    string
+	s.Counters = map[string]metrx.Counter{
+		"positive": metrx.Counter(2),
+		"big":      metrx.Counter(2985198054390),
 	}
+
 	testCases := []struct {
 		name    string
 		request getReq
-		want    string
+		want    getWant
 	}{
 		{
 			name: "Counter type, positive",
@@ -135,7 +131,7 @@ func TestGet(t *testing.T) {
 				valType: "counter",
 				name:    "positive",
 			},
-			want: "2",
+			want: getWant{"2", nil},
 		},
 		{
 			name: "Counter type, big num",
@@ -143,7 +139,7 @@ func TestGet(t *testing.T) {
 				valType: "counter",
 				name:    "big",
 			},
-			want: "2985198054390",
+			want: getWant{"2985198054390", nil},
 		},
 		{
 			name: "Gauge type, positive",
@@ -151,7 +147,7 @@ func TestGet(t *testing.T) {
 				valType: "gauge",
 				name:    "positive",
 			},
-			want: "102391",
+			want: getWant{"102391", nil},
 		},
 		{
 			name: "Gauge type, very small",
@@ -159,7 +155,7 @@ func TestGet(t *testing.T) {
 				valType: "gauge",
 				name:    "small",
 			},
-			want: "0.000000000001",
+			want: getWant{"0.000000000001", nil},
 		},
 		{
 			name: "Gauge type, negative",
@@ -167,18 +163,65 @@ func TestGet(t *testing.T) {
 				valType: "gauge",
 				name:    "neg",
 			},
-			want: "-102391",
+			want: getWant{"-102391", nil},
+		},
+		{
+			name: "Gauge type, not found",
+			request: getReq{
+				valType: metrx.GaugeType,
+				name:    "notfound",
+			},
+			want: getWant{"", storage.ErrNotFound},
+		},
+		{
+			name: "Ivalid type",
+			request: getReq{
+				valType: "invalid",
+				name:    "invalid",
+			},
+			want: getWant{"", storage.ErrInvalidType},
+		},
+		{
+			name: "Counter type, not found",
+			request: getReq{
+				valType: metrx.CounterType,
+				name:    "notfound",
+			},
+			want: getWant{"", storage.ErrNotFound},
 		},
 	}
 	ctx := context.TODO()
 	for _, test := range testCases {
 		t.Run(test.name, func(t *testing.T) {
-			res, err := storage.Get(ctx, test.request.valType, test.request.name)
-			assert.NoError(t, err)
+			res, err := s.Get(ctx, test.request.valType, test.request.name)
+			if err != nil {
+				assert.Equal(t, test.want.err, err)
+				return
+			}
 			ms, err := res.GetValue()
 			assert.NoError(t, err)
-			assert.Equal(t, ms, test.want)
+			assert.Equal(t, ms, test.want.value)
 		})
+	}
+}
+
+func TestGetAll(t *testing.T) {
+	s := NewMetricsStorage()
+	s.Gauges = map[string]metrx.Gauge{
+		"gauge1": metrx.Gauge(0.123),
+		"gauge2": metrx.Gauge(0.533),
+	}
+	s.Counters = map[string]metrx.Counter{
+		"c1": metrx.Counter(1),
+		"c2": metrx.Counter(2),
+	}
+	ctx := context.Background()
+	all, err := s.GetAll(ctx)
+	assert.NoError(t, err)
+	for _, m := range all {
+		mtemp, err := s.Get(ctx, m.MType, m.ID)
+		assert.NoError(t, err)
+		assert.Equal(t, mtemp.Value, m.Value)
 	}
 }
 
