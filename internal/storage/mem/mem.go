@@ -34,7 +34,7 @@ func NewMetricsStorage() *Storage {
 }
 
 // Set Добавляет метрику
-func (ms *Storage) Set(ctx context.Context, m metrx.Metrics) error {
+func (ms *Storage) Set(ctx context.Context, m metrx.Metric) error {
 	_, err := m.GetValue()
 	if err != nil {
 		return err
@@ -55,37 +55,37 @@ func (ms *Storage) Set(ctx context.Context, m metrx.Metrics) error {
 }
 
 // Get Получает метрику с типом mtype и именем id
-func (ms *Storage) Get(ctx context.Context, mtype, id string) (metrx.Metrics, error) {
+func (ms *Storage) Get(ctx context.Context, mtype, id string) (metrx.Metric, error) {
 	switch strings.ToLower(mtype) {
 	case metrx.CounterType:
 		ms.mutex.RLock()
 		value, ok := ms.Counters[id]
 		ms.mutex.RUnlock()
 		if !ok {
-			return metrx.Metrics{}, storage.ErrNotFound
+			return metrx.Metric{}, storage.ErrNotFound
 		}
-		return metrx.NewMetrics(id, mtype, value.String())
+		return metrx.NewMetric(id, mtype, value.String())
 	case metrx.GaugeType:
 		ms.mutex.RLock()
 		value, ok := ms.Gauges[id]
 		ms.mutex.RUnlock()
 		if !ok {
-			return metrx.Metrics{}, storage.ErrNotFound
+			return metrx.Metric{}, storage.ErrNotFound
 		}
-		return metrx.NewMetrics(id, mtype, value.String())
+		return metrx.NewMetric(id, mtype, value.String())
 	}
 
-	return metrx.Metrics{}, storage.ErrInvalidType
+	return metrx.Metric{}, storage.ErrInvalidType
 }
 
 // GetAll Получает все метрики из хранилища
-func (ms *Storage) GetAll(ctx context.Context) ([]metrx.Metrics, error) {
-	m := make([]metrx.Metrics, 0, len(ms.Gauges)+len(ms.Counters))
+func (ms *Storage) GetAll(ctx context.Context) ([]metrx.Metric, error) {
+	m := make([]metrx.Metric, 0, len(ms.Gauges)+len(ms.Counters))
 	ms.mutex.RLock()
 	defer ms.mutex.RUnlock()
 	for name, value := range ms.Gauges {
 		v := value
-		m = append(m, metrx.Metrics{
+		m = append(m, metrx.Metric{
 			MType: metrx.GaugeType,
 			ID:    name,
 			Value: &v,
@@ -93,7 +93,7 @@ func (ms *Storage) GetAll(ctx context.Context) ([]metrx.Metrics, error) {
 	}
 	for name, value := range ms.Counters {
 		v := value
-		m = append(m, metrx.Metrics{
+		m = append(m, metrx.Metric{
 			MType: metrx.CounterType,
 			ID:    name,
 			Delta: &v,

@@ -234,7 +234,7 @@ func TestValueURL(t *testing.T) {
 	ctx := context.TODO()
 	for _, test := range valueTests {
 		t.Run(test.name, func(t *testing.T) {
-			m, err := metrx.NewMetrics(
+			m, err := metrx.NewMetric(
 				test.want.name,
 				test.want.valType,
 				test.want.value,
@@ -258,7 +258,7 @@ func TestValuesURL(t *testing.T) {
 	server := testServer()
 	ctx := context.TODO()
 	for _, test := range valueTests {
-		m, err := metrx.NewMetrics(
+		m, err := metrx.NewMetric(
 			test.want.name,
 			test.want.valType,
 			test.want.value,
@@ -503,7 +503,7 @@ func TestValueJSON(t *testing.T) {
 			r.Header = test.request.headers
 			w := httptest.NewRecorder()
 			if test.want.statusCode == http.StatusOK {
-				m, err := metrx.NewMetrics(
+				m, err := metrx.NewMetric(
 					test.want.name,
 					test.want.valType,
 					test.want.value,
@@ -731,7 +731,7 @@ func ExampleHTTPServer_Values() {
 
 func ExampleHTTPServer_UpdateJSON() {
 	addr := fmt.Sprintf("http://localhost:8080/%s", "update")
-	m, err := metrx.NewMetrics("name", "gauge", "123.123")
+	m, err := metrx.NewMetric("name", "gauge", "123.123")
 	if err != nil {
 		// ... Handle error
 	}
@@ -753,10 +753,10 @@ func ExampleHTTPServer_UpdateJSON() {
 
 func ExampleHTTPServer_Updates() {
 	addr := fmt.Sprintf("http://localhost:8080/%s", "updates/")
-	ms := make([]metrx.Metrics, 0, 10)
+	ms := make([]metrx.Metric, 0, 10)
 	for i := 0; i < 10; i++ {
 		val := fmt.Sprintf("%d", i)
-		m, err := metrx.NewMetrics(val, "gauge", val)
+		m, err := metrx.NewMetric(val, "gauge", val)
 		if err != nil {
 			// ... Handle error
 		}
@@ -781,7 +781,7 @@ func ExampleHTTPServer_Updates() {
 
 func ExampleHTTPServer_ValueJSON() {
 	addr := fmt.Sprintf("http://localhost:8080/%s", "value")
-	m, err := metrx.NewMetrics("name", "gauge", "123.123")
+	m, err := metrx.NewMetric("name", "gauge", "123.123")
 	if err != nil {
 		// ... Handle error
 	}

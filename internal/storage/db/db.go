@@ -111,11 +111,11 @@ func (db *DB) Ping() error {
 }
 
 // Get Получает значение метрики из БД.
-func (db *DB) Get(ctx context.Context, mtype, id string) (metrx.Metrics, error) {
+func (db *DB) Get(ctx context.Context, mtype, id string) (metrx.Metric, error) {
 	stmt, err := db.db.PrepareContext(ctx,
 		`SELECT delta, value FROM Metrics WHERE type=$1 AND id= $2`)
 	if err != nil {
-		return metrx.Metrics{}, err
+		return metrx.Metric{}, err
 	}
 	var row *sql.Row
 	err = db.retry(func() error {
@@ -129,27 +129,27 @@ func (db *DB) Get(ctx context.Context, mtype, id string) (metrx.Metrics, error) 
 		return nil
 	})
 	if err != nil {
-		return metrx.Metrics{}, err
+		return metrx.Metric{}, err
 	}
-	m := metrx.Metrics{
+	m := metrx.Metric{
 		ID:    id,
 		MType: mtype,
 	}
 	err = row.Scan(&m.Delta, &m.Value)
 	if err != nil {
-		return metrx.Metrics{}, err
+		return metrx.Metric{}, err
 	}
 	return m, nil
 }
 
 // GetAll Получает все метрики из БД.
-func (db *DB) GetAll(ctx context.Context) ([]metrx.Metrics, error) {
+func (db *DB) GetAll(ctx context.Context) ([]metrx.Metric, error) {
 	stmt, err := db.db.PrepareContext(ctx,
 		`SELECT * FROM Metrics`)
 	if err != nil {
 		return nil, err
 	}
-	metrics := make([]metrx.Metrics, 0, db.size)
+	metrics := make([]metrx.Metric, 0, db.size)
 	var rows *sql.Rows
 	err = db.retry(func() error {
 		rows, err = stmt.QueryContext(ctx)
@@ -166,7 +166,7 @@ func (db *DB) GetAll(ctx context.Context) ([]metrx.Metrics, error) {
 	}
 	defer rows.Close()
 	for rows.Next() {
-		metric := metrx.Metrics{}
+		metric := metrx.Metric{}
 		err = rows.Scan(&metric.ID, &metric.MType, &metric.Delta, &metric.Value)
 		if err != nil {
 			return nil, err
@@ -181,7 +181,7 @@ func (db *DB) GetAll(ctx context.Context) ([]metrx.Metrics, error) {
 }
 
 // Set Обновляет метрику в БД.
-func (db *DB) Set(ctx context.Context, m metrx.Metrics) error {
+func (db *DB) Set(ctx context.Context, m metrx.Metric) error {
 	tx, err := db.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err

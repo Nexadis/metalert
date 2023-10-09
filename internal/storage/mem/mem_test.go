@@ -80,7 +80,7 @@ func TestSet(t *testing.T) {
 	ctx := context.TODO()
 	for _, test := range testCasesCounters {
 		t.Run(test.name, func(t *testing.T) {
-			m, err := metrx.NewMetrics(test.request.name, test.request.valType, test.request.value)
+			m, err := metrx.NewMetric(test.request.name, test.request.valType, test.request.value)
 			assert.NoError(t, err)
 
 			err = storage.Set(ctx, m)
@@ -90,7 +90,7 @@ func TestSet(t *testing.T) {
 	}
 	for _, test := range testCasesGauges {
 		t.Run(test.name, func(t *testing.T) {
-			m, err := metrx.NewMetrics(test.request.name, test.request.valType, test.request.value)
+			m, err := metrx.NewMetric(test.request.name, test.request.valType, test.request.value)
 			assert.NoError(t, err)
 			err = storage.Set(ctx, m)
 			assert.Equal(t, storage.Gauges[test.request.name], test.want)
@@ -244,7 +244,7 @@ func BenchmarkGet(b *testing.B) {
 	}
 }
 
-func randomMS(b *testing.B) metrx.Metrics {
+func randomMS(b *testing.B) metrx.Metric {
 	var mtype, val string
 	value := rand.Int()
 	if value%2 == 0 {
@@ -255,7 +255,7 @@ func randomMS(b *testing.B) metrx.Metrics {
 		val = fmt.Sprintf("%d", value)
 	}
 	name := val
-	m, err := metrx.NewMetrics(name, mtype, val)
+	m, err := metrx.NewMetric(name, mtype, val)
 	assert.NoError(b, err)
 	return m
 }

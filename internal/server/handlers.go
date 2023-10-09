@@ -23,7 +23,7 @@ func (s *HTTPServer) Update(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	m, err := metrx.NewMetrics(id, mtype, value)
+	m, err := metrx.NewMetric(id, mtype, value)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -96,7 +96,7 @@ func (s *HTTPServer) Values(w http.ResponseWriter, r *http.Request) {
 // UpdateJSON Обработчик для записи одиночных метрик в JSON-формате
 func (s *HTTPServer) UpdateJSON(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
-	m := &metrx.Metrics{}
+	m := &metrx.Metric{}
 	err := decoder.Decode(m)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -113,7 +113,7 @@ func (s *HTTPServer) UpdateJSON(w http.ResponseWriter, r *http.Request) {
 // Updates Обработчик для записи списка метрик в JSON-формате
 func (s *HTTPServer) Updates(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
-	metrics := make([]metrx.Metrics, 0, 50)
+	metrics := make([]metrx.Metric, 0, 50)
 	err := decoder.Decode(&metrics)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -134,7 +134,7 @@ func (s *HTTPServer) Updates(w http.ResponseWriter, r *http.Request) {
 func (s *HTTPServer) ValueJSON(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-type", "application/json")
 	decoder := json.NewDecoder(r.Body)
-	m := &metrx.Metrics{}
+	m := &metrx.Metric{}
 	err := decoder.Decode(m)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
