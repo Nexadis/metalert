@@ -9,12 +9,12 @@ import (
 )
 
 type Getter interface {
-	Get(ctx context.Context, mtype, id string) (metrx.Metrics, error)
-	GetAll(ctx context.Context) ([]metrx.Metrics, error)
+	Get(ctx context.Context, mtype, id string) (metrx.Metric, error)
+	GetAll(ctx context.Context) ([]metrx.Metric, error)
 }
 
 type Setter interface {
-	Set(ctx context.Context, m metrx.Metrics) error
+	Set(ctx context.Context, m metrx.Metric) error
 }
 
 // Storage Интерфейс для хранилищ. Позволяет использовать pg и mem хранилища.

@@ -43,7 +43,7 @@ func TestParsing(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			newMetric, err := NewMetrics(test.metrics.ID, test.metrics.MType, test.metrics.Value)
+			newMetric, err := NewMetric(test.metrics.ID, test.metrics.MType, test.metrics.Value)
 			assert.NoError(t, err)
 			require.Equal(t, test.metrics.ID, newMetric.ID)
 			require.Equal(t, test.metrics.MType, newMetric.MType)
@@ -54,7 +54,7 @@ func TestParsing(t *testing.T) {
 	}
 }
 
-func randomMS(b *testing.B) Metrics {
+func randomMS(b *testing.B) Metric {
 	b.StopTimer()
 	var val string
 	value := rand.Int()
@@ -64,7 +64,7 @@ func randomMS(b *testing.B) Metrics {
 		val = fmt.Sprintf("%d", value)
 	}
 	b.StartTimer()
-	m, _ := NewMetrics(val, GaugeType, val)
+	m, _ := NewMetric(val, GaugeType, val)
 	return m
 }
 
@@ -75,8 +75,8 @@ func BenchmarkConversion(b *testing.B) {
 	}
 }
 
-func ExampleMetrics() {
-	m, err := NewMetrics("test", GaugeType, "1.1")
+func ExampleMetric() {
+	m, err := NewMetric("test", GaugeType, "1.1")
 	if err != nil {
 		// ... Handle error
 	}
@@ -92,7 +92,7 @@ func ExampleMetrics() {
 	}
 	fmt.Println(v)
 
-	m, err = NewMetrics("test", CounterType, "434")
+	m, err = NewMetric("test", CounterType, "434")
 	if err != nil {
 		// ... Handle error
 	}

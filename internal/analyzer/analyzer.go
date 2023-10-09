@@ -54,15 +54,22 @@ func run(pass *analysis.Pass) (interface{}, error) {
 			continue
 		}
 		inMain := false
+		parents := []*ast.Node{}
 		ast.Inspect(file, func(node ast.Node) bool {
-			if isNameFunc(node, "main") {
-				inMain = true
-				return true
-			}
-			if inMain && isNameFunc(node, "Exit") {
+			if inMain && isExit(node) {
 				pass.Reportf(node.Pos(), "don't use exit in main")
 			}
-
+			if node == nil {
+				if isMain(*parents[len(parents)-1]) {
+					inMain = false
+				}
+				parents = parents[:len(parents)-1]
+			} else {
+				if isMain(node) {
+					inMain = true
+				}
+				parents = append(parents, &node)
+			}
 			return true
 		})
 	}
@@ -73,7 +80,20 @@ func isMainPackage(file *ast.File) bool {
 	return file.Name.Name == "main"
 }
 
-func isNameFunc(node ast.Node, name string) bool {
+func isMain(node ast.Node) bool {
+	if f, ok := node.(*ast.FuncDecl); ok {
+		if isName(f.Name, "main") {
+			return true
+		}
+	}
+	return false
+}
+
+func isExit(node ast.Node) bool {
+	return isName(node, "Exit")
+}
+
+func isName(node ast.Node, name string) bool {
 	if id, ok := node.(*ast.Ident); ok {
 		if id.Name == name {
 			return true

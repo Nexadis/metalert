@@ -1,10 +1,14 @@
 package main
 
 import (
+	"fmt"
 	"os"
 )
 
 func some() {
+	var main int
+	main += 1
+	fmt.Println(main)
 	os.Exit(1)
 }
 

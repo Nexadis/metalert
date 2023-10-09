@@ -45,17 +45,17 @@ func ParseGauge(value string) (Gauge, error) {
 	return Gauge(val), err
 }
 
-// Metrics - Структура для хранения метрики
-type Metrics struct {
+// Metric - Структура для хранения метрики
+type Metric struct {
 	ID    string   `json:"id"`              // имя метрики
 	MType string   `json:"type"`            // параметр, принимающий значение gauge или counter
 	Delta *Counter `json:"delta,omitempty"` // значение метрики в случае передачи counter
 	Value *Gauge   `json:"value,omitempty"` // значение метрики в случае передачи gauge
 }
 
-// NewMetrics - Конструктор метрики, сам конвертирует строку в значение на основе типа
-func NewMetrics(id, mtype, value string) (Metrics, error) {
-	m := &Metrics{
+// NewMetric - Конструктор метрики, сам конвертирует строку в значение на основе типа
+func NewMetric(id, mtype, value string) (Metric, error) {
+	m := &Metric{
 		ID:    id,
 		MType: strings.ToLower(mtype),
 	}
@@ -64,7 +64,7 @@ func NewMetrics(id, mtype, value string) (Metrics, error) {
 }
 
 // SetValue() Парсит строку и сохраняет значение метрики. Определяет тип по MType
-func (m *Metrics) SetValue(value string) error {
+func (m *Metric) SetValue(value string) error {
 	switch m.MType {
 	case CounterType:
 		v, err := ParseCounter(value)
@@ -87,7 +87,7 @@ func (m *Metrics) SetValue(value string) error {
 }
 
 // GetValue() Возвращает значение метрики в виде строки
-func (m Metrics) GetValue() (string, error) {
+func (m Metric) GetValue() (string, error) {
 	switch m.MType {
 	case CounterType:
 		if m.Delta == nil {

@@ -92,15 +92,14 @@ func TestPull(t *testing.T) {
 	}
 	ha := &HTTPAgent{
 		config:  config,
-		client:  nil,
 		counter: 0,
 	}
-	mchan := make(chan *metrx.Metrics, 100)
+	mchan := make(chan metrx.Metric, 100)
 	ha.Pull(context.Background(), mchan)
 	close(mchan)
-	metrics := make(map[string]metrx.Metrics, 100)
+	metrics := make(map[string]metrx.Metric, 100)
 	for m := range mchan {
-		metrics[m.ID] = *m
+		metrics[m.ID] = m
 	}
 	for _, test := range testsRuntime {
 		t.Run(test.name, func(t *testing.T) {
@@ -127,15 +126,15 @@ type testClient struct {
 	value   string
 }
 
-func (c *testClient) Post(ctx context.Context, path, valType, name, value string) error {
+func (c *testClient) Post(ctx context.Context, path string, m metrx.Metric) error {
 	c.path = path
-	c.valType = valType
-	c.name = name
-	c.value = value
-	return nil
-}
-
-func (c *testClient) PostObj(ctx context.Context, path string, obj interface{}) error {
+	c.valType = m.MType
+	c.name = m.ID
+	val, err := m.GetValue()
+	if err != nil {
+		return err
+	}
+	c.value = val
 	return nil
 }
 
@@ -216,15 +215,15 @@ func TestReport(t *testing.T) {
 				ReportInterval: 0,
 			}
 			ha := &HTTPAgent{
-				config: config,
-				client: testClient,
+				config:     config,
+				clientJSON: testClient,
 			}
-			mchan := make(chan *metrx.Metrics, 1)
+			mchan := make(chan metrx.Metric, 1)
 			errs := make(chan error, 1)
 			ctx := context.Background()
-			m, err := metrx.NewMetrics(test.want.name, test.want.valType, test.want.value)
+			m, err := metrx.NewMetric(test.want.name, test.want.valType, test.want.value)
 			assert.NoError(t, err)
-			mchan <- &m
+			mchan <- m
 			close(mchan)
 			ha.Report(ctx, mchan, errs)
 			ctx.Done()

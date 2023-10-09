@@ -19,7 +19,7 @@ git remote add -m main template https://github.com/Yandex-Practicum/go-musthave-
 
 ```
 git fetch template && git checkout template/main .github
-```postgres=# 
+```
 
 Затем добавьте полученные изменения в свой репозиторий.
 
@@ -59,3 +59,11 @@ CONSTRAINT ID PRIMARY KEY (name,type) );
 
 ```
 
+## Сборка 
+```bash
+go build -ldflags \
+"-X main.buildVersion=v0.0.1 \
+-X main.buildDate=$(date +'%d/%m/%Y') \
+-X main.buildCommit=$(git rev-parse --short HEAD)"\
+-o agent  ./cmd/agent/main.go 
+```

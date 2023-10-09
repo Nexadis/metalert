@@ -55,7 +55,7 @@ func (ms *Storage) Restore(ctx context.Context, FileStoragePath string, Restore 
 		return err
 	}
 	defer file.Close()
-	metrics := make([]*metrx.Metrics, 1)
+	metrics := make([]*metrx.Metric, 1)
 	decoder := json.NewDecoder(file)
 	err = decoder.Decode(&metrics)
 	if err != nil {

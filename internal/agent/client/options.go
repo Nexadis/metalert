@@ -7,3 +7,10 @@ func SetKey(key string) func(*httpClient) {
 		hc.key = key
 	}
 }
+
+// SetTransport определяет тип транспорта. Например REST
+func SetTransport(transport TransportType) func(*httpClient) {
+	return func(hc *httpClient) {
+		hc.transport = transport
+	}
+}

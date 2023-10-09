@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/Nexadis/metalert/internal/metrx"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -95,16 +96,18 @@ var postTests = []testReq{
 	},
 }
 
-func TestPost(t *testing.T) {
+func TestPostREST(t *testing.T) {
 	r := reqLogger{}
 	s := httptest.NewServer(http.HandlerFunc(r.showHandler))
 	defer s.Close()
-	c := NewHTTP(SetKey("test-key"))
+	c := NewHTTP(SetKey("test-key"), SetTransport(RESTType))
 	ctx := context.Background()
 	path := fmt.Sprintf("%s%s", s.URL, "/update/{valType}/{name}/{value}")
 	for _, test := range postTests {
 		t.Run(test.name, func(t *testing.T) {
-			err := c.Post(ctx, path, test.m.mtype, test.m.name, test.m.val)
+			m, err := metrx.NewMetric(test.m.name, test.m.mtype, test.m.val)
+			assert.NoError(t, err)
+			err = c.Post(ctx, path, m)
 			assert.NoError(t, err)
 			assert.Equal(t, test.want.url, r.url)
 			assert.Equal(t, test.want.body, r.body)
@@ -130,16 +133,18 @@ var postObjTests = []testReq{
 	},
 }
 
-func TestPostObj(t *testing.T) {
+func TestPostJSON(t *testing.T) {
 	r := reqLogger{}
 	s := httptest.NewServer(http.HandlerFunc(r.showHandler))
 	defer s.Close()
-	c := NewHTTP(SetKey("test-key"))
+	c := NewHTTP(SetKey("test-key"), SetTransport(JSONType))
 	ctx := context.Background()
 	path := fmt.Sprintf("%s%s", s.URL, "/update")
 	for _, test := range postObjTests {
 		t.Run(test.name, func(t *testing.T) {
-			err := c.PostObj(ctx, path, test.m.name)
+			m, err := metrx.NewMetric(test.m.name, test.m.mtype, test.m.val)
+			assert.NoError(t, err)
+			err = c.Post(ctx, path, m)
 			assert.NoError(t, err)
 			assert.Equal(t, test.want.url, r.url)
 			body := strings.NewReader(r.body)
