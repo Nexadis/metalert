@@ -105,7 +105,7 @@ func TestPostREST(t *testing.T) {
 	path := fmt.Sprintf("%s%s", s.URL, "/update/{valType}/{name}/{value}")
 	for _, test := range postTests {
 		t.Run(test.name, func(t *testing.T) {
-			m, err := metrx.NewMetrics(test.m.name, test.m.mtype, test.m.val)
+			m, err := metrx.NewMetric(test.m.name, test.m.mtype, test.m.val)
 			assert.NoError(t, err)
 			err = c.Post(ctx, path, m)
 			assert.NoError(t, err)
@@ -142,7 +142,7 @@ func TestPostJSON(t *testing.T) {
 	path := fmt.Sprintf("%s%s", s.URL, "/update")
 	for _, test := range postObjTests {
 		t.Run(test.name, func(t *testing.T) {
-			m, err := metrx.NewMetrics(test.m.name, test.m.mtype, test.m.val)
+			m, err := metrx.NewMetric(test.m.name, test.m.mtype, test.m.val)
 			assert.NoError(t, err)
 			err = c.Post(ctx, path, m)
 			assert.NoError(t, err)

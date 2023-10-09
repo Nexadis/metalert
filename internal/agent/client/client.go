@@ -61,7 +61,7 @@ func (c *httpClient) Post(ctx context.Context, path string, m metrx.Metric) erro
 	case JSONType:
 		return c.PostJSON(ctx, path, m)
 	}
-	return fmt.Errorf("Unknown transport type %s", c.transport)
+	return fmt.Errorf("unknown transport type %s", c.transport)
 }
 
 // Post отправляет метрику через REST-запрос
