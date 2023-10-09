@@ -35,7 +35,7 @@ func (ms *Storage) Save(ctx context.Context, FileStoragePath string) error {
 		return err
 	}
 	encoder := json.NewEncoder(file)
-	encoder.Encode(metrics)
+	logger.Error(encoder.Encode(metrics))
 
 	return nil
 }

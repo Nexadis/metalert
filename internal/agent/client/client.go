@@ -67,8 +67,14 @@ func (c *httpClient) PostObj(ctx context.Context, path string, obj interface{}) 
 	}
 	body := &bytes.Buffer{}
 	g := gzip.NewWriter(body)
-	g.Write(buf)
-	g.Close()
+	_, err = g.Write(buf)
+	if err != nil {
+		return err
+	}
+	err = g.Close()
+	if err != nil {
+		return err
+	}
 	Headers := map[string]string{
 		"Content-type":     "application/json",
 		"Accept-Encoding":  "gzip",

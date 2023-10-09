@@ -157,7 +157,10 @@ func (s *HTTPServer) ValueJSON(w http.ResponseWriter, r *http.Request) {
 // InfoPage Главная страница - заглушка
 func (s *HTTPServer) InfoPage(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-type", "text/html")
-	w.Write([]byte("<html><h1>Info page</h1></html>"))
+	_, err := w.Write([]byte("<html><h1>Info page</h1></html>"))
+	if err != nil {
+		logger.Error(err)
+	}
 }
 
 // DBPing Проверяет состояние подключения к базе данных
@@ -166,7 +169,10 @@ func (s *HTTPServer) DBPing(w http.ResponseWriter, r *http.Request) {
 	if ok {
 		err := db.Ping()
 		if err == nil {
-			w.Write([]byte("DB is ok"))
+			_, err = w.Write([]byte("DB is ok"))
+			if err != nil {
+				logger.Error(err)
+			}
 			return
 		}
 		logger.Error(err)

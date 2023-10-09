@@ -147,7 +147,7 @@ func TestPostObj(t *testing.T) {
 			assert.NoError(t, err)
 			buf, err := io.ReadAll(g)
 			assert.NoError(t, err)
-			g.Close()
+			assert.NoError(t, g.Close())
 			assert.JSONEq(t, test.want.body, string(buf))
 			assert.Equal(t, test.want.method, r.method)
 		},

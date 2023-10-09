@@ -194,7 +194,7 @@ func (db *DB) Set(ctx context.Context, m metrx.Metrics) error {
 	if err != nil {
 		return err
 	}
-	db.retry(func() error {
+	err = db.retry(func() error {
 		_, err = stmt.ExecContext(ctx,
 			m.ID,
 			m.MType,
@@ -206,6 +206,9 @@ func (db *DB) Set(ctx context.Context, m metrx.Metrics) error {
 		}
 		return nil
 	})
+	if err != nil {
+		return err
+	}
 	db.size += 1
 	return tx.Commit()
 }
