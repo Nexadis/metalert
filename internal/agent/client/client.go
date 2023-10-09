@@ -7,23 +7,32 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/go-resty/resty/v2"
 
+	"github.com/Nexadis/metalert/internal/metrx"
 	"github.com/Nexadis/metalert/internal/utils/verifier"
+)
+
+type TransportType string
+
+const (
+	RESTType TransportType = "REST"
+	JSONType TransportType = "JSON"
 )
 
 // MetricPoster интерфейс для отправки метрик как через URL, так и JSON-объектами.
 type MetricPoster interface {
-	Post(ctx context.Context, path, valType, name, value string) error
-	PostObj(ctx context.Context, path string, obj interface{}) error
+	Post(ctx context.Context, path string, m metrx.Metric) error
 }
 
 // httpClient отправляет метрики и подписывает их ключом key.
 type httpClient struct {
-	client *resty.Client
-	key    string
+	client    *resty.Client
+	transport TransportType
+	key       string
 }
 
 // NewHTTP - конструктор для httpClient, принимает в качестве аргументов функции, например:
@@ -35,6 +44,7 @@ func NewHTTP(options ...func(*httpClient)) *httpClient {
 			SetRetryCount(3).
 			SetRetryWaitTime(1 * time.Second).
 			SetRetryMaxWaitTime(5 * time.Second),
+		transport: RESTType,
 	}
 	for _, o := range options {
 		o(client)
@@ -42,26 +52,40 @@ func NewHTTP(options ...func(*httpClient)) *httpClient {
 	return client
 }
 
+func (c *httpClient) Post(ctx context.Context, path string, m metrx.Metric) error {
+	switch c.transport {
+	case RESTType:
+		return c.PostREST(ctx, path, m)
+	case JSONType:
+		return c.PostJSON(ctx, path, m)
+	}
+	return fmt.Errorf("Unknown transport type %s", c.transport)
+}
+
 // Post отправляет метрику через Post-запрос, генерируя url по параметрам valType, name, value.
 //
 // path - адрес сервера, например "http://localhost:8080/update"
-func (c *httpClient) Post(ctx context.Context, path, valType, name, value string) error {
-	_, err := c.client.R().
+func (c *httpClient) PostREST(ctx context.Context, path string, m metrx.Metric) error {
+	val, err := m.GetValue()
+	if err != nil {
+		return err
+	}
+	_, err = c.client.R().
 		SetContext(ctx).
 		SetHeader("Content-type", "text/plain").
 		SetHeader("Accept-Encoding", "gzip").
 		SetPathParams(map[string]string{
-			"valType": valType,
-			"name":    name,
-			"value":   value,
+			"valType": m.MType,
+			"name":    m.ID,
+			"value":   val,
 		}).
 		Post(path)
 	return err
 }
 
 // PostObj отправляет метрику в виде JSON-строки, дополнительно сжимая её с помощью gzip и подписывая с помощью httpClient.key.
-func (c *httpClient) PostObj(ctx context.Context, path string, obj interface{}) error {
-	buf, err := json.Marshal(obj)
+func (c *httpClient) PostJSON(ctx context.Context, path string, m metrx.Metric) error {
+	buf, err := json.Marshal(m)
 	if err != nil {
 		return err
 	}

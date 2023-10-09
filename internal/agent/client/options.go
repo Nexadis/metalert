@@ -7,3 +7,9 @@ func SetKey(key string) func(*httpClient) {
 		hc.key = key
 	}
 }
+
+func SetTransport(transport TransportType) func(*httpClient) {
+	return func(hc *httpClient) {
+		hc.transport = transport
+	}
+}
