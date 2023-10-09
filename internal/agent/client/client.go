@@ -16,8 +16,10 @@ import (
 	"github.com/Nexadis/metalert/internal/utils/verifier"
 )
 
+// TransportType создаёт тип для видов передачи метрик
 type TransportType string
 
+// Константы для определения способа передачи метрик
 const (
 	RESTType TransportType = "REST"
 	JSONType TransportType = "JSON"
@@ -37,7 +39,7 @@ type httpClient struct {
 
 // NewHTTP - конструктор для httpClient, принимает в качестве аргументов функции, например:
 //
-//	func SetKey(key string) func(*httpClient)
+// func SetKey(key string) func(*httpClient)
 func NewHTTP(options ...func(*httpClient)) *httpClient {
 	client := &httpClient{
 		client: resty.New().
@@ -62,7 +64,7 @@ func (c *httpClient) Post(ctx context.Context, path string, m metrx.Metric) erro
 	return fmt.Errorf("Unknown transport type %s", c.transport)
 }
 
-// Post отправляет метрику через Post-запрос, генерируя url по параметрам valType, name, value.
+// Post отправляет метрику через REST-запрос
 //
 // path - адрес сервера, например "http://localhost:8080/update"
 func (c *httpClient) PostREST(ctx context.Context, path string, m metrx.Metric) error {
@@ -83,7 +85,7 @@ func (c *httpClient) PostREST(ctx context.Context, path string, m metrx.Metric) 
 	return err
 }
 
-// PostObj отправляет метрику в виде JSON-строки, дополнительно сжимая её с помощью gzip и подписывая с помощью httpClient.key.
+// PostJSON отправляет метрику в виде JSON-строки, дополнительно сжимая её с помощью gzip и подписывая с помощью httpClient.key.
 func (c *httpClient) PostJSON(ctx context.Context, path string, m metrx.Metric) error {
 	buf, err := json.Marshal(m)
 	if err != nil {
