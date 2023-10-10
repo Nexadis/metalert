@@ -217,6 +217,7 @@ func TestReport(t *testing.T) {
 			ha := &HTTPAgent{
 				config:     config,
 				clientJSON: testClient,
+				clientREST: testClient,
 			}
 			mchan := make(chan metrx.Metric, 1)
 			errs := make(chan error, 1)

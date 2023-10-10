@@ -46,6 +46,7 @@ type want struct {
 	method string
 	body   string
 	url    string
+	err    error
 }
 
 type testReq struct {
@@ -66,6 +67,7 @@ var postTests = []testReq{
 			http.MethodPost,
 			"",
 			"/update/gauge/name/123.123",
+			nil,
 		},
 	},
 	{
@@ -79,6 +81,7 @@ var postTests = []testReq{
 			http.MethodPost,
 			"",
 			"/update/counter/newname/1230",
+			nil,
 		},
 	},
 	{
@@ -92,6 +95,7 @@ var postTests = []testReq{
 			http.MethodPost,
 			"",
 			"/update/invalid/name/some-value",
+			metrx.ErrorType,
 		},
 	},
 }
@@ -106,6 +110,10 @@ func TestPostREST(t *testing.T) {
 	for _, test := range postTests {
 		t.Run(test.name, func(t *testing.T) {
 			m, err := metrx.NewMetric(test.m.name, test.m.mtype, test.m.val)
+			if test.want.err != nil {
+				assert.Error(t, err)
+				return
+			}
 			assert.NoError(t, err)
 			err = c.Post(ctx, path, m)
 			assert.NoError(t, err)
@@ -129,6 +137,7 @@ var postObjTests = []testReq{
 			http.MethodPost,
 			"\"name\"",
 			"/update",
+			metrx.ErrorMetrics,
 		},
 	},
 }
@@ -143,6 +152,10 @@ func TestPostJSON(t *testing.T) {
 	for _, test := range postObjTests {
 		t.Run(test.name, func(t *testing.T) {
 			m, err := metrx.NewMetric(test.m.name, test.m.mtype, test.m.val)
+			if err != nil {
+				assert.Error(t, err)
+				return
+			}
 			assert.NoError(t, err)
 			err = c.Post(ctx, path, m)
 			assert.NoError(t, err)
