@@ -3,6 +3,7 @@ package server
 
 import (
 	"context"
+	"net"
 	"net/http"
 	"time"
 
@@ -28,13 +29,28 @@ type HTTPServer struct {
 }
 
 // Run Запуск сервера
-func (s *HTTPServer) Run() error {
-	return http.ListenAndServe(s.config.Address, s.router)
+func (s *HTTPServer) Run(ctx context.Context) error {
+	storage, err := chooseStorage(ctx, s.config)
+	if err != nil {
+		return err
+	}
+	s.storage = storage
+	l, err := net.Listen("tcp", s.config.Address)
+	if err != nil {
+		return err
+	}
+	defer l.Close()
+	go func() error {
+		err = http.Serve(l, s.router)
+		return err
+	}()
+
+	<-ctx.Done()
+	return err
 }
 
 // chooseStorage Определяет по конфигу какое хранилище использовать
-func chooseStorage(config *Config) (storage.Storage, error) {
-	ctx := context.TODO()
+func chooseStorage(ctx context.Context, config *Config) (storage.Storage, error) {
 	switch {
 	case config.DB.DSN != "":
 		logger.Info("Start with DB")
@@ -60,20 +76,20 @@ func chooseStorage(config *Config) (storage.Storage, error) {
 			logger.Info(err)
 			return nil, err
 		}
-		go metricsStorage.SaveTimer(context.Background(), config.FileStoragePath, config.StoreInterval)
+		go metricsStorage.SaveTimer(ctx, config.FileStoragePath, config.StoreInterval)
 		return metricsStorage, nil
 	}
 }
 
 // NewServer Конструктор HTTPServer, для инциализации использует Config
 func NewServer(config *Config) (*HTTPServer, error) {
-	storage, err := chooseStorage(config)
-	if err != nil {
-		return nil, err
+	if config == nil {
+		config = NewConfig()
+		config.SetDefault()
 	}
 	server := &HTTPServer{
 		nil,
-		storage,
+		nil,
 		config,
 	}
 	return server, nil

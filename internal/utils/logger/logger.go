@@ -49,7 +49,7 @@ func chooseLevel(level Level) zapcore.Level {
 func NewLogger(level Level) Logger {
 	zapLevel := chooseLevel(level)
 	zap.NewAtomicLevelAt(zapLevel)
-	logger, err := zap.NewDevelopment()
+	logger, err := zap.NewDevelopment(zap.AddCallerSkip(2))
 	if err != nil {
 		return nil
 	}
@@ -82,7 +82,7 @@ func (l *Log) Disable() {
 
 // Enable Включает логгирование
 func (l *Log) Enable() {
-	logger, err := zap.NewDevelopment()
+	logger, err := zap.NewDevelopment(zap.AddCallerSkip(2))
 	if err != nil {
 		return
 	}
