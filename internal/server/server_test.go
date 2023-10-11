@@ -644,7 +644,7 @@ func BenchmarkUpdateJSON(b *testing.B) {
 
 func ExampleNewServer() {
 	c := NewConfig()
-	c.ParseConfig()
+	c.SetDefault()
 	s, err := NewServer(c)
 	if err != nil {
 		// ... Handle error
@@ -660,8 +660,7 @@ func ExampleHTTPServer_DBPing() {
 	if err != nil {
 		// ... Handle error
 	}
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := context.Background()
 	s.MountHandlers()
 	go s.Run(ctx)
 	addr := fmt.Sprintf("http://localhost:8080/%s", "ping")
@@ -681,13 +680,6 @@ func ExampleHTTPServer_DBPing() {
 }
 
 func ExampleHTTPServer_Update() {
-	s, err := NewServer(nil)
-	if err != nil {
-		log.Fatal(err)
-	}
-	ctx := context.TODO()
-	s.MountHandlers()
-	go s.Run(ctx)
 	addr := fmt.Sprintf("http://localhost:8080/%s", "update/gauge/name/123.123")
 	r, err := http.Post(addr, "", nil)
 	if err != nil {

@@ -85,7 +85,7 @@ func chooseStorage(ctx context.Context, config *Config) (storage.Storage, error)
 func NewServer(config *Config) (*HTTPServer, error) {
 	if config == nil {
 		config = NewConfig()
-		config.ParseConfig()
+		config.SetDefault()
 	}
 	server := &HTTPServer{
 		nil,

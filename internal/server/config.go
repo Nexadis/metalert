@@ -2,6 +2,7 @@ package server
 
 import (
 	"flag"
+	"os"
 
 	"github.com/caarlos0/env/v8"
 
@@ -28,16 +29,13 @@ func NewConfig() *Config {
 	}
 }
 
-func (c *Config) parseCmd() {
-	if flag.Parsed() {
-		return
-	}
-	flag.StringVar(&c.Address, "a", "localhost:8080", "Server for metrics")
-	flag.Int64Var(&c.StoreInterval, "i", 300, "Save metrics on disk with interval")
-	flag.StringVar(&c.FileStoragePath, "f", "/tmp/metrics_db.json", "File for save metrics")
-	flag.BoolVar(&c.Restore, "r", true, "Restore file with metrics when start server")
-	flag.BoolVar(&c.Verbose, "v", false, "Verbose logging")
-	flag.StringVar(&c.Key, "k", "", "Key to sign body")
+func (c *Config) parseCmd(set *flag.FlagSet) {
+	set.StringVar(&c.Address, "a", "localhost:8080", "Server for metrics")
+	set.Int64Var(&c.StoreInterval, "i", 300, "Save metrics on disk with interval")
+	set.StringVar(&c.FileStoragePath, "f", "/tmp/metrics_db.json", "File for save metrics")
+	set.BoolVar(&c.Restore, "r", false, "Restore file with metrics when start server")
+	set.BoolVar(&c.Verbose, "v", false, "Verbose logging")
+	set.StringVar(&c.Key, "k", "", "Key to sign body")
 }
 
 func (c *Config) parseEnv() {
@@ -49,20 +47,34 @@ func (c *Config) parseEnv() {
 
 // ParseConfig() выполняет парсинг всех конфига сервера
 func (c *Config) ParseConfig() {
-	c.parseCmd()
-	c.parseEnv()
+	set := c.setFlags()
+	set.Parse(os.Args[1:])
 	if c.Verbose {
 		logger.Enable()
 	}
-	c.DB.ParseCmd()
-	c.DB.ParseEnv()
-	flag.Parse()
 	logger.Info("Parse config:",
-		"Address", c.Address,
-		"Store Interval", c.StoreInterval,
-		"File Storage Path", c.FileStoragePath,
-		"Restore", c.Restore,
-		"Verbose", c.Verbose,
-		"Key", c.Key,
+		"\nAddress", c.Address,
+		"\nStore Interval", c.StoreInterval,
+		"\nFile Storage Path", c.FileStoragePath,
+		"\nRestore", c.Restore,
+		"\nVerbose", c.Verbose,
+		"\nKey", c.Key,
 	)
+}
+
+func (c *Config) setFlags() *flag.FlagSet {
+	set := flag.NewFlagSet("", flag.ExitOnError)
+	c.parseCmd(set)
+	c.parseEnv()
+	c.DB.ParseCmd(set)
+	c.DB.ParseEnv()
+	return set
+}
+
+func (c *Config) SetDefault() {
+	set := c.setFlags()
+	set.Parse([]string{})
+	if c.Verbose {
+		logger.Enable()
+	}
 }

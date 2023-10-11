@@ -20,13 +20,10 @@ func NewConfig() *Config {
 	return &Config{}
 }
 
-func (c *Config) ParseCmd() {
-	if flag.Parsed() {
-		return
-	}
-	flag.StringVar(&c.DSN, "d", "", "DSN for DB")
-	flag.IntVar(&c.Retry, "rc", 3, "number of repeated attempts to connect to DB")
-	flag.IntVar(&c.Timeout, "to", 2, "timeout in seconds to connect to DB")
+func (c *Config) ParseCmd(set *flag.FlagSet) {
+	set.StringVar(&c.DSN, "d", "", "DSN for DB")
+	set.IntVar(&c.Retry, "rc", 3, "number of repeated attempts to connect to DB")
+	set.IntVar(&c.Timeout, "to", 2, "timeout in seconds to connect to DB")
 	logger.Info("Parse command flags:",
 		"DSN", c.DSN,
 	)
@@ -40,9 +37,4 @@ func (c *Config) ParseEnv() {
 	if err != nil {
 		logger.Error(err.Error())
 	}
-}
-
-func (c *Config) ParseConfig() {
-	c.ParseCmd()
-	c.ParseEnv()
 }
