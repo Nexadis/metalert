@@ -4,8 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"os"
-	"os/signal"
-	"syscall"
 	"time"
 
 	"github.com/Nexadis/metalert/internal/metrx"
@@ -52,7 +50,7 @@ func (ms *Storage) Restore(ctx context.Context, FileStoragePath string, Restore 
 	logger.Info("Read metrics from file")
 	file, err := os.OpenFile(fileName, os.O_RDONLY, 0666)
 	if err != nil {
-		return err
+		return nil
 	}
 	defer file.Close()
 	metrics := make([]*metrx.Metric, 1)
@@ -75,10 +73,6 @@ func (ms *Storage) SaveTimer(ctx context.Context, FileStoragePath string, interv
 	if interval <= 0 {
 		interval = 1
 	}
-
-	exit, stop := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM|syscall.SIGINT|syscall.SIGQUIT)
-	defer stop()
-
 	ticker := time.NewTicker(time.Duration(interval) * time.Second)
 	for {
 		select {
@@ -87,12 +81,11 @@ func (ms *Storage) SaveTimer(ctx context.Context, FileStoragePath string, interv
 			if err != nil {
 				logger.Info("Can't save storage")
 			}
-		case <-exit.Done():
+		case <-ctx.Done():
 			err := ms.Save(ctx, FileStoragePath)
 			if err != nil {
 				logger.Info("Can't save storage")
 			}
-			os.Exit(0)
 		}
 	}
 }
