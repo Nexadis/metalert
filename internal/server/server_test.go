@@ -10,6 +10,7 @@ import (
 	"log"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 
@@ -20,6 +21,19 @@ import (
 	"github.com/Nexadis/metalert/internal/storage/mem"
 	"github.com/Nexadis/metalert/internal/utils/verifier"
 )
+
+func startup() {
+	s, _ := NewServer(nil)
+	ctx := context.Background()
+	s.MountHandlers()
+	go s.Run(ctx)
+}
+
+func TestMain(m *testing.M) {
+	startup()
+	code := m.Run()
+	os.Exit(code)
+}
 
 type req struct {
 	method  string
@@ -645,6 +659,7 @@ func BenchmarkUpdateJSON(b *testing.B) {
 func ExampleNewServer() {
 	c := NewConfig()
 	c.SetDefault()
+	c.Address = ":9090"
 	s, err := NewServer(c)
 	if err != nil {
 		// ... Handle error
@@ -656,13 +671,6 @@ func ExampleNewServer() {
 }
 
 func ExampleHTTPServer_DBPing() {
-	s, err := NewServer(nil)
-	if err != nil {
-		// ... Handle error
-	}
-	ctx := context.Background()
-	s.MountHandlers()
-	go s.Run(ctx)
 	addr := fmt.Sprintf("http://localhost:8080/%s", "ping")
 	r, err := http.Get(addr)
 	if err != nil {
