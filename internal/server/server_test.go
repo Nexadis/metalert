@@ -59,7 +59,11 @@ func TestNewServer(t *testing.T) {
 
 	c.DB.DSN = "invalid dsn"
 
-	_, err = NewServer(&c)
+	s, err := NewServer(&c)
+	assert.NoError(t, err)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	err = s.Run(ctx)
 	assert.Error(t, err)
 }
 
@@ -638,30 +642,28 @@ func BenchmarkUpdateJSON(b *testing.B) {
 	}
 }
 
-func init() {
-	c := NewConfig()
-	c.Address = ":8080"
-	c.DB = db.NewConfig()
-	s, err := NewServer(c)
-	if err != nil {
-		log.Fatal(err)
-	}
-	s.MountHandlers()
-	go s.Run()
-}
-
 func ExampleNewServer() {
 	c := NewConfig()
 	c.ParseConfig()
 	s, err := NewServer(c)
 	if err != nil {
-		log.Fatal(err)
+		// ... Handle error
 	}
 	s.MountHandlers()
-	log.Fatal(s.Run())
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	log.Fatal(s.Run(ctx))
 }
 
 func ExampleHTTPServer_DBPing() {
+	s, err := NewServer(nil)
+	if err != nil {
+		// ... Handle error
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	s.MountHandlers()
+	go s.Run(ctx)
 	addr := fmt.Sprintf("http://localhost:8080/%s", "ping")
 	r, err := http.Get(addr)
 	if err != nil {
@@ -679,6 +681,13 @@ func ExampleHTTPServer_DBPing() {
 }
 
 func ExampleHTTPServer_Update() {
+	s, err := NewServer(nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+	ctx := context.TODO()
+	s.MountHandlers()
+	go s.Run(ctx)
 	addr := fmt.Sprintf("http://localhost:8080/%s", "update/gauge/name/123.123")
 	r, err := http.Post(addr, "", nil)
 	if err != nil {
