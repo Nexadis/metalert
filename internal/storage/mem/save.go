@@ -50,7 +50,8 @@ func (ms *Storage) Restore(ctx context.Context, FileStoragePath string, Restore 
 	logger.Info("Read metrics from file")
 	file, err := os.OpenFile(fileName, os.O_RDONLY, 0666)
 	if err != nil {
-		return err
+		logger.Error(err)
+		return nil
 	}
 	defer file.Close()
 	metrics := make([]*metrx.Metric, 1)
