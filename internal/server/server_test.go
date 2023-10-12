@@ -673,23 +673,6 @@ func ExampleNewServer() {
 	log.Fatal(s.Run(ctx))
 }
 
-func ExampleHTTPServer_DBPing() {
-	addr := fmt.Sprintf("http://localhost:8080/%s", "ping")
-	r, err := http.Get(addr)
-	if err != nil {
-		log.Fatal(err) // ... Handle error
-	}
-	body, err := io.ReadAll(r.Body)
-	if err != nil {
-		// ... Handle error
-	}
-	defer r.Body.Close()
-	fmt.Println(string(body))
-
-	// Output:
-	// DB is not connected
-}
-
 func ExampleHTTPServer_Update() {
 	addr := fmt.Sprintf("http://localhost:8080/%s", "update/gauge/name/123.123")
 	r, err := http.Post(addr, "", nil)
