@@ -13,6 +13,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 
@@ -34,6 +35,7 @@ func TestMain(m *testing.M) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	go s.Run(ctx)
+	time.Sleep(time.Second)
 	code := m.Run()
 	os.Exit(code)
 }
@@ -668,9 +670,24 @@ func ExampleNewServer() {
 		// ... Handle error
 	}
 	s.MountHandlers()
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	log.Fatal(s.Run(ctx))
+	log.Fatal(s.Run(context.Background()))
+}
+
+func ExampleHTTPServer_DBPing() {
+	addr := fmt.Sprintf("http://localhost:8080/%s", "ping")
+	r, err := http.Get(addr)
+	if err != nil {
+		log.Fatal(err) // ... Handle error
+	}
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		// ... Handle error
+	}
+	defer r.Body.Close()
+	fmt.Println(string(body))
+
+	// Output:
+	// DB is not connected
 }
 
 func ExampleHTTPServer_Update() {
