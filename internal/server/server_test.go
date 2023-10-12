@@ -31,7 +31,9 @@ func TestMain(m *testing.M) {
 		log.Fatal(err)
 	}
 	s.MountHandlers()
-	go s.Run(context.Background())
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	go s.Run(ctx)
 	code := m.Run()
 	os.Exit(code)
 }
@@ -675,7 +677,7 @@ func ExampleHTTPServer_DBPing() {
 	addr := fmt.Sprintf("http://localhost:8080/%s", "ping")
 	r, err := http.Get(addr)
 	if err != nil {
-		// ... Handle error
+		log.Fatal(err) // ... Handle error
 	}
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
