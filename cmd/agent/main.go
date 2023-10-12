@@ -3,6 +3,9 @@ package main
 import (
 	"context"
 	"log"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/Nexadis/metalert/internal/agent"
 	"github.com/Nexadis/metalert/internal/utils/logger"
@@ -22,5 +25,7 @@ func main() {
 	config.ParseConfig()
 	agent := agent.New(config)
 	logger.Info("Agent", config.Address)
-	log.Fatal(agent.Run(context.Background()))
+	exit, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM|syscall.SIGINT|syscall.SIGQUIT)
+	defer stop()
+	log.Fatal(agent.Run(exit))
 }

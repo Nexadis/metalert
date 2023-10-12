@@ -33,7 +33,7 @@ func (c *Config) parseCmd(set *flag.FlagSet) {
 	set.StringVar(&c.Address, "a", "localhost:8080", "Server for metrics")
 	set.Int64Var(&c.StoreInterval, "i", 300, "Save metrics on disk with interval")
 	set.StringVar(&c.FileStoragePath, "f", "/tmp/metrics_db.json", "File for save metrics")
-	set.BoolVar(&c.Restore, "r", false, "Restore file with metrics when start server")
+	set.BoolVar(&c.Restore, "r", true, "Restore file with metrics when start server")
 	set.BoolVar(&c.Verbose, "v", false, "Verbose logging")
 	set.StringVar(&c.Key, "k", "", "Key to sign body")
 }
