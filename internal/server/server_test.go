@@ -22,15 +22,16 @@ import (
 	"github.com/Nexadis/metalert/internal/utils/verifier"
 )
 
-func startup() {
-	s, _ := NewServer(nil)
-	ctx := context.Background()
-	s.MountHandlers()
-	go s.Run(ctx)
-}
-
 func TestMain(m *testing.M) {
-	startup()
+	c := NewConfig()
+	c.SetDefault()
+	c.Restore = false
+	s, err := NewServer(c)
+	if err != nil {
+		log.Fatal(err)
+	}
+	s.MountHandlers()
+	go s.Run(context.Background())
 	code := m.Run()
 	os.Exit(code)
 }
