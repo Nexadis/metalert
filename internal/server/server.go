@@ -59,13 +59,14 @@ func chooseStorage(ctx context.Context, config *Config) (storage.Storage, error)
 		err := p.Open(dbctx, config.DB.DSN)
 		if err != nil {
 			logger.Error(err)
+			return getMemStorage(ctx, config)
 		}
-		err = p.Ping()
-		if err == nil {
-			return p, nil
-		}
-		logger.Error(err)
+		return p, nil
 	}
+	return getMemStorage(ctx, config)
+}
+
+func getMemStorage(ctx context.Context, config *Config) (mem.MetricsStorage, error) {
 	logger.Info("Use in mem storage")
 	metricsStorage := mem.NewMetricsStorage()
 	err := metricsStorage.Restore(ctx, config.FileStoragePath, config.Restore)
