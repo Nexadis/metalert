@@ -9,6 +9,7 @@ import (
 	"math/rand"
 	"reflect"
 	"runtime"
+	"sync"
 	"time"
 
 	"github.com/shirou/gopsutil/v3/cpu"
@@ -65,16 +66,23 @@ func (ha *HTTPAgent) Run(ctx context.Context) error {
 	mchan := make(chan metrx.Metric, MetricsBufSize)
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
+	wg := sync.WaitGroup{}
+	wg.Add(int(ha.config.RateLimit))
 	for i := 1; int64(i) <= ha.config.RateLimit; i++ {
 		i := i
 		logger.Info("Start reporter", i)
-		go ha.Report(ctx, mchan)
+		go func() {
+			defer wg.Done()
+			ha.Report(ctx, mchan)
+			logger.Info("End reporter", i)
+		}()
 	}
 	pullTicker := time.NewTicker(time.Duration(ha.config.PollInterval) * time.Second)
 	for {
 		select {
 		case <-ctx.Done():
 			close(mchan)
+			wg.Wait()
 			return nil
 		case <-pullTicker.C:
 			ha.Pull(ctx, mchan)

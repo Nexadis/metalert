@@ -81,9 +81,9 @@ func TestNewServer(t *testing.T) {
 	s, err := NewServer(&c)
 	assert.NoError(t, err)
 	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	cancel()
 	err = s.Run(ctx)
-	assert.Error(t, err)
+	assert.NoError(t, err)
 }
 
 var updateTests = []testReq{
@@ -670,7 +670,7 @@ func ExampleNewServer() {
 		// ... Handle error
 	}
 	s.MountHandlers()
-	log.Fatal(s.Run(context.Background()))
+	go s.Run(context.Background())
 }
 
 func ExampleHTTPServer_DBPing() {
