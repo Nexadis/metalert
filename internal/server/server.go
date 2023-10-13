@@ -59,11 +59,13 @@ func chooseStorage(ctx context.Context, config *Config) (storage.Storage, error)
 		err := p.Open(dbctx, config.DB.DSN)
 		if err != nil {
 			logger.Error(err)
-		}
-		err = p.Ping()
-		if err != nil {
-			logger.Error(err)
 			p = nil
+		} else {
+			err = p.Ping()
+			if err != nil {
+				logger.Error(err)
+				p = nil
+			}
 		}
 		if p != nil {
 			return p, nil
