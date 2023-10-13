@@ -30,11 +30,6 @@ type HTTPServer struct {
 
 // Run Запуск сервера
 func (s *HTTPServer) Run(ctx context.Context) error {
-	storage, err := chooseStorage(ctx, s.config)
-	if err != nil {
-		return err
-	}
-	s.storage = storage
 	l, err := net.Listen("tcp", s.config.Address)
 	if err != nil {
 		return err
@@ -84,9 +79,13 @@ func NewServer(config *Config) (*HTTPServer, error) {
 		config = NewConfig()
 		config.SetDefault()
 	}
+	storage, err := chooseStorage(context.Background(), config)
+	if err != nil {
+		return nil, err
+	}
 	server := &HTTPServer{
 		nil,
-		nil,
+		storage,
 		config,
 	}
 	return server, nil

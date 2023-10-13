@@ -78,12 +78,8 @@ func TestNewServer(t *testing.T) {
 
 	c.DB.DSN = "invalid dsn"
 
-	s, err := NewServer(&c)
-	assert.NoError(t, err)
-	ctx, cancel := context.WithCancel(context.Background())
-	cancel()
-	err = s.Run(ctx)
-	assert.NoError(t, err)
+	_, err = NewServer(&c)
+	assert.Error(t, err)
 }
 
 var updateTests = []testReq{
