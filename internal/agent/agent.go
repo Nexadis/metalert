@@ -9,6 +9,7 @@ import (
 	"math/rand"
 	"reflect"
 	"runtime"
+	"sync"
 	"time"
 
 	"github.com/shirou/gopsutil/v3/cpu"
@@ -23,7 +24,7 @@ import (
 type Watcher interface {
 	Run(ctx context.Context) error
 	Pull(ctx context.Context, mchan chan metrx.Metric)
-	Report(ctx context.Context, input chan metrx.Metric, errs chan error)
+	Report(ctx context.Context, input chan metrx.Metric)
 }
 
 // Endpoint'ы для отправки метрик.
@@ -62,23 +63,26 @@ func New(config *Config) *HTTPAgent {
 
 // Run запускает в фоне агент, начинает собирать и отправлять метрики с заданными интервалами
 func (ha *HTTPAgent) Run(ctx context.Context) error {
-	errs := make(chan error)
 	mchan := make(chan metrx.Metric, MetricsBufSize)
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
+	wg := sync.WaitGroup{}
+	wg.Add(int(ha.config.RateLimit))
 	for i := 1; int64(i) <= ha.config.RateLimit; i++ {
+		i := i
 		logger.Info("Start reporter", i)
-		go ha.Report(ctx, mchan, errs)
+		go func() {
+			defer wg.Done()
+			ha.Report(ctx, mchan)
+			logger.Info("End reporter", i)
+		}()
 	}
 	pullTicker := time.NewTicker(time.Duration(ha.config.PollInterval) * time.Second)
 	for {
 		select {
-		case err := <-errs:
-			if err != nil {
-				logger.Error(err)
-			}
 		case <-ctx.Done():
 			close(mchan)
+			wg.Wait()
 			return nil
 		case <-pullTicker.C:
 			ha.Pull(ctx, mchan)
@@ -173,26 +177,20 @@ func (ha *HTTPAgent) Pull(ctx context.Context, mchan chan metrx.Metric) {
 }
 
 // Report отправляет метрики на адрес, заданный в конфигурации, всеми доступными способами
-func (ha *HTTPAgent) Report(ctx context.Context, input chan metrx.Metric, errs chan error) {
+func (ha *HTTPAgent) Report(ctx context.Context, input chan metrx.Metric) {
 	path := fmt.Sprintf("http://%s%s", ha.config.Address, UpdateURL)
 	pathJSON := fmt.Sprintf("http://%s%s", ha.config.Address, JSONUpdateURL)
 	for m := range input {
-		if err := ctx.Err(); err != nil {
-			errs <- err
-			return
-		}
 		logger.Info("Post metric", m.ID)
 		err := ha.clientREST.Post(ctx, path, m)
 		if err != nil {
 			logger.Error("Can't report metrics")
-			errs <- fmt.Errorf("can't report metrics: %w", err)
-			return
+			// errs <- fmt.Errorf("can't report metrics: %w", err)
 		}
 		err = ha.clientJSON.Post(ctx, pathJSON, m)
 		if err != nil {
 			logger.Error("Can't report metrics", err)
-			errs <- fmt.Errorf("can't report metrics: %w", err)
-			return
+			//	errs <- fmt.Errorf("can't report metrics: %w", err)
 		}
 
 	}

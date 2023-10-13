@@ -220,18 +220,16 @@ func TestReport(t *testing.T) {
 				clientREST: testClient,
 			}
 			mchan := make(chan metrx.Metric, 1)
-			errs := make(chan error, 1)
 			ctx := context.Background()
 			m, err := metrx.NewMetric(test.want.name, test.want.valType, test.want.value)
 			assert.NoError(t, err)
 			mchan <- m
 			close(mchan)
-			ha.Report(ctx, mchan, errs)
+			ha.Report(ctx, mchan)
 			ctx.Done()
 			assert.Equal(t, test.want.name, testClient.name)
 			assert.Equal(t, test.want.valType, testClient.valType)
 			assert.Equal(t, test.want.value, testClient.value)
-			close(errs)
 		})
 	}
 }
