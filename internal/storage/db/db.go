@@ -97,7 +97,6 @@ func (db *DB) Open(ctx context.Context, DSN string) error {
 	_, err = pgx.ExecContext(ctx, schema)
 	if err != nil {
 		logger.Error("Unable to create table:", err)
-		return err
 	}
 	return nil
 }
