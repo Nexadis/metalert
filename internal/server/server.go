@@ -51,34 +51,33 @@ func (s *HTTPServer) Run(ctx context.Context) error {
 
 // chooseStorage Определяет по конфигу какое хранилище использовать
 func chooseStorage(ctx context.Context, config *Config) (storage.Storage, error) {
-	switch {
-	case config.DB.DSN != "":
+	if config.DB.DSN != "" {
 		logger.Info("Start with DB")
-		db := db.New(config.DB)
+		p := db.New(config.DB)
 		dbctx, cancel := context.WithTimeout(context.Background(), time.Duration(time.Second))
 		defer cancel()
-		err := db.Open(dbctx, config.DB.DSN)
+		err := p.Open(dbctx, config.DB.DSN)
 		if err != nil {
 			logger.Error(err)
-			return nil, err
 		}
-		err = db.Ping()
+		err = p.Ping()
 		if err != nil {
 			logger.Error(err)
-			return nil, err
+			p = nil
 		}
-		return db, nil
-	default:
-		logger.Info("Use in mem storage")
-		metricsStorage := mem.NewMetricsStorage()
-		err := metricsStorage.Restore(ctx, config.FileStoragePath, config.Restore)
-		if err != nil {
-			logger.Info(err)
-			return nil, err
+		if p != nil {
+			return p, nil
 		}
-		go metricsStorage.SaveTimer(ctx, config.FileStoragePath, config.StoreInterval)
-		return metricsStorage, nil
 	}
+	logger.Info("Use in mem storage")
+	metricsStorage := mem.NewMetricsStorage()
+	err := metricsStorage.Restore(ctx, config.FileStoragePath, config.Restore)
+	if err != nil {
+		logger.Info(err)
+		return nil, err
+	}
+	go metricsStorage.SaveTimer(ctx, config.FileStoragePath, config.StoreInterval)
+	return metricsStorage, nil
 }
 
 // NewServer Конструктор HTTPServer, для инциализации использует Config

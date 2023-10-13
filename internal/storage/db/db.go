@@ -88,12 +88,12 @@ func (db *DB) Open(ctx context.Context, DSN string) error {
 		}
 		return pgx.Ping()
 	})
+	db.db = pgx
 	logger.Info("Connect to:", DSN)
 	if err != nil {
 		logger.Error("Unable to connect to database:", err)
 		return err
 	}
-	db.db = pgx
 	_, err = pgx.ExecContext(ctx, schema)
 	if err != nil {
 		logger.Error("Unable to create table:", err)
