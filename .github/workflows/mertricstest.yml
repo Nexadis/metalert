@@ -81,7 +81,7 @@ jobs:
           github.head_ref == 'iter14'
         run: |
           metricstest -test.v -test.run=^TestIteration1$ \
-            -binary-path=cmd/server/server
+            -binary-path="cmd/server/server -v"
 
       - name: Build agent binary
         run: |
@@ -128,7 +128,7 @@ jobs:
           metricstest -test.v -test.run=^TestIteration3[AB]*$ \
             -source-path=. \
             -agent-binary-path=cmd/agent/agent \
-            -binary-path=cmd/server/server
+            -binary-path="cmd/server/server -v"
 
       - name: "Code increment #4"
         if: |
@@ -150,7 +150,7 @@ jobs:
           TEMP_FILE=$(random tempfile)
           metricstest -test.v -test.run=^TestIteration4$ \
             -agent-binary-path=cmd/agent/agent \
-            -binary-path=cmd/server/server \
+            -binary-path="cmd/server/server -v" \
             -server-port=$SERVER_PORT \
             -source-path=.
 
@@ -173,7 +173,7 @@ jobs:
           TEMP_FILE=$(random tempfile)
           metricstest -test.v -test.run=^TestIteration5$ \
             -agent-binary-path=cmd/agent/agent \
-            -binary-path=cmd/server/server \
+            -binary-path="cmd/server/server -v" \
             -server-port=$SERVER_PORT \
             -source-path=.
 
@@ -195,7 +195,7 @@ jobs:
           TEMP_FILE=$(random tempfile)
           metricstest -test.v -test.run=^TestIteration6$ \
             -agent-binary-path=cmd/agent/agent \
-            -binary-path=cmd/server/server \
+            -binary-path="cmd/server/server -v" \
             -server-port=$SERVER_PORT \
             -source-path=.
 
@@ -216,7 +216,7 @@ jobs:
           TEMP_FILE=$(random tempfile)
           metricstest -test.v -test.run=^TestIteration7$ \
             -agent-binary-path=cmd/agent/agent \
-            -binary-path=cmd/server/server \
+            -binary-path="cmd/server/server -v" \
             -server-port=$SERVER_PORT \
             -source-path=.
 
@@ -236,7 +236,7 @@ jobs:
           TEMP_FILE=$(random tempfile)
           metricstest -test.v -test.run=^TestIteration8$ \
             -agent-binary-path=cmd/agent/agent \
-            -binary-path=cmd/server/server \
+            -binary-path="cmd/server/server -v" \
             -server-port=$SERVER_PORT \
             -source-path=.
 
@@ -255,7 +255,7 @@ jobs:
           TEMP_FILE=$(random tempfile)
           metricstest -test.v -test.run=^TestIteration9$ \
             -agent-binary-path=cmd/agent/agent \
-            -binary-path=cmd/server/server \
+            -binary-path="cmd/server/server -v" \
             -file-storage-path=$TEMP_FILE \
             -server-port=$SERVER_PORT \
             -source-path=.
@@ -274,7 +274,7 @@ jobs:
           TEMP_FILE=$(random tempfile)
           metricstest -test.v -test.run=^TestIteration10[AB]$ \
             -agent-binary-path=cmd/agent/agent \
-            -binary-path=cmd/server/server \
+            -binary-path="cmd/server/server -v" \
             -database-dsn='postgres://postgres:postgres@postgres:5432/praktikum?sslmode=disable' \
             -server-port=$SERVER_PORT \
             -source-path=.
@@ -292,7 +292,7 @@ jobs:
           TEMP_FILE=$(random tempfile)
           metricstest -test.v -test.run=^TestIteration11$ \
             -agent-binary-path=cmd/agent/agent \
-            -binary-path=cmd/server/server \
+            -binary-path="cmd/server/server -v" \
             -database-dsn='postgres://postgres:postgres@postgres:5432/praktikum?sslmode=disable' \
             -server-port=$SERVER_PORT \
             -source-path=.
@@ -309,7 +309,7 @@ jobs:
           TEMP_FILE=$(random tempfile)
           metricstest -test.v -test.run=^TestIteration12$ \
             -agent-binary-path=cmd/agent/agent \
-            -binary-path=cmd/server/server \
+            -binary-path="cmd/server/server -v" \
             -database-dsn='postgres://postgres:postgres@postgres:5432/praktikum?sslmode=disable' \
             -server-port=$SERVER_PORT \
             -source-path=.
@@ -325,7 +325,7 @@ jobs:
           TEMP_FILE=$(random tempfile)
           metricstest -test.v -test.run=^TestIteration13$ \
             -agent-binary-path=cmd/agent/agent \
-            -binary-path=cmd/server/server \
+            -binary-path="cmd/server/server -v" \
             -database-dsn='postgres://postgres:postgres@postgres:5432/praktikum?sslmode=disable' \
             -server-port=$SERVER_PORT \
             -source-path=.
@@ -340,7 +340,7 @@ jobs:
           TEMP_FILE=$(random tempfile)
           metricstest -test.v -test.run=^TestIteration14$ \
             -agent-binary-path=cmd/agent/agent \
-            -binary-path=cmd/server/server \
+            -binary-path="cmd/server/server -v" \
             -database-dsn='postgres://postgres:postgres@postgres:5432/praktikum?sslmode=disable' \
             -key="${TEMP_FILE}" \
             -server-port=$SERVER_PORT \
