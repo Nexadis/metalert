@@ -59,7 +59,7 @@ func chooseStorage(ctx context.Context, config *Config) (storage.Storage, error)
 		err := p.Open(dbctx, config.DB.DSN)
 		if err != nil {
 			logger.Error(err)
-			return getMemStorage(ctx, config)
+			return nil, err
 		}
 		return p, nil
 	}
