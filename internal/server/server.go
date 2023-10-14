@@ -52,11 +52,10 @@ func chooseStorage(ctx context.Context, config *Config) (storage.Storage, error)
 		dbctx, cancel := context.WithTimeout(context.Background(), time.Duration(time.Second))
 		defer cancel()
 		err := p.Open(dbctx, config.DB.DSN)
-		if err != nil {
-			logger.Error(err)
-			return nil, err
+		if err == nil {
+			return p, nil
 		}
-		return p, nil
+		logger.Error(err)
 	}
 	return getMemStorage(ctx, config)
 }

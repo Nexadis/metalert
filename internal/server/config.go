@@ -49,6 +49,8 @@ func (c *Config) parseEnv() {
 func (c *Config) ParseConfig() {
 	set := c.setFlags()
 	set.Parse(os.Args[1:])
+	c.parseEnv()
+	c.DB.ParseEnv()
 	if c.Verbose {
 		logger.Enable()
 	}
@@ -72,8 +74,6 @@ func (c *Config) setFlags() *flag.FlagSet {
 func (c *Config) SetDefault() {
 	set := c.setFlags()
 	set.Parse([]string{})
-	c.parseEnv()
-	c.DB.ParseEnv()
 	if c.Verbose {
 		logger.Enable()
 	}
