@@ -64,10 +64,12 @@ func chooseStorage(ctx context.Context, config *Config) (storage.Storage, error)
 func getMemStorage(ctx context.Context, config *Config) (mem.MetricsStorage, error) {
 	logger.Info("Use in mem storage")
 	metricsStorage := mem.NewMetricsStorage()
-	err := metricsStorage.Restore(ctx, config.FileStoragePath, config.Restore)
-	if err != nil {
-		logger.Info(err)
-		return nil, err
+	if config.Restore {
+		err := metricsStorage.Restore(ctx, config.FileStoragePath, config.Restore)
+		if err != nil {
+			logger.Info(err)
+			return nil, err
+		}
 	}
 	go metricsStorage.SaveTimer(ctx, config.FileStoragePath, config.StoreInterval)
 	return metricsStorage, nil
