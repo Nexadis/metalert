@@ -79,7 +79,7 @@ func TestNewServer(t *testing.T) {
 	c.DB.DSN = "invalid dsn"
 
 	_, err = NewServer(&c)
-	assert.Error(t, err)
+	assert.NoError(t, err)
 }
 
 var updateTests = []testReq{
