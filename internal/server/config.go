@@ -65,15 +65,15 @@ func (c *Config) ParseConfig() {
 func (c *Config) setFlags() *flag.FlagSet {
 	set := flag.NewFlagSet("", flag.ExitOnError)
 	c.parseCmd(set)
-	c.parseEnv()
 	c.DB.ParseCmd(set)
-	c.DB.ParseEnv()
 	return set
 }
 
 func (c *Config) SetDefault() {
 	set := c.setFlags()
 	set.Parse([]string{})
+	c.parseEnv()
+	c.DB.ParseEnv()
 	if c.Verbose {
 		logger.Enable()
 	}
