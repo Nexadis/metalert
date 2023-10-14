@@ -29,7 +29,7 @@ func (c *Config) parseCmd() {
 	flag.Int64Var(&c.ReportInterval, "r", 10, "Report Interval")
 	flag.StringVar(&c.Key, "k", "", "Key to sign body")
 	flag.Int64Var(&c.RateLimit, "l", 1, "Workers for report")
-	flag.BoolVar(&c.Verbose, "v", false, "Verbose logging")
+	flag.BoolVar(&c.Verbose, "v", true, "Verbose logging")
 	flag.Parse()
 }
 
