@@ -34,13 +34,14 @@ type MetricPoster interface {
 type httpClient struct {
 	client    *resty.Client
 	transport TransportType
-	key       string
+	signkey   string
+	pubkey    string
 }
 
 // NewHTTP - конструктор для httpClient, принимает в качестве аргументов функции, например:
 //
 // func SetKey(key string) func(*httpClient)
-func NewHTTP(options ...func(*httpClient)) *httpClient {
+func NewHTTP(options ...FOption) *httpClient {
 	client := &httpClient{
 		client: resty.New().
 			SetRetryCount(3).
@@ -106,8 +107,8 @@ func (c *httpClient) PostJSON(ctx context.Context, path string, m metrx.Metric) 
 		"Accept-Encoding":  "gzip",
 		"Content-Encoding": "gzip",
 	}
-	if c.key != "" {
-		signature, err := verifier.Sign(buf, []byte(c.key))
+	if c.signkey != "" {
+		signature, err := verifier.Sign(buf, []byte(c.signkey))
 		if err != nil {
 			return err
 		}

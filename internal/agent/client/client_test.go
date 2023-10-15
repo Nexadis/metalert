@@ -15,7 +15,7 @@ import (
 )
 
 func TestHTTP(t *testing.T) {
-	c := NewHTTP(SetKey("test-key"))
+	c := NewHTTP(SetSignKey("test-key"))
 	assert.NotNil(t, c)
 }
 
@@ -104,7 +104,7 @@ func TestPostREST(t *testing.T) {
 	r := reqLogger{}
 	s := httptest.NewServer(http.HandlerFunc(r.showHandler))
 	defer s.Close()
-	c := NewHTTP(SetKey("test-key"), SetTransport(RESTType))
+	c := NewHTTP(SetSignKey("test-key"), SetTransport(RESTType))
 	ctx := context.Background()
 	path := fmt.Sprintf("%s%s", s.URL, "/update/{valType}/{name}/{value}")
 	for _, test := range postTests {
@@ -146,7 +146,7 @@ func TestPostJSON(t *testing.T) {
 	r := reqLogger{}
 	s := httptest.NewServer(http.HandlerFunc(r.showHandler))
 	defer s.Close()
-	c := NewHTTP(SetKey("test-key"), SetTransport(JSONType))
+	c := NewHTTP(SetSignKey("test-key"), SetTransport(JSONType))
 	ctx := context.Background()
 	path := fmt.Sprintf("%s%s", s.URL, "/update")
 	for _, test := range postObjTests {
