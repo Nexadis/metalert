@@ -109,10 +109,13 @@ func (s *HTTPServer) MountHandlers() {
 		})
 		r.Get("/ping", s.DBPing)
 	})
+
 	s.router = middlewares.WithDeflate(
 		middlewares.WithLogging(
-			s.WithVerify(
-				router),
+			middlewares.WithVerify(
+				router,
+				s.config.SignKey,
+			),
 		),
 	)
 }
