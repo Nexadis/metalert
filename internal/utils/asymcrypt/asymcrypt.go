@@ -2,6 +2,7 @@ package asymcrypt
 
 import (
 	"bytes"
+	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
@@ -22,7 +23,7 @@ func ReadPem(filename string) ([]byte, error) {
 	return block.Bytes, nil
 }
 
-func Decrypter(body io.Reader, privKey []byte) (io.Reader, error) {
+func Decrypt(body io.Reader, privKey []byte) (io.Reader, error) {
 	key, err := x509.ParsePKCS1PrivateKey(privKey)
 	if err != nil {
 		return nil, err
@@ -38,7 +39,7 @@ func Decrypter(body io.Reader, privKey []byte) (io.Reader, error) {
 	return bytes.NewReader(decrypted), nil
 }
 
-func Encrypter(body io.Reader, pubKey []byte) (io.Reader, error) {
+func Encrypt(body io.Reader, pubKey []byte) (io.Reader, error) {
 	key, err := x509.ParsePKCS1PublicKey(pubKey)
 	if err != nil {
 		return nil, err
@@ -47,7 +48,7 @@ func Encrypter(body io.Reader, pubKey []byte) (io.Reader, error) {
 	if err != nil {
 		return nil, err
 	}
-	encrypted, err := rsa.EncryptPKCS1v15(nil, key, data)
+	encrypted, err := rsa.EncryptPKCS1v15(rand.Reader, key, data)
 	if err != nil {
 		return nil, err
 	}
