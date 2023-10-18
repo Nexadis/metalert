@@ -67,3 +67,12 @@ go build -ldflags \
 -X main.buildCommit=$(git rev-parse --short HEAD)"\
 -o agent  ./cmd/agent/main.go 
 ```
+
+## Создание ключей
+
+```bash
+go run ./cmd/keygen/main.go
+
+INFO    asymcrypt/asymcrypt.go:46       Created Pivate key: key_priv.pem
+INFO    asymcrypt/asymcrypt.go:47       Created PublicKey key: key_pub.pem
+```
