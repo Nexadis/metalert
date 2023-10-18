@@ -1,11 +1,7 @@
 package asymcrypt
 
 import (
-	"crypto/rand"
-	"crypto/rsa"
-	"crypto/x509"
-	"io"
-	"strings"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -16,25 +12,27 @@ type Keys struct {
 	public  []byte
 }
 
-func newKS() Keys {
-	key, _ := rsa.GenerateKey(rand.Reader, 4096)
-	PrivKey := x509.MarshalPKCS1PrivateKey(key)
-	PubKey := x509.MarshalPKCS1PublicKey(&key.PublicKey)
+func newKS(t *testing.T) Keys {
+	name := os.TempDir() + "/key"
+	err := NewPem(name)
+	t.Log(err)
+	public, err := ReadPem(name + "_pub.pem")
+	t.Log(err)
+	priv, err := ReadPem(name + "_priv.pem")
+	t.Log(err)
+
 	return Keys{
-		PrivKey,
-		PubKey,
+		priv,
+		public,
 	}
 }
 
 func TestEncryption(t *testing.T) {
 	s := "Hello"
-	keys := newKS()
-	body := strings.NewReader(s)
-	encrypted, err := Encrypt(body, keys.public)
+	keys := newKS(t)
+	encrypted, err := Encrypt([]byte(s), keys.public)
 	assert.NoError(t, err)
 	decrypted, err := Decrypt(encrypted, keys.private)
 	assert.NoError(t, err)
-	result, err := io.ReadAll(decrypted)
-	assert.NoError(t, err)
-	assert.Equal(t, s, string(result))
+	assert.Equal(t, s, string(decrypted))
 }
