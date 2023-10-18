@@ -37,7 +37,7 @@ func (c *Config) parseCmd(set *flag.FlagSet) {
 	set.BoolVar(&c.Restore, "r", true, "Restore file with metrics when start server")
 	set.BoolVar(&c.Verbose, "v", true, "Verbose logging")
 	set.StringVar(&c.SignKey, "k", "", "Key to sign body")
-	flag.StringVar(&c.CryptoKey, "crypto-key", "", "Path to file with public-key")
+	set.StringVar(&c.CryptoKey, "crypto-key", "", "Path to file with private-key")
 }
 
 func (c *Config) parseEnv() {

@@ -13,6 +13,7 @@ import (
 	"github.com/Nexadis/metalert/internal/storage"
 	"github.com/Nexadis/metalert/internal/storage/db"
 	"github.com/Nexadis/metalert/internal/storage/mem"
+	"github.com/Nexadis/metalert/internal/utils/asymcrypt"
 	"github.com/Nexadis/metalert/internal/utils/logger"
 )
 
@@ -26,6 +27,7 @@ type HTTPServer struct {
 	router  http.Handler
 	storage storage.Storage
 	config  *Config
+	privKey []byte
 }
 
 // Run Запуск сервера
@@ -84,10 +86,15 @@ func NewServer(config *Config) (*HTTPServer, error) {
 	if err != nil {
 		return nil, err
 	}
+	key, err := asymcrypt.ReadPem(config.CryptoKey)
+	if err != nil {
+		return nil, err
+	}
 	server := &HTTPServer{
 		nil,
 		storage,
 		config,
+		key,
 	}
 	return server, nil
 }
@@ -111,11 +118,14 @@ func (s *HTTPServer) MountHandlers() {
 	})
 
 	s.router = middlewares.WithDeflate(
-		middlewares.WithLogging(
-			middlewares.WithVerify(
-				router,
-				s.config.SignKey,
+		middlewares.WithDecrypt(
+			middlewares.WithLogging(
+				middlewares.WithVerify(
+					router,
+					s.config.SignKey,
+				),
 			),
+			s.privKey,
 		),
 	)
 }
