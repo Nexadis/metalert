@@ -2,7 +2,6 @@ package agent
 
 import (
 	"flag"
-	"os"
 
 	"github.com/caarlos0/env/v8"
 
@@ -55,12 +54,4 @@ func (c *Config) ParseConfig() {
 		"ReportInterval", c.ReportInterval,
 		"PollInterval", c.PollInterval,
 		"Key", c.Key)
-}
-
-func readKey(file string) (string, error) {
-	key, err := os.ReadFile(file)
-	if err != nil {
-		return "", err
-	}
-	return string(key), nil
 }

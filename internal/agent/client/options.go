@@ -16,7 +16,7 @@ func SetTransport(transport TransportType) FOption {
 }
 
 // SetPubKey устанавливает публичный ключ, с помощью которого будет производиться шифрование трафика
-func SetPubKey(key string) FOption {
+func SetPubKey(key []byte) FOption {
 	return func(hc *httpClient) {
 		hc.pubkey = key
 	}

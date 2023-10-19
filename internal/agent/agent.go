@@ -17,6 +17,7 @@ import (
 
 	"github.com/Nexadis/metalert/internal/agent/client"
 	"github.com/Nexadis/metalert/internal/metrx"
+	"github.com/Nexadis/metalert/internal/utils/asymcrypt"
 	"github.com/Nexadis/metalert/internal/utils/logger"
 )
 
@@ -50,7 +51,7 @@ type HTTPAgent struct {
 
 // New - Конструктор для HTTPAgent
 func New(config *Config) *HTTPAgent {
-	key, err := readKey(config.CryptoKey)
+	key, err := asymcrypt.ReadPem(config.CryptoKey)
 	if err != nil {
 		logger.Error(err)
 	}

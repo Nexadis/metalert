@@ -13,6 +13,7 @@ import (
 	"github.com/go-resty/resty/v2"
 
 	"github.com/Nexadis/metalert/internal/metrx"
+	"github.com/Nexadis/metalert/internal/utils/asymcrypt"
 	"github.com/Nexadis/metalert/internal/utils/verifier"
 )
 
@@ -35,7 +36,7 @@ type httpClient struct {
 	client    *resty.Client
 	transport TransportType
 	signkey   string
-	pubkey    string
+	pubkey    []byte
 }
 
 // NewHTTP - конструктор для httpClient, принимает в качестве аргументов функции, например:
@@ -92,9 +93,13 @@ func (c *httpClient) PostJSON(ctx context.Context, path string, m metrx.Metric) 
 	if err != nil {
 		return err
 	}
+	encrypted, err := asymcrypt.Encrypt(buf, c.pubkey)
+	if err != nil {
+		return err
+	}
 	body := &bytes.Buffer{}
 	g := gzip.NewWriter(body)
-	_, err = g.Write(buf)
+	_, err = g.Write(encrypted)
 	if err != nil {
 		return err
 	}
