@@ -10,7 +10,6 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 
 	"github.com/Nexadis/metalert/internal/metrx"
-	"github.com/Nexadis/metalert/internal/storage"
 	"github.com/Nexadis/metalert/internal/utils/logger"
 )
 
@@ -38,7 +37,6 @@ type DBPing interface {
 type DataBase interface {
 	DBOpener
 	DBPing
-	storage.Storage
 	DBCloser
 }
 

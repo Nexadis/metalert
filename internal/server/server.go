@@ -9,23 +9,33 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
+	"github.com/Nexadis/metalert/internal/metrx"
 	"github.com/Nexadis/metalert/internal/server/middlewares"
-	"github.com/Nexadis/metalert/internal/storage"
 	"github.com/Nexadis/metalert/internal/storage/db"
 	"github.com/Nexadis/metalert/internal/storage/mem"
 	"github.com/Nexadis/metalert/internal/utils/asymcrypt"
 	"github.com/Nexadis/metalert/internal/utils/logger"
 )
 
-type Listener interface {
-	Run() error
-	MountHandlers()
+type Getter interface {
+	Get(ctx context.Context, mtype, id string) (metrx.Metric, error)
+	GetAll(ctx context.Context) ([]metrx.Metric, error)
+}
+
+type Setter interface {
+	Set(ctx context.Context, m metrx.Metric) error
+}
+
+// Storage Интерфейс для хранилищ. Позволяет использовать pg и mem хранилища.
+type Storage interface {
+	Getter
+	Setter
 }
 
 // HTTPServer связывает все обработчики с базой данных
 type HTTPServer struct {
 	router  http.Handler
-	storage storage.Storage
+	storage Storage
 	config  *Config
 	privKey []byte
 }
@@ -47,7 +57,7 @@ func (s *HTTPServer) Run(ctx context.Context) error {
 }
 
 // chooseStorage Определяет по конфигу какое хранилище использовать
-func chooseStorage(ctx context.Context, config *Config) (storage.Storage, error) {
+func chooseStorage(ctx context.Context, config *Config) (Storage, error) {
 	if config.DB.DSN != "" {
 		logger.Info("Start with DB")
 		p := db.New(config.DB)
@@ -62,7 +72,7 @@ func chooseStorage(ctx context.Context, config *Config) (storage.Storage, error)
 	return getMemStorage(ctx, config)
 }
 
-func getMemStorage(ctx context.Context, config *Config) (mem.MetricsStorage, error) {
+func getMemStorage(ctx context.Context, config *Config) (Storage, error) {
 	logger.Info("Use in mem storage")
 	metricsStorage := mem.NewMetricsStorage()
 	if config.Restore {
