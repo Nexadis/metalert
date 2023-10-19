@@ -86,9 +86,12 @@ func NewServer(config *Config) (*HTTPServer, error) {
 	if err != nil {
 		return nil, err
 	}
-	key, err := asymcrypt.ReadPem(config.CryptoKey)
-	if err != nil {
-		return nil, err
+	var key []byte
+	if config.CryptoKey != "" {
+		key, err = asymcrypt.ReadPem(config.CryptoKey)
+		if err != nil {
+			return nil, err
+		}
 	}
 	server := &HTTPServer{
 		nil,
