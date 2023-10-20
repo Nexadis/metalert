@@ -6,7 +6,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/Nexadis/metalert/internal/metrx"
+	"github.com/Nexadis/metalert/internal/models"
 	"github.com/Nexadis/metalert/internal/utils/logger"
 )
 
@@ -54,7 +54,7 @@ func (ms *Storage) Restore(ctx context.Context, FileStoragePath string, Restore 
 		return nil
 	}
 	defer file.Close()
-	metrics := make([]*metrx.Metric, 1)
+	metrics := make([]*models.Metric, 1)
 	decoder := json.NewDecoder(file)
 	err = decoder.Decode(&metrics)
 	if err != nil {

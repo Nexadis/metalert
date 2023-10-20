@@ -9,7 +9,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
-	"github.com/Nexadis/metalert/internal/metrx"
+	"github.com/Nexadis/metalert/internal/models"
 	"github.com/Nexadis/metalert/internal/server/middlewares"
 	"github.com/Nexadis/metalert/internal/storage/db"
 	"github.com/Nexadis/metalert/internal/storage/mem"
@@ -18,12 +18,12 @@ import (
 )
 
 type Getter interface {
-	Get(ctx context.Context, mtype, id string) (metrx.Metric, error)
-	GetAll(ctx context.Context) ([]metrx.Metric, error)
+	Get(ctx context.Context, mtype, id string) (models.Metric, error)
+	GetAll(ctx context.Context) ([]models.Metric, error)
 }
 
 type Setter interface {
-	Set(ctx context.Context, m metrx.Metric) error
+	Set(ctx context.Context, m models.Metric) error
 }
 
 // Storage Интерфейс для хранилищ. Позволяет использовать pg и mem хранилища.

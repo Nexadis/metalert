@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Nexadis/metalert/internal/metrx"
+	"github.com/Nexadis/metalert/internal/models"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -95,7 +95,7 @@ var postTests = []testReq{
 			http.MethodPost,
 			"",
 			"/update/invalid/name/some-value",
-			metrx.ErrorType,
+			models.ErrorType,
 		},
 	},
 }
@@ -109,7 +109,7 @@ func TestPostREST(t *testing.T) {
 	path := fmt.Sprintf("%s%s", s.URL, "/update/{valType}/{name}/{value}")
 	for _, test := range postTests {
 		t.Run(test.name, func(t *testing.T) {
-			m, err := metrx.NewMetric(test.m.name, test.m.mtype, test.m.val)
+			m, err := models.NewMetric(test.m.name, test.m.mtype, test.m.val)
 			if test.want.err != nil {
 				assert.Error(t, err)
 				return
@@ -137,7 +137,7 @@ var postObjTests = []testReq{
 			http.MethodPost,
 			"\"name\"",
 			"/update",
-			metrx.ErrorMetrics,
+			models.ErrorMetrics,
 		},
 	},
 }
@@ -151,7 +151,7 @@ func TestPostJSON(t *testing.T) {
 	path := fmt.Sprintf("%s%s", s.URL, "/update")
 	for _, test := range postObjTests {
 		t.Run(test.name, func(t *testing.T) {
-			m, err := metrx.NewMetric(test.m.name, test.m.mtype, test.m.val)
+			m, err := models.NewMetric(test.m.name, test.m.mtype, test.m.val)
 			if err != nil {
 				assert.Error(t, err)
 				return

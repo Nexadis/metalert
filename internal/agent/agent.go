@@ -16,7 +16,7 @@ import (
 	memStat "github.com/shirou/gopsutil/v3/mem"
 
 	"github.com/Nexadis/metalert/internal/agent/client"
-	"github.com/Nexadis/metalert/internal/metrx"
+	"github.com/Nexadis/metalert/internal/models"
 	"github.com/Nexadis/metalert/internal/utils/asymcrypt"
 	"github.com/Nexadis/metalert/internal/utils/logger"
 )
@@ -24,8 +24,8 @@ import (
 // Watcher - интерфейс агента, собирающего и отправляющего метрики.
 type Watcher interface {
 	Run(ctx context.Context) error
-	Pull(ctx context.Context, mchan chan metrx.Metric)
-	Report(ctx context.Context, input chan metrx.Metric)
+	Pull(ctx context.Context, mchan chan models.Metric)
+	Report(ctx context.Context, input chan models.Metric)
 }
 
 // Endpoint'ы для отправки метрик.
@@ -44,7 +44,7 @@ var RuntimeNames []string
 // HTTPAgent реализует интерфейс Watcher, собирает и отправляет метрики
 type HTTPAgent struct {
 	config     *Config
-	counter    metrx.Counter
+	counter    models.Counter
 	clientREST client.MetricPoster
 	clientJSON client.MetricPoster
 }
@@ -82,7 +82,7 @@ func New(config *Config) *HTTPAgent {
 
 // Run запускает в фоне агент, начинает собирать и отправлять метрики с заданными интервалами
 func (ha *HTTPAgent) Run(ctx context.Context) error {
-	mchan := make(chan metrx.Metric, MetricsBufSize)
+	mchan := make(chan models.Metric, MetricsBufSize)
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	wg := sync.WaitGroup{}
@@ -110,41 +110,41 @@ func (ha *HTTPAgent) Run(ctx context.Context) error {
 }
 
 // pullCustom получает нестандартные метрики, определенные разработчиком
-func (ha *HTTPAgent) pullCustom(ctx context.Context, mchan chan metrx.Metric) {
-	customMetrics := make([]metrx.Metric, 0, 5)
+func (ha *HTTPAgent) pullCustom(ctx context.Context, mchan chan models.Metric) {
+	customMetrics := make([]models.Metric, 0, 5)
 
-	randValue := metrx.Gauge(rand.Float64())
-	m, err := metrx.NewMetric("RandomValue", metrx.GaugeType, randValue.String())
+	randValue := models.Gauge(rand.Float64())
+	m, err := models.NewMetric("RandomValue", models.GaugeType, randValue.String())
 	if err != nil {
 		logger.Error(err)
 		return
 	}
 	customMetrics = append(customMetrics, m)
 	ha.counter += 1
-	m, err = metrx.NewMetric("PollCount", metrx.CounterType, ha.counter.String())
+	m, err = models.NewMetric("PollCount", models.CounterType, ha.counter.String())
 	if err != nil {
 		logger.Error(err)
 		return
 	}
 	customMetrics = append(customMetrics, m)
 	v, _ := memStat.VirtualMemory()
-	totalMemory := metrx.Gauge(v.Total)
-	m, err = metrx.NewMetric("TotalMemory", metrx.GaugeType, totalMemory.String())
+	totalMemory := models.Gauge(v.Total)
+	m, err = models.NewMetric("TotalMemory", models.GaugeType, totalMemory.String())
 	if err != nil {
 		logger.Error(err)
 		return
 	}
 	customMetrics = append(customMetrics, m)
-	freeMemory := metrx.Gauge(v.Free)
-	m, err = metrx.NewMetric("FreeMemory", metrx.GaugeType, freeMemory.String())
+	freeMemory := models.Gauge(v.Free)
+	m, err = models.NewMetric("FreeMemory", models.GaugeType, freeMemory.String())
 	if err != nil {
 		logger.Error(err)
 		return
 	}
 	customMetrics = append(customMetrics, m)
 	c, _ := cpu.PercentWithContext(ctx, 0, false)
-	CPUUtilization := metrx.Gauge(c[0])
-	m, err = metrx.NewMetric("CPUUtilization1", metrx.GaugeType, CPUUtilization.String())
+	CPUUtilization := models.Gauge(c[0])
+	m, err = models.NewMetric("CPUUtilization1", models.GaugeType, CPUUtilization.String())
 	if err != nil {
 		logger.Error(err)
 		return
@@ -162,7 +162,7 @@ func (ha *HTTPAgent) pullCustom(ctx context.Context, mchan chan metrx.Metric) {
 }
 
 // pullRuntime получает метрики из стандартной библиотеки runtime
-func (ha *HTTPAgent) pullRuntime(ctx context.Context, mchan chan metrx.Metric) {
+func (ha *HTTPAgent) pullRuntime(ctx context.Context, mchan chan models.Metric) {
 	var val string
 	memStats := &runtime.MemStats{}
 	runtime.ReadMemStats(memStats)
@@ -171,11 +171,11 @@ func (ha *HTTPAgent) pullRuntime(ctx context.Context, mchan chan metrx.Metric) {
 		value := mstruct.FieldByName(gaugeName)
 		switch value.Kind() {
 		case reflect.Float64:
-			val = metrx.Gauge(value.Float()).String()
+			val = models.Gauge(value.Float()).String()
 		case reflect.Uint32, reflect.Uint64:
-			val = metrx.Gauge(value.Uint()).String()
+			val = models.Gauge(value.Uint()).String()
 		}
-		m, err := metrx.NewMetric(gaugeName, metrx.GaugeType, val)
+		m, err := models.NewMetric(gaugeName, models.GaugeType, val)
 		if err != nil {
 			logger.Error(err)
 			return
@@ -189,14 +189,14 @@ func (ha *HTTPAgent) pullRuntime(ctx context.Context, mchan chan metrx.Metric) {
 }
 
 // Pull внешняя функция для получения всех метрик
-func (ha *HTTPAgent) Pull(ctx context.Context, mchan chan metrx.Metric) {
+func (ha *HTTPAgent) Pull(ctx context.Context, mchan chan models.Metric) {
 	ha.pullCustom(ctx, mchan)
 	ha.pullRuntime(ctx, mchan)
 	logger.Info("Metrics pulled")
 }
 
 // Report отправляет метрики на адрес, заданный в конфигурации, всеми доступными способами
-func (ha *HTTPAgent) Report(ctx context.Context, input chan metrx.Metric) {
+func (ha *HTTPAgent) Report(ctx context.Context, input chan models.Metric) {
 	path := fmt.Sprintf("http://%s%s", ha.config.Address, UpdateURL)
 	pathJSON := fmt.Sprintf("http://%s%s", ha.config.Address, JSONUpdateURL)
 	for m := range input {

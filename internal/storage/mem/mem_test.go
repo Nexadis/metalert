@@ -8,7 +8,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/Nexadis/metalert/internal/metrx"
+	"github.com/Nexadis/metalert/internal/models"
 	"github.com/Nexadis/metalert/internal/storage"
 )
 
@@ -22,7 +22,7 @@ func TestSet(t *testing.T) {
 	testCasesCounters := []struct {
 		name    string
 		request setReq
-		want    metrx.Counter
+		want    models.Counter
 	}{
 		{
 			name: "Counter type, positive",
@@ -31,7 +31,7 @@ func TestSet(t *testing.T) {
 				name:    "positive",
 				value:   "2",
 			},
-			want: metrx.Counter(2),
+			want: models.Counter(2),
 		},
 		{
 			name: "Counter type, big num",
@@ -40,14 +40,14 @@ func TestSet(t *testing.T) {
 				name:    "big",
 				value:   "2985198054390",
 			},
-			want: metrx.Counter(2985198054390),
+			want: models.Counter(2985198054390),
 		},
 	}
 
 	testCasesGauges := []struct {
 		name    string
 		request setReq
-		want    metrx.Gauge
+		want    models.Gauge
 	}{
 		{
 			name: "Gauge type, positive",
@@ -56,7 +56,7 @@ func TestSet(t *testing.T) {
 				name:    "positive",
 				value:   "102391",
 			},
-			want: metrx.Gauge(102391),
+			want: models.Gauge(102391),
 		},
 		{
 			name: "Gauge type, very small",
@@ -65,7 +65,7 @@ func TestSet(t *testing.T) {
 				name:    "small",
 				value:   "0.000000000001",
 			},
-			want: metrx.Gauge(0.000000000001),
+			want: models.Gauge(0.000000000001),
 		},
 		{
 			name: "Gauge type, negative",
@@ -74,13 +74,13 @@ func TestSet(t *testing.T) {
 				name:    "neg",
 				value:   "-102391",
 			},
-			want: metrx.Gauge(-102391),
+			want: models.Gauge(-102391),
 		},
 	}
 	ctx := context.TODO()
 	for _, test := range testCasesCounters {
 		t.Run(test.name, func(t *testing.T) {
-			m, err := metrx.NewMetric(test.request.name, test.request.valType, test.request.value)
+			m, err := models.NewMetric(test.request.name, test.request.valType, test.request.value)
 			assert.NoError(t, err)
 
 			err = storage.Set(ctx, m)
@@ -90,7 +90,7 @@ func TestSet(t *testing.T) {
 	}
 	for _, test := range testCasesGauges {
 		t.Run(test.name, func(t *testing.T) {
-			m, err := metrx.NewMetric(test.request.name, test.request.valType, test.request.value)
+			m, err := models.NewMetric(test.request.name, test.request.valType, test.request.value)
 			assert.NoError(t, err)
 			err = storage.Set(ctx, m)
 			assert.Equal(t, storage.Gauges[test.request.name], test.want)
@@ -110,14 +110,14 @@ type getWant struct {
 
 func TestGet(t *testing.T) {
 	s := NewMetricsStorage()
-	s.Gauges = map[string]metrx.Gauge{
-		"positive": metrx.Gauge(102391),
-		"small":    metrx.Gauge(0.000000000001),
-		"neg":      metrx.Gauge(-102391),
+	s.Gauges = map[string]models.Gauge{
+		"positive": models.Gauge(102391),
+		"small":    models.Gauge(0.000000000001),
+		"neg":      models.Gauge(-102391),
 	}
-	s.Counters = map[string]metrx.Counter{
-		"positive": metrx.Counter(2),
-		"big":      metrx.Counter(2985198054390),
+	s.Counters = map[string]models.Counter{
+		"positive": models.Counter(2),
+		"big":      models.Counter(2985198054390),
 	}
 
 	testCases := []struct {
@@ -168,7 +168,7 @@ func TestGet(t *testing.T) {
 		{
 			name: "Gauge type, not found",
 			request: getReq{
-				valType: metrx.GaugeType,
+				valType: models.GaugeType,
 				name:    "notfound",
 			},
 			want: getWant{"", storage.ErrNotFound},
@@ -184,7 +184,7 @@ func TestGet(t *testing.T) {
 		{
 			name: "Counter type, not found",
 			request: getReq{
-				valType: metrx.CounterType,
+				valType: models.CounterType,
 				name:    "notfound",
 			},
 			want: getWant{"", storage.ErrNotFound},
@@ -207,13 +207,13 @@ func TestGet(t *testing.T) {
 
 func TestGetAll(t *testing.T) {
 	s := NewMetricsStorage()
-	s.Gauges = map[string]metrx.Gauge{
-		"gauge1": metrx.Gauge(0.123),
-		"gauge2": metrx.Gauge(0.533),
+	s.Gauges = map[string]models.Gauge{
+		"gauge1": models.Gauge(0.123),
+		"gauge2": models.Gauge(0.533),
 	}
-	s.Counters = map[string]metrx.Counter{
-		"c1": metrx.Counter(1),
-		"c2": metrx.Counter(2),
+	s.Counters = map[string]models.Counter{
+		"c1": models.Counter(1),
+		"c2": models.Counter(2),
 	}
 	ctx := context.Background()
 	all, err := s.GetAll(ctx)
@@ -227,14 +227,14 @@ func TestGetAll(t *testing.T) {
 
 func BenchmarkGet(b *testing.B) {
 	storage := Storage{
-		Gauges: map[string]metrx.Gauge{
-			"positive": metrx.Gauge(102391),
-			"small":    metrx.Gauge(0.000000000001),
-			"neg":      metrx.Gauge(-102391),
+		Gauges: map[string]models.Gauge{
+			"positive": models.Gauge(102391),
+			"small":    models.Gauge(0.000000000001),
+			"neg":      models.Gauge(-102391),
 		},
-		Counters: map[string]metrx.Counter{
-			"positive": metrx.Counter(2),
-			"big":      metrx.Counter(2985198054390),
+		Counters: map[string]models.Counter{
+			"positive": models.Counter(2),
+			"big":      models.Counter(2985198054390),
 		},
 	}
 	ctx := context.Background()
@@ -244,7 +244,7 @@ func BenchmarkGet(b *testing.B) {
 	}
 }
 
-func randomMS(b *testing.B) metrx.Metric {
+func randomMS(b *testing.B) models.Metric {
 	var mtype, val string
 	value := rand.Int()
 	if value%2 == 0 {
@@ -255,7 +255,7 @@ func randomMS(b *testing.B) metrx.Metric {
 		val = fmt.Sprintf("%d", value)
 	}
 	name := val
-	m, err := metrx.NewMetric(name, mtype, val)
+	m, err := models.NewMetric(name, mtype, val)
 	assert.NoError(b, err)
 	return m
 }

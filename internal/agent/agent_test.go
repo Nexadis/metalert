@@ -6,7 +6,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/Nexadis/metalert/internal/metrx"
+	"github.com/Nexadis/metalert/internal/models"
 )
 
 var endpoint = "http://localhost:8080"
@@ -26,7 +26,7 @@ func TestPull(t *testing.T) {
 			name: "Check StackSys",
 			want: want{
 				name:    "StackSys",
-				valType: metrx.GaugeType,
+				valType: models.GaugeType,
 				value:   "0",
 			},
 		},
@@ -34,7 +34,7 @@ func TestPull(t *testing.T) {
 			name: "Check StackInuse",
 			want: want{
 				name:    "StackInuse",
-				valType: metrx.GaugeType,
+				valType: models.GaugeType,
 				value:   "0",
 			},
 		},
@@ -42,7 +42,7 @@ func TestPull(t *testing.T) {
 			name: "Check PauseTotalNs",
 			want: want{
 				name:    "PauseTotalNs",
-				valType: metrx.GaugeType,
+				valType: models.GaugeType,
 				value:   "0",
 			},
 		},
@@ -50,7 +50,7 @@ func TestPull(t *testing.T) {
 			name: "Check OtherSys",
 			want: want{
 				name:    "OtherSys",
-				valType: metrx.GaugeType,
+				valType: models.GaugeType,
 				value:   "0",
 			},
 		},
@@ -58,7 +58,7 @@ func TestPull(t *testing.T) {
 			name: "Check TotalAlloc",
 			want: want{
 				name:    "TotalAlloc",
-				valType: metrx.GaugeType,
+				valType: models.GaugeType,
 				value:   "0",
 			},
 		},
@@ -66,7 +66,7 @@ func TestPull(t *testing.T) {
 			name: "Check Sys",
 			want: want{
 				name:    "Sys",
-				valType: metrx.GaugeType,
+				valType: models.GaugeType,
 				value:   "0",
 			},
 		},
@@ -80,7 +80,7 @@ func TestPull(t *testing.T) {
 			name: "Check PollCount",
 			want: want{
 				name:    "PollCount",
-				valType: metrx.CounterType,
+				valType: models.CounterType,
 				value:   "1",
 			},
 		},
@@ -94,10 +94,10 @@ func TestPull(t *testing.T) {
 		config:  config,
 		counter: 0,
 	}
-	mchan := make(chan metrx.Metric, 100)
+	mchan := make(chan models.Metric, 100)
 	ha.Pull(context.Background(), mchan)
 	close(mchan)
-	metrics := make(map[string]metrx.Metric, 100)
+	metrics := make(map[string]models.Metric, 100)
 	for m := range mchan {
 		metrics[m.ID] = m
 	}
@@ -126,7 +126,7 @@ type testClient struct {
 	value   string
 }
 
-func (c *testClient) Post(ctx context.Context, path string, m metrx.Metric) error {
+func (c *testClient) Post(ctx context.Context, path string, m models.Metric) error {
 	c.path = path
 	c.valType = m.MType
 	c.name = m.ID
@@ -153,7 +153,7 @@ func TestReport(t *testing.T) {
 			name: "Check StackSys",
 			want: want{
 				name:    "StackSys",
-				valType: metrx.GaugeType,
+				valType: models.GaugeType,
 				value:   "0",
 			},
 		},
@@ -161,7 +161,7 @@ func TestReport(t *testing.T) {
 			name: "Check StackInuse",
 			want: want{
 				name:    "StackInuse",
-				valType: metrx.GaugeType,
+				valType: models.GaugeType,
 				value:   "0",
 			},
 		},
@@ -169,7 +169,7 @@ func TestReport(t *testing.T) {
 			name: "Check PauseTotalNs",
 			want: want{
 				name:    "PauseTotalNs",
-				valType: metrx.GaugeType,
+				valType: models.GaugeType,
 				value:   "0",
 			},
 		},
@@ -177,7 +177,7 @@ func TestReport(t *testing.T) {
 			name: "Check OtherSys",
 			want: want{
 				name:    "OtherSys",
-				valType: metrx.GaugeType,
+				valType: models.GaugeType,
 				value:   "0",
 			},
 		},
@@ -185,7 +185,7 @@ func TestReport(t *testing.T) {
 			name: "Check TotalAlloc",
 			want: want{
 				name:    "TotalAlloc",
-				valType: metrx.GaugeType,
+				valType: models.GaugeType,
 				value:   "0",
 			},
 		},
@@ -193,7 +193,7 @@ func TestReport(t *testing.T) {
 			name: "Check Sys",
 			want: want{
 				name:    "Sys",
-				valType: metrx.GaugeType,
+				valType: models.GaugeType,
 				value:   "0",
 			},
 		},
@@ -201,7 +201,7 @@ func TestReport(t *testing.T) {
 			name: "Check PollCount",
 			want: want{
 				name:    "PollCount",
-				valType: metrx.CounterType,
+				valType: models.CounterType,
 				value:   "1",
 			},
 		},
@@ -219,9 +219,9 @@ func TestReport(t *testing.T) {
 				clientJSON: testClient,
 				clientREST: testClient,
 			}
-			mchan := make(chan metrx.Metric, 1)
+			mchan := make(chan models.Metric, 1)
 			ctx := context.Background()
-			m, err := metrx.NewMetric(test.want.name, test.want.valType, test.want.value)
+			m, err := models.NewMetric(test.want.name, test.want.valType, test.want.value)
 			assert.NoError(t, err)
 			mchan <- m
 			close(mchan)
