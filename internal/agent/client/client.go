@@ -59,9 +59,9 @@ func NewHTTP(options ...FOption) *httpClient {
 func (c *httpClient) Post(ctx context.Context, path string, m models.Metric) error {
 	switch c.transport {
 	case RESTType:
-		return c.PostREST(ctx, path, m)
+		return c.postREST(ctx, path, m)
 	case JSONType:
-		return c.PostJSON(ctx, path, m)
+		return c.postJSON(ctx, path, m)
 	}
 	return fmt.Errorf("unknown transport type %s", c.transport)
 }
@@ -69,7 +69,7 @@ func (c *httpClient) Post(ctx context.Context, path string, m models.Metric) err
 // Post отправляет метрику через REST-запрос
 //
 // path - адрес сервера, например "http://localhost:8080/update"
-func (c *httpClient) PostREST(ctx context.Context, path string, m models.Metric) error {
+func (c *httpClient) postREST(ctx context.Context, path string, m models.Metric) error {
 	val, err := m.GetValue()
 	if err != nil {
 		return err
@@ -87,8 +87,8 @@ func (c *httpClient) PostREST(ctx context.Context, path string, m models.Metric)
 	return err
 }
 
-// PostJSON отправляет метрику в виде JSON-строки, дополнительно сжимая её с помощью gzip и подписывая с помощью httpClient.key.
-func (c *httpClient) PostJSON(ctx context.Context, path string, m models.Metric) error {
+// postJSON отправляет метрику в виде JSON-строки, дополнительно сжимая её с помощью gzip и подписывая с помощью httpClient.key.
+func (c *httpClient) postJSON(ctx context.Context, path string, m models.Metric) error {
 	buf, err := json.Marshal(m)
 	if err != nil {
 		return err
