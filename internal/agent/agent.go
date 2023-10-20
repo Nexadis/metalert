@@ -21,13 +21,6 @@ import (
 	"github.com/Nexadis/metalert/internal/utils/logger"
 )
 
-// Watcher - интерфейс агента, собирающего и отправляющего метрики.
-type Watcher interface {
-	Run(ctx context.Context) error
-	Pull(ctx context.Context, mchan chan models.Metric)
-	Report(ctx context.Context, input chan models.Metric)
-}
-
 // Endpoint'ы для отправки метрик.
 const (
 	UpdateURL     = "/update/{valType}/{name}/{value}"
@@ -81,7 +74,7 @@ func New(config *Config) *HTTPAgent {
 }
 
 // Run запускает в фоне агент, начинает собирать и отправлять метрики с заданными интервалами
-func (ha *HTTPAgent) Run(ctx context.Context) error {
+func (ha *HTTPAgent) Run(ctx context.Context) {
 	mchan := make(chan models.Metric, MetricsBufSize)
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
@@ -102,7 +95,6 @@ func (ha *HTTPAgent) Run(ctx context.Context) error {
 		case <-ctx.Done():
 			close(mchan)
 			wg.Wait()
-			return nil
 		case <-pullTicker.C:
 			ha.Pull(ctx, mchan)
 		}

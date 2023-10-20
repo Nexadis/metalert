@@ -3,12 +3,18 @@ package mem
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"sync"
 
 	"github.com/Nexadis/metalert/internal/models"
-	"github.com/Nexadis/metalert/internal/storage"
+)
+
+// Ошибки при работе с хранилищем.
+var (
+	ErrNotFound    = errors.New(`value not found`)
+	ErrInvalidType = errors.New(`invalid type`)
 )
 
 // Storage - Хранилище inmemory. Отдельно хранит Gauge и Counter метрики. Использует RWMutex Для доступа к элементам.
@@ -44,7 +50,7 @@ func (ms *Storage) Set(ctx context.Context, m models.Metric) error {
 		ms.mutex.Unlock()
 		return nil
 	}
-	return fmt.Errorf("%v: %v", storage.ErrInvalidType, m)
+	return fmt.Errorf("%v: %v", ErrInvalidType, m)
 }
 
 // Get Получает метрику с типом mtype и именем id
@@ -55,7 +61,7 @@ func (ms *Storage) Get(ctx context.Context, mtype, id string) (models.Metric, er
 		value, ok := ms.Counters[id]
 		ms.mutex.RUnlock()
 		if !ok {
-			return models.Metric{}, storage.ErrNotFound
+			return models.Metric{}, ErrNotFound
 		}
 		return models.NewMetric(id, mtype, value.String())
 	case models.GaugeType:
@@ -63,12 +69,12 @@ func (ms *Storage) Get(ctx context.Context, mtype, id string) (models.Metric, er
 		value, ok := ms.Gauges[id]
 		ms.mutex.RUnlock()
 		if !ok {
-			return models.Metric{}, storage.ErrNotFound
+			return models.Metric{}, ErrNotFound
 		}
 		return models.NewMetric(id, mtype, value.String())
 	}
 
-	return models.Metric{}, storage.ErrInvalidType
+	return models.Metric{}, ErrInvalidType
 }
 
 // GetAll Получает все метрики из хранилища

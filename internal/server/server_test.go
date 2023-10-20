@@ -18,7 +18,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/Nexadis/metalert/internal/models"
-	"github.com/Nexadis/metalert/internal/storage/db"
+	"github.com/Nexadis/metalert/internal/storage"
 	"github.com/Nexadis/metalert/internal/storage/mem"
 	"github.com/Nexadis/metalert/internal/utils/verifier"
 )
@@ -26,7 +26,7 @@ import (
 func TestMain(m *testing.M) {
 	c := NewConfig()
 	c.SetDefault()
-	c.Restore = false
+	c.DB.Restore = false
 	s, err := NewServer(c)
 	if err != nil {
 		log.Fatal(err)
@@ -70,7 +70,7 @@ type testReq struct {
 
 func TestNewServer(t *testing.T) {
 	c := Config{
-		DB: db.NewConfig(),
+		DB: storage.NewConfig(),
 	}
 
 	_, err := NewServer(&c)

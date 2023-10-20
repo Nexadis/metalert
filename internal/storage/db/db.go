@@ -22,24 +22,6 @@ const schema = `CREATE TABLE Metrics(
 CONSTRAINT ID PRIMARY KEY (id,type));
 `
 
-type DBOpener interface {
-	Open(ctx context.Context, DSN string) error
-}
-
-type DBCloser interface {
-	Close() error
-}
-
-type DBPing interface {
-	Ping() error
-}
-
-type DataBase interface {
-	DBOpener
-	DBPing
-	DBCloser
-}
-
 // DB Реализует логику работы с БД.
 type DB struct {
 	db   *sql.DB
@@ -47,24 +29,18 @@ type DB struct {
 	conn connection
 }
 
-var _ DataBase = &DB{}
-
 type connection struct {
 	retries int
 	timeout time.Duration
 }
 
 // New Конструктор для БД. Настраивает политики retry
-func New(config *Config) *DB {
+func New() *DB {
 	db := &sql.DB{}
 	DB := &DB{
 		db:   db,
 		size: 0,
 	}
-	Configure(DB,
-		SetRetries(config.Retry),
-		SetTimeout(time.Duration(config.Timeout)),
-	)
 	return DB
 }
 

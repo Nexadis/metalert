@@ -5,37 +5,18 @@ import (
 	"context"
 	"net"
 	"net/http"
-	"time"
 
 	"github.com/go-chi/chi/v5"
 
-	"github.com/Nexadis/metalert/internal/models"
 	"github.com/Nexadis/metalert/internal/server/middlewares"
-	"github.com/Nexadis/metalert/internal/storage/db"
-	"github.com/Nexadis/metalert/internal/storage/mem"
+	"github.com/Nexadis/metalert/internal/storage"
 	"github.com/Nexadis/metalert/internal/utils/asymcrypt"
-	"github.com/Nexadis/metalert/internal/utils/logger"
 )
-
-type Getter interface {
-	Get(ctx context.Context, mtype, id string) (models.Metric, error)
-	GetAll(ctx context.Context) ([]models.Metric, error)
-}
-
-type Setter interface {
-	Set(ctx context.Context, m models.Metric) error
-}
-
-// Storage Интерфейс для хранилищ. Позволяет использовать pg и mem хранилища.
-type Storage interface {
-	Getter
-	Setter
-}
 
 // HTTPServer связывает все обработчики с базой данных
 type HTTPServer struct {
 	router  http.Handler
-	storage Storage
+	storage storage.Storage
 	config  *Config
 	privKey []byte
 }
@@ -56,43 +37,13 @@ func (s *HTTPServer) Run(ctx context.Context) error {
 	return err
 }
 
-// chooseStorage Определяет по конфигу какое хранилище использовать
-func chooseStorage(ctx context.Context, config *Config) (Storage, error) {
-	if config.DB.DSN != "" {
-		logger.Info("Start with DB")
-		p := db.New(config.DB)
-		dbctx, cancel := context.WithTimeout(context.Background(), time.Duration(time.Second))
-		defer cancel()
-		err := p.Open(dbctx, config.DB.DSN)
-		if err == nil {
-			return p, nil
-		}
-		logger.Error(err)
-	}
-	return getMemStorage(ctx, config)
-}
-
-func getMemStorage(ctx context.Context, config *Config) (Storage, error) {
-	logger.Info("Use in mem storage")
-	metricsStorage := mem.NewMetricsStorage()
-	if config.Restore {
-		err := metricsStorage.Restore(ctx, config.FileStoragePath, config.Restore)
-		if err != nil {
-			logger.Info(err)
-			return nil, err
-		}
-	}
-	go metricsStorage.SaveTimer(ctx, config.FileStoragePath, config.StoreInterval)
-	return metricsStorage, nil
-}
-
 // NewServer Конструктор HTTPServer, для инциализации использует Config
 func NewServer(config *Config) (*HTTPServer, error) {
 	if config == nil {
 		config = NewConfig()
 		config.SetDefault()
 	}
-	storage, err := chooseStorage(context.Background(), config)
+	storage, err := storage.ChooseStorage(context.Background(), config.DB)
 	if err != nil {
 		return nil, err
 	}

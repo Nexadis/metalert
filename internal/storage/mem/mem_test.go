@@ -9,7 +9,6 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/Nexadis/metalert/internal/models"
-	"github.com/Nexadis/metalert/internal/storage"
 )
 
 func TestSet(t *testing.T) {
@@ -171,7 +170,7 @@ func TestGet(t *testing.T) {
 				valType: models.GaugeType,
 				name:    "notfound",
 			},
-			want: getWant{"", storage.ErrNotFound},
+			want: getWant{"", ErrNotFound},
 		},
 		{
 			name: "Ivalid type",
@@ -179,7 +178,7 @@ func TestGet(t *testing.T) {
 				valType: "invalid",
 				name:    "invalid",
 			},
-			want: getWant{"", storage.ErrInvalidType},
+			want: getWant{"", ErrInvalidType},
 		},
 		{
 			name: "Counter type, not found",
@@ -187,7 +186,7 @@ func TestGet(t *testing.T) {
 				valType: models.CounterType,
 				name:    "notfound",
 			},
-			want: getWant{"", storage.ErrNotFound},
+			want: getWant{"", ErrNotFound},
 		},
 	}
 	ctx := context.TODO()

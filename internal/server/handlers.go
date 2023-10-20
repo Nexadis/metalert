@@ -9,8 +9,8 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	"github.com/Nexadis/metalert/internal/models"
-	"github.com/Nexadis/metalert/internal/storage"
 	"github.com/Nexadis/metalert/internal/storage/db"
+	"github.com/Nexadis/metalert/internal/storage/mem"
 	"github.com/Nexadis/metalert/internal/utils/logger"
 )
 
@@ -52,7 +52,7 @@ func (s *HTTPServer) Value(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	m, err := s.storage.Get(r.Context(), mtype, id)
-	if errors.Is(err, storage.ErrNotFound) {
+	if errors.Is(err, mem.ErrNotFound) {
 		logger.Error(err)
 		http.NotFound(w, r)
 		return
