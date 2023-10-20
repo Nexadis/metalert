@@ -3,7 +3,7 @@
 package main
 
 import (
-	"github.com/Nexadis/metalert/internal/analyzer"
+	"github.com/Nexadis/metalert/internal/utils/analyzer"
 	"golang.org/x/tools/go/analysis/multichecker"
 )
 
