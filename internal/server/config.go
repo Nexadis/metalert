@@ -1,6 +1,7 @@
 package server
 
 import (
+	"encoding/json"
 	"flag"
 	"os"
 
@@ -12,11 +13,12 @@ import (
 
 // Config - Конфиг сервера
 type Config struct {
-	Address   string `env:"ADDRESS"`
-	Verbose   bool   `env:"VERBOSE"`    // Включить логгирование
-	SignKey   string `env:"KEY"`        // Ключ для подписи всех пакетов
-	CryptoKey string `env:"CRYPTO_KEY"` // Приватный ключ для расшифровки метрик
-	DB        *storage.Config
+	Address   string          `env:"ADDRESS" json:"address,omitempty"`
+	Verbose   bool            `env:"VERBOSE" json:"verbose,omitempty"`       // Включить логгирование
+	SignKey   string          `env:"KEY" json:"key,omitempty"`               // Ключ для подписи всех пакетов
+	CryptoKey string          `env:"CRYPTO_KEY" json:"crypto_key,omitempty"` // Приватный ключ для расшифровки метрик
+	Config    string          `env:"CONFIG"`
+	DB        *storage.Config `json:"db,omitempty"`
 }
 
 // NewConfig() Конструктор для конфига
@@ -32,6 +34,7 @@ func (c *Config) parseCmd(set *flag.FlagSet) {
 	set.BoolVar(&c.Verbose, "v", true, "Verbose logging")
 	set.StringVar(&c.SignKey, "k", "", "Key to sign body")
 	set.StringVar(&c.CryptoKey, "crypto-key", "", "Path to file with private-key")
+	set.StringVar(&c.Config, "config", "", "Path to file with config")
 }
 
 func (c *Config) parseEnv() {
@@ -41,8 +44,16 @@ func (c *Config) parseEnv() {
 	}
 }
 
-// ParseConfig() выполняет парсинг всех конфига сервера
+func (c *Config) parseFile() {
+	set := flag.NewFlagSet("", flag.ContinueOnError)
+	set.StringVar(&c.Config, "config", "", "Path to file with config")
+	set.Parse(os.Args[1:])
+	c.loadJSON()
+}
+
+// ParseConfig() выполняет парсинг всех конфигов сервера
 func (c *Config) ParseConfig() {
+	c.parseFile()
 	set := c.setFlags()
 	set.Parse(os.Args[1:])
 	c.parseEnv()
@@ -56,6 +67,21 @@ func (c *Config) ParseConfig() {
 		"\nSign Key", c.SignKey,
 		"\nCrypto Key", c.CryptoKey,
 	)
+}
+
+func (c *Config) loadJSON() {
+	if c.Config == "" {
+		return
+	}
+	data, err := os.ReadFile(c.Config)
+	if err != nil {
+		logger.Error(err)
+		return
+	}
+	err = json.Unmarshal(data, c)
+	if err != nil {
+		logger.Error(err)
+	}
 }
 
 func (c *Config) setFlags() *flag.FlagSet {
