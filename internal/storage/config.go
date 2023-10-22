@@ -10,12 +10,12 @@ import (
 
 // Config - Конфиг БД
 type Config struct {
-	StoreInterval   int64  `env:"STORE_INTERVAL"`    // интервал сохранения данных
-	FileStoragePath string `env:"FILE_STORAGE_PATH"` // файл для сохранения базы метрик при использовании inmemory хранилища
-	Restore         bool   `env:"RESTORE"`           // восстановление данных из файл
-	DSN             string `env:"DATABASE_DSN"`      // Адрес БД
-	Retry           int    `env:"DATABASE_CONN_RETRY"`
-	Timeout         int    `env:"DATABASE_TIMEOUT"`
+	StoreInterval   int64  `env:"STORE_INTERVAL" json:"store_interval,omitempty"` // интервал сохранения данных
+	FileStoragePath string `env:"FILE_STORAGE_PATH" json:"store_file,omitempty"`  // файл для сохранения базы метрик при использовании inmemory хранилища
+	Restore         bool   `env:"RESTORE" json:"restore,omitempty"`               // восстановление данных из файл
+	DSN             string `env:"DATABASE_DSN" json:"db_dsn,omitempty"`           // Адрес БД
+	Retry           int    `env:"DATABASE_CONN_RETRY" json:"db_conn_retries,omitempty"`
+	Timeout         int    `env:"DATABASE_TIMEOUT" json:"db_timeout,omitempty"`
 }
 
 func NewConfig() *Config {
