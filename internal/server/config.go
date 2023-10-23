@@ -29,12 +29,20 @@ func NewConfig() *Config {
 	}
 }
 
+var (
+	defaultAddress   = "localhost:8080"
+	defaultVerbose   = true
+	defaultSignKey   = ""
+	defaultCryptoKey = ""
+	defaultConfig    = ""
+)
+
 func (c *Config) parseCmd(set *flag.FlagSet) {
-	set.StringVar(&c.Address, "a", "localhost:8080", "Server for metrics")
-	set.BoolVar(&c.Verbose, "v", true, "Verbose logging")
-	set.StringVar(&c.SignKey, "k", "", "Key to sign body")
-	set.StringVar(&c.CryptoKey, "crypto-key", "", "Path to file with private-key")
-	set.StringVar(&c.Config, "config", "", "Path to file with config")
+	set.StringVar(&c.Address, "a", defaultAddress, "Server for metrics")
+	set.BoolVar(&c.Verbose, "v", defaultVerbose, "Verbose logging")
+	set.StringVar(&c.SignKey, "k", defaultSignKey, "Key to sign body")
+	set.StringVar(&c.CryptoKey, "crypto-key", defaultCryptoKey, "Path to file with private-key")
+	set.StringVar(&c.Config, "config", defaultConfig, "Path to file with config")
 }
 
 func (c *Config) parseEnv() {
@@ -44,18 +52,39 @@ func (c *Config) parseEnv() {
 	}
 }
 
-func (c *Config) parseFile() {
-	set := flag.NewFlagSet("", flag.ContinueOnError)
-	set.StringVar(&c.Config, "config", "", "Path to file with config")
-	set.Parse(os.Args[1:])
+func (c *Config) parseFile(set *flag.FlagSet) {
 	c.loadJSON()
+}
+
+func (c *Config) copyJSON() {
+	tmp := NewConfig()
+	tmp.Config = c.Config
+	tmp.loadJSON()
+	if tmp.Address != "" {
+		if c.Address == defaultAddress {
+			c.Address = tmp.Address
+		}
+	}
+	if c.SignKey == defaultSignKey {
+		c.SignKey = tmp.SignKey
+	}
+	if tmp.Address != "" {
+		if c.Address == defaultAddress {
+			c.Address = tmp.Address
+		}
+	}
+	if tmp.Address != "" {
+		if c.Address == defaultAddress {
+			c.Address = tmp.Address
+		}
+	}
 }
 
 // ParseConfig() выполняет парсинг всех конфигов сервера
 func (c *Config) ParseConfig() {
-	c.parseFile()
 	set := c.setFlags()
 	set.Parse(os.Args[1:])
+	c.parseFile(set)
 	c.parseEnv()
 	c.DB.ParseEnv()
 	if c.Verbose {
