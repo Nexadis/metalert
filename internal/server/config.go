@@ -53,30 +53,52 @@ func (c *Config) parseEnv() {
 }
 
 func (c *Config) parseFile(set *flag.FlagSet) {
-	c.loadJSON()
-}
-
-func (c *Config) copyJSON() {
 	tmp := NewConfig()
 	tmp.Config = c.Config
-	tmp.loadJSON()
+	loadJSON(tmp)
 	if tmp.Address != "" {
 		if c.Address == defaultAddress {
 			c.Address = tmp.Address
 		}
 	}
-	if c.SignKey == defaultSignKey {
-		c.SignKey = tmp.SignKey
-	}
-	if tmp.Address != "" {
-		if c.Address == defaultAddress {
-			c.Address = tmp.Address
+	if tmp.SignKey != "" {
+		if c.SignKey == defaultSignKey {
+			c.SignKey = tmp.SignKey
 		}
 	}
-	if tmp.Address != "" {
-		if c.Address == defaultAddress {
-			c.Address = tmp.Address
+	if tmp.CryptoKey != "" {
+		if c.CryptoKey == defaultCryptoKey {
+			c.CryptoKey = tmp.CryptoKey
 		}
+	}
+	if tmp.DB.StoreInterval != 0 {
+		if c.DB.StoreInterval == storage.DefaultStoreInterval {
+			c.DB.StoreInterval = tmp.DB.StoreInterval
+		}
+	}
+	if tmp.DB.DSN != "" {
+		if c.DB.DSN == storage.DefaultDSN {
+			c.DB.DSN = tmp.DB.DSN
+		}
+	}
+	if tmp.DB.FileStoragePath != "" {
+		if c.DB.FileStoragePath == storage.DefaultFileStoragePath {
+			c.DB.FileStoragePath = tmp.DB.FileStoragePath
+		}
+	}
+	if tmp.DB.Timeout != 0 {
+		if c.DB.Timeout == storage.DefaultTimeout {
+			c.DB.Timeout = tmp.DB.Timeout
+		}
+	}
+	if tmp.DB.Retry != 0 {
+		if c.DB.Retry == storage.DefaultRetry {
+			c.DB.Retry = tmp.DB.Retry
+		}
+	}
+	if c.DB.Restore == storage.DefaultRestore {
+		logger.Info("Restore")
+		c.DB.Restore = tmp.DB.Restore
 	}
 }
 
@@ -98,7 +120,7 @@ func (c *Config) ParseConfig() {
 	)
 }
 
-func (c *Config) loadJSON() {
+func loadJSON(c *Config) {
 	if c.Config == "" {
 		return
 	}

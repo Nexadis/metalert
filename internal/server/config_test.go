@@ -35,6 +35,6 @@ func TestLoadJSON(t *testing.T) {
 	f.Close()
 	loadedConf := NewConfig()
 	loadedConf.Config = name
-	loadedConf.loadJSON()
+	loadJSON(loadedConf)
 	assert.Equal(t, testC, loadedConf)
 }

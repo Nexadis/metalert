@@ -22,13 +22,22 @@ func NewConfig() *Config {
 	return &Config{}
 }
 
+var (
+	DefaultStoreInterval   = int64(300)
+	DefaultFileStoragePath = "/tmp/metrics_db.json"
+	DefaultRestore         = true
+	DefaultDSN             = ""
+	DefaultRetry           = 3
+	DefaultTimeout         = 2
+)
+
 func (c *Config) ParseCmd(set *flag.FlagSet) {
-	set.Int64Var(&c.StoreInterval, "i", 300, "Save metrics on disk with interval")
-	set.StringVar(&c.FileStoragePath, "f", "/tmp/metrics_db.json", "File for save metrics")
-	set.BoolVar(&c.Restore, "r", true, "Restore file with metrics when start server")
-	set.StringVar(&c.DSN, "d", "", "DSN for DB")
-	set.IntVar(&c.Retry, "rc", 3, "number of repeated attempts to connect to DB")
-	set.IntVar(&c.Timeout, "to", 2, "timeout in seconds to connect to DB")
+	set.Int64Var(&c.StoreInterval, "i", DefaultStoreInterval, "Save metrics on disk with interval")
+	set.StringVar(&c.FileStoragePath, "f", DefaultFileStoragePath, "File for save metrics")
+	set.BoolVar(&c.Restore, "r", DefaultRestore, "Restore file with metrics when start server")
+	set.StringVar(&c.DSN, "d", DefaultDSN, "DSN for DB")
+	set.IntVar(&c.Retry, "rc", DefaultRetry, "number of repeated attempts to connect to DB")
+	set.IntVar(&c.Timeout, "to", DefaultTimeout, "timeout in seconds to connect to DB")
 	logger.Info("Parse command flags:",
 		"\nStore Interval", c.StoreInterval,
 		"\nFile Storage Path", c.FileStoragePath,
