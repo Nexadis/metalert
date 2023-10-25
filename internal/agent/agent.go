@@ -9,11 +9,11 @@ import (
 	"math/rand"
 	"reflect"
 	"runtime"
-	"sync"
 	"time"
 
 	"github.com/shirou/gopsutil/v3/cpu"
 	memStat "github.com/shirou/gopsutil/v3/mem"
+	"golang.org/x/sync/errgroup"
 
 	"github.com/Nexadis/metalert/internal/agent/client"
 	"github.com/Nexadis/metalert/internal/models"
@@ -74,27 +74,23 @@ func New(config *Config) *HTTPAgent {
 }
 
 // Run запускает в фоне агент, начинает собирать и отправлять метрики с заданными интервалами
-func (ha *HTTPAgent) Run(ctx context.Context) {
+func (ha *HTTPAgent) Run(ctx context.Context) error {
 	mchan := make(chan models.Metric, MetricsBufSize)
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-	wg := sync.WaitGroup{}
-	wg.Add(int(ha.config.RateLimit))
+	grp, ctx := errgroup.WithContext(ctx)
 	for i := 1; int64(i) <= ha.config.RateLimit; i++ {
 		i := i
 		logger.Info("Start reporter", i)
-		go func() {
-			defer wg.Done()
-			ha.Report(ctx, mchan)
-			logger.Info("End reporter", i)
-		}()
+		grp.Go(func() error {
+			return ha.Report(ctx, mchan)
+		})
 	}
 	pullTicker := time.NewTicker(time.Duration(ha.config.PollInterval) * time.Second)
 	for {
 		select {
 		case <-ctx.Done():
 			close(mchan)
-			wg.Wait()
+			err := grp.Wait()
+			return err
 		case <-pullTicker.C:
 			ha.Pull(ctx, mchan)
 		}
@@ -188,7 +184,7 @@ func (ha *HTTPAgent) Pull(ctx context.Context, mchan chan models.Metric) {
 }
 
 // Report отправляет метрики на адрес, заданный в конфигурации, всеми доступными способами
-func (ha *HTTPAgent) Report(ctx context.Context, input chan models.Metric) {
+func (ha *HTTPAgent) Report(ctx context.Context, input chan models.Metric) error {
 	path := fmt.Sprintf("http://%s%s", ha.config.Address, UpdateURL)
 	pathJSON := fmt.Sprintf("http://%s%s", ha.config.Address, JSONUpdateURL)
 	for m := range input {
@@ -196,13 +192,15 @@ func (ha *HTTPAgent) Report(ctx context.Context, input chan models.Metric) {
 		err := ha.clientREST.Post(ctx, path, m)
 		if err != nil {
 			logger.Error("Can't report metrics")
+			return err
 		}
 		err = ha.clientJSON.Post(ctx, pathJSON, m)
 		if err != nil {
 			logger.Error("Can't report metrics", err)
+			return err
 		}
-
 	}
+	return nil
 }
 
 // defineRuntimes получает имена всех метрик из runtime

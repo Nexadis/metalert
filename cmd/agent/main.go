@@ -27,5 +27,5 @@ func main() {
 	logger.Info("Agent", config.Address)
 	exit, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM|syscall.SIGINT|syscall.SIGQUIT)
 	defer stop()
-	agent.Run(exit)
+	logger.Error(agent.Run(exit))
 }
