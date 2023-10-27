@@ -3,14 +3,17 @@ package client
 import (
 	"compress/gzip"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 
 	"github.com/Nexadis/metalert/internal/models"
+	"github.com/Nexadis/metalert/internal/utils/asymcrypt"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -140,24 +143,83 @@ var postObjTests = []testReq{
 			models.ErrorMetrics,
 		},
 	},
+	{
+		"Valid counter",
+		metric{
+			"somec",
+			models.CounterType,
+			"123",
+		},
+		want{
+			http.MethodPost,
+			"",
+			"/update",
+			nil,
+		},
+	},
+	{
+		"Valid gauge",
+		metric{
+			"someg",
+			models.GaugeType,
+			"123",
+		},
+		want{
+			http.MethodPost,
+			"",
+			"/update",
+			nil,
+		},
+	},
+}
+
+type testJSON struct {
+	name   string
+	metric models.Metric
+	want   want
+}
+
+func prepareJSONtests(tests []testReq) []testJSON {
+	jsons := make([]testJSON, 0, len(postObjTests))
+	for _, test := range tests {
+
+		m, err := models.NewMetric(test.m.name, test.m.mtype, test.m.val)
+		if err != nil {
+			continue
+		}
+		jsoned, err := json.Marshal(m)
+		test.want.body = string(jsoned)
+		if err != nil {
+			continue
+		}
+		jsons = append(jsons, testJSON{
+			test.name,
+			m,
+			test.want,
+		})
+	}
+	return jsons
 }
 
 func TestPostJSON(t *testing.T) {
 	r := reqLogger{}
 	s := httptest.NewServer(http.HandlerFunc(r.showHandler))
 	defer s.Close()
-	c := NewHTTP(SetSignKey("test-key"), SetTransport(JSONType))
+	keyname := os.TempDir() + "/test-key"
+	err := asymcrypt.NewPem(keyname)
+	assert.NoError(t, err)
+	pub, err := asymcrypt.ReadPem(keyname + "_pub.pem")
+	assert.NoError(t, err)
+	priv, err := asymcrypt.ReadPem(keyname + "_priv.pem")
+	assert.NoError(t, err)
+	c := NewHTTP(SetSignKey("test-key"), SetTransport(JSONType), SetPubKey(pub))
 	ctx := context.Background()
 	path := fmt.Sprintf("%s%s", s.URL, "/update")
-	for _, test := range postObjTests {
+	tests := prepareJSONtests(postObjTests)
+	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			m, err := models.NewMetric(test.m.name, test.m.mtype, test.m.val)
-			if err != nil {
-				assert.Error(t, err)
-				return
-			}
 			assert.NoError(t, err)
-			err = c.Post(ctx, path, m)
+			err = c.Post(ctx, path, test.metric)
 			assert.NoError(t, err)
 			assert.Equal(t, test.want.url, r.url)
 			body := strings.NewReader(r.body)
@@ -165,8 +227,10 @@ func TestPostJSON(t *testing.T) {
 			assert.NoError(t, err)
 			buf, err := io.ReadAll(g)
 			assert.NoError(t, err)
+			decrypted, err := asymcrypt.Decrypt(buf, priv)
+			assert.NoError(t, err)
 			assert.NoError(t, g.Close())
-			assert.JSONEq(t, test.want.body, string(buf))
+			assert.JSONEq(t, test.want.body, string(decrypted))
 			assert.Equal(t, test.want.method, r.method)
 		},
 		)
