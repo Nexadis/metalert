@@ -93,9 +93,12 @@ func (c *httpClient) postJSON(ctx context.Context, path string, m models.Metric)
 	if err != nil {
 		return err
 	}
-	encrypted, err := asymcrypt.Encrypt(buf, c.pubkey)
-	if err != nil {
-		return err
+	encrypted := buf
+	if c.pubkey != nil {
+		encrypted, err = asymcrypt.Encrypt(buf, c.pubkey)
+		if err != nil {
+			return err
+		}
 	}
 	body := &bytes.Buffer{}
 	g := gzip.NewWriter(body)
