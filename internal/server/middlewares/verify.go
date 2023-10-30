@@ -1,4 +1,4 @@
-package server
+package middlewares
 
 import (
 	"bytes"
@@ -36,9 +36,9 @@ func (vw *verifiedWriter) Write(data []byte) (int, error) {
 }
 
 // WithVerify Middleware для подписи body запроса
-func (s *HTTPServer) WithVerify(h http.Handler) http.HandlerFunc {
+func WithVerify(h http.Handler, signKey string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if s.config.Key == "" {
+		if signKey == "" {
 			h.ServeHTTP(w, r)
 			return
 		}
@@ -56,7 +56,7 @@ func (s *HTTPServer) WithVerify(h http.Handler) http.HandlerFunc {
 		defer r.Body.Close()
 		newBody := io.NopCloser(bytes.NewBuffer(body))
 		r.Body = newBody
-		signature, err := verifier.Sign(body, []byte(s.config.Key))
+		signature, err := verifier.Sign(body, []byte(signKey))
 		if err != nil {
 			http.Error(w, fmt.Errorf(ErrorCheckHash, err).Error(), http.StatusInternalServerError)
 			return
@@ -72,7 +72,7 @@ func (s *HTTPServer) WithVerify(h http.Handler) http.HandlerFunc {
 		w = &verifiedWriter{
 			ResponseWriter: w,
 			Writer:         w,
-			key:            s.config.Key,
+			key:            signKey,
 		}
 
 		h.ServeHTTP(w, r)

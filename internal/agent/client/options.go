@@ -1,16 +1,25 @@
 // Задает опции для конструктора httpClient.
 package client
 
-// SetKey определяет ключ для подписи отправляемых метрик.
-func SetKey(key string) func(*httpClient) {
+// SetSignKey определяет ключ для подписи отправляемых метрик.
+func SetSignKey(key string) FOption {
 	return func(hc *httpClient) {
-		hc.key = key
+		hc.signkey = key
 	}
 }
 
 // SetTransport определяет тип транспорта. Например REST
-func SetTransport(transport TransportType) func(*httpClient) {
+func SetTransport(transport TransportType) FOption {
 	return func(hc *httpClient) {
 		hc.transport = transport
 	}
 }
+
+// SetPubKey устанавливает публичный ключ, с помощью которого будет производиться шифрование трафика
+func SetPubKey(key []byte) FOption {
+	return func(hc *httpClient) {
+		hc.pubkey = key
+	}
+}
+
+type FOption func(*httpClient)

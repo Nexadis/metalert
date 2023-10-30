@@ -217,11 +217,12 @@ var valuesTests = []testReq{
 func testServer() *HTTPServer {
 	storage := mem.NewMetricsStorage()
 	config := NewConfig()
-	config.Key = "test_key"
+	config.SignKey = "test_key"
 	server := &HTTPServer{
 		nil,
 		storage,
 		config,
+		nil,
 	}
 	server.MountHandlers()
 	return server
@@ -493,7 +494,7 @@ func TestUpdateJSON(t *testing.T) {
 	for _, test := range JSONUpdateTests {
 		t.Run(test.name, func(t *testing.T) {
 			r := httptest.NewRequest(test.request.method, test.request.url, strings.NewReader(test.request.body))
-			signature, err := verifier.Sign([]byte(test.request.body), []byte(server.config.Key))
+			signature, err := verifier.Sign([]byte(test.request.body), []byte(server.config.SignKey))
 			assert.NoError(t, err)
 			r.Header.Set(verifier.HashHeader, base64.StdEncoding.EncodeToString(signature))
 			w := httptest.NewRecorder()

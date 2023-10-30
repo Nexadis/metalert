@@ -14,6 +14,7 @@ type Config struct {
 	ReportInterval int64  `env:"REPORT_INTERVAL"`
 	PollInterval   int64  `env:"POLL_INTERVAL"`
 	Key            string `env:"KEY"`        // ключ для подписи отправляемых метрик
+	CryptoKey      string `env:"CRYPTO_KEY"` // ключ для шифрования трафика
 	RateLimit      int64  `env:"RATE_LIMIT"` // количество воркеров для отправки метрик
 	Verbose        bool   `env:"VERBOSE"`    // Включить логгирование
 }
@@ -28,6 +29,7 @@ func (c *Config) parseCmd() {
 	flag.Int64Var(&c.PollInterval, "p", 2, "Poll Interval")
 	flag.Int64Var(&c.ReportInterval, "r", 10, "Report Interval")
 	flag.StringVar(&c.Key, "k", "", "Key to sign body")
+	flag.StringVar(&c.CryptoKey, "crypto-key", "", "Path to file with public-key")
 	flag.Int64Var(&c.RateLimit, "l", 1, "Workers for report")
 	flag.BoolVar(&c.Verbose, "v", true, "Verbose logging")
 	flag.Parse()

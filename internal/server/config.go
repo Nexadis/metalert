@@ -17,7 +17,8 @@ type Config struct {
 	FileStoragePath string `env:"FILE_STORAGE_PATH"` // файл для сохранения базы метрик при использовании inmemory хранилища
 	Restore         bool   `env:"RESTORE"`           // восстановление данных из файл
 	Verbose         bool   `env:"VERBOSE"`           // Включить логгирование
-	Key             string `env:"KEY"`               // Ключ для подписи всех пакетов
+	SignKey         string `env:"KEY"`               // Ключ для подписи всех пакетов
+	CryptoKey       string `env:"CRYPTO_KEY"`        // Приватный ключ для расшифровки метрик
 	DB              *db.Config
 }
 
@@ -35,7 +36,8 @@ func (c *Config) parseCmd(set *flag.FlagSet) {
 	set.StringVar(&c.FileStoragePath, "f", "/tmp/metrics_db.json", "File for save metrics")
 	set.BoolVar(&c.Restore, "r", true, "Restore file with metrics when start server")
 	set.BoolVar(&c.Verbose, "v", true, "Verbose logging")
-	set.StringVar(&c.Key, "k", "", "Key to sign body")
+	set.StringVar(&c.SignKey, "k", "", "Key to sign body")
+	set.StringVar(&c.CryptoKey, "crypto-key", "", "Path to file with private-key")
 }
 
 func (c *Config) parseEnv() {
@@ -60,7 +62,8 @@ func (c *Config) ParseConfig() {
 		"\nFile Storage Path", c.FileStoragePath,
 		"\nRestore", c.Restore,
 		"\nVerbose", c.Verbose,
-		"\nKey", c.Key,
+		"\nSign Key", c.SignKey,
+		"\nCrypto Key", c.CryptoKey,
 	)
 }
 

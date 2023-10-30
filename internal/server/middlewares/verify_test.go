@@ -1,4 +1,4 @@
-package server
+package middlewares
 
 import (
 	"io"
@@ -14,12 +14,8 @@ func EmptyHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func BenchmarkWithVerify(b *testing.B) {
-	c := NewConfig()
-	c.Key = "TestKey"
-	s := HTTPServer{
-		config: c,
-	}
-	verifier := s.WithVerify(http.HandlerFunc(EmptyHandler))
+	signKey := "TestKey"
+	verifier := WithVerify(http.HandlerFunc(EmptyHandler), signKey)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		b.StopTimer()

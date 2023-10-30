@@ -13,6 +13,7 @@ import (
 	"github.com/go-resty/resty/v2"
 
 	"github.com/Nexadis/metalert/internal/metrx"
+	"github.com/Nexadis/metalert/internal/utils/asymcrypt"
 	"github.com/Nexadis/metalert/internal/utils/verifier"
 )
 
@@ -34,13 +35,14 @@ type MetricPoster interface {
 type httpClient struct {
 	client    *resty.Client
 	transport TransportType
-	key       string
+	signkey   string
+	pubkey    []byte
 }
 
 // NewHTTP - конструктор для httpClient, принимает в качестве аргументов функции, например:
 //
 // func SetKey(key string) func(*httpClient)
-func NewHTTP(options ...func(*httpClient)) *httpClient {
+func NewHTTP(options ...FOption) *httpClient {
 	client := &httpClient{
 		client: resty.New().
 			SetRetryCount(3).
@@ -91,9 +93,13 @@ func (c *httpClient) PostJSON(ctx context.Context, path string, m metrx.Metric) 
 	if err != nil {
 		return err
 	}
+	encrypted, err := asymcrypt.Encrypt(buf, c.pubkey)
+	if err != nil {
+		return err
+	}
 	body := &bytes.Buffer{}
 	g := gzip.NewWriter(body)
-	_, err = g.Write(buf)
+	_, err = g.Write(encrypted)
 	if err != nil {
 		return err
 	}
@@ -106,8 +112,8 @@ func (c *httpClient) PostJSON(ctx context.Context, path string, m metrx.Metric) 
 		"Accept-Encoding":  "gzip",
 		"Content-Encoding": "gzip",
 	}
-	if c.key != "" {
-		signature, err := verifier.Sign(buf, []byte(c.key))
+	if c.signkey != "" {
+		signature, err := verifier.Sign(buf, []byte(c.signkey))
 		if err != nil {
 			return err
 		}

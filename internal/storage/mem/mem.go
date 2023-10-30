@@ -11,13 +11,6 @@ import (
 	"github.com/Nexadis/metalert/internal/storage"
 )
 
-type MetricsStorage interface {
-	storage.Storage
-	StateSaver
-}
-
-var _ MetricsStorage = &Storage{}
-
 // Storage - Хранилище inmemory. Отдельно хранит Gauge и Counter метрики. Использует RWMutex Для доступа к элементам.
 type Storage struct {
 	Gauges   map[string]metrx.Gauge
