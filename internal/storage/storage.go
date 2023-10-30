@@ -48,7 +48,7 @@ func getMemStorage(ctx context.Context, config *Config) (*mem.Storage, error) {
 	logger.Info("Use in mem storage")
 	metricsStorage := mem.NewMetricsStorage()
 	if config.Restore {
-		err := metricsStorage.Restore(ctx, config.FileStoragePath, config.Restore)
+		err := metricsStorage.Restore(ctx, config.FileStoragePath)
 		if err != nil {
 			logger.Info(err)
 			return nil, err

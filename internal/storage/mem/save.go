@@ -33,12 +33,9 @@ func (ms *Storage) Save(ctx context.Context, FileStoragePath string) error {
 }
 
 // Restore Восстанавливает состояние хранилища из файла
-func (ms *Storage) Restore(ctx context.Context, FileStoragePath string, Restore bool) error {
+func (ms *Storage) Restore(ctx context.Context, FileStoragePath string) error {
 	fileName := FileStoragePath
 	if fileName == "" {
-		return nil
-	}
-	if !Restore {
 		return nil
 	}
 	logger.Info("Read metrics from file")
@@ -81,6 +78,7 @@ func (ms *Storage) SaveTimer(ctx context.Context, FileStoragePath string, interv
 			if err != nil {
 				logger.Info("Can't save storage")
 			}
+			return
 		}
 	}
 }

@@ -22,6 +22,9 @@ func WithDecrypt(h http.Handler, privKey []byte) http.Handler {
 			return
 		}
 		defer r.Body.Close()
+		if len(body) == 0 {
+			return
+		}
 		logger.Info("Begin Decrypt")
 		decrypted, err := asymcrypt.Decrypt(body, privKey)
 		if err != nil {
@@ -33,6 +36,7 @@ func WithDecrypt(h http.Handler, privKey []byte) http.Handler {
 		logger.Info("Decrypted data:", string(decrypted))
 
 		h.ServeHTTP(w, r)
+		logger.Info("Decrypt middleware after serve")
 	}
 	return http.HandlerFunc(decrypt)
 }
