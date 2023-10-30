@@ -1,5 +1,5 @@
-// metrx реализует логику работы с метриками
-package metrx
+// models реализует логику работы с метриками
+package models
 
 import (
 	"errors"

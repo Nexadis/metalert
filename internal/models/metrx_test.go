@@ -1,4 +1,4 @@
-package metrx
+package models
 
 import (
 	"fmt"

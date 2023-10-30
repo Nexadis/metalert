@@ -6,15 +6,9 @@ import (
 	"os"
 	"time"
 
-	"github.com/Nexadis/metalert/internal/metrx"
+	"github.com/Nexadis/metalert/internal/models"
 	"github.com/Nexadis/metalert/internal/utils/logger"
 )
-
-type StateSaver interface {
-	Restore(ctx context.Context, FileStoragePath string, Restore bool) error
-	Save(ctx context.Context, FileStoragePath string) error
-	SaveTimer(ctx context.Context, FileStoragePath string, interval int64)
-}
 
 // Save Записывает все метрики в файл
 func (ms *Storage) Save(ctx context.Context, FileStoragePath string) error {
@@ -54,7 +48,7 @@ func (ms *Storage) Restore(ctx context.Context, FileStoragePath string, Restore 
 		return nil
 	}
 	defer file.Close()
-	metrics := make([]*metrx.Metric, 1)
+	metrics := make([]*models.Metric, 1)
 	decoder := json.NewDecoder(file)
 	err = decoder.Decode(&metrics)
 	if err != nil {

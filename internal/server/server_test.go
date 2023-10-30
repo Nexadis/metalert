@@ -17,8 +17,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/Nexadis/metalert/internal/metrx"
-	"github.com/Nexadis/metalert/internal/storage/db"
+	"github.com/Nexadis/metalert/internal/models"
+	"github.com/Nexadis/metalert/internal/storage"
 	"github.com/Nexadis/metalert/internal/storage/mem"
 	"github.com/Nexadis/metalert/internal/utils/verifier"
 )
@@ -26,7 +26,7 @@ import (
 func TestMain(m *testing.M) {
 	c := NewConfig()
 	c.SetDefault()
-	c.Restore = false
+	c.DB.Restore = false
 	s, err := NewServer(c)
 	if err != nil {
 		log.Fatal(err)
@@ -70,7 +70,7 @@ type testReq struct {
 
 func TestNewServer(t *testing.T) {
 	c := Config{
-		DB: db.NewConfig(),
+		DB: storage.NewConfig(),
 	}
 
 	_, err := NewServer(&c)
@@ -254,7 +254,7 @@ func TestValueURL(t *testing.T) {
 	ctx := context.TODO()
 	for _, test := range valueTests {
 		t.Run(test.name, func(t *testing.T) {
-			m, err := metrx.NewMetric(
+			m, err := models.NewMetric(
 				test.want.name,
 				test.want.valType,
 				test.want.value,
@@ -278,7 +278,7 @@ func TestValuesURL(t *testing.T) {
 	server := testServer()
 	ctx := context.TODO()
 	for _, test := range valueTests {
-		m, err := metrx.NewMetric(
+		m, err := models.NewMetric(
 			test.want.name,
 			test.want.valType,
 			test.want.value,
@@ -323,7 +323,7 @@ var JSONUpdateTests = []testReq{
 		want: want{
 			statusCode: http.StatusOK,
 			name:       "name",
-			valType:    metrx.GaugeType,
+			valType:    models.GaugeType,
 			value:      "1.23",
 			body:       "",
 			headers:    JSONHeaders,
@@ -376,7 +376,7 @@ var JSONUpdateTests = []testReq{
 		want: want{
 			statusCode: http.StatusOK,
 			name:       "name",
-			valType:    metrx.CounterType,
+			valType:    models.CounterType,
 			value:      "1423",
 			body:       "",
 			headers:    JSONHeaders,
@@ -430,7 +430,7 @@ var JSONValueTests = []testReq{
 		want: want{
 			statusCode: http.StatusOK,
 			name:       "name",
-			valType:    metrx.GaugeType,
+			valType:    models.GaugeType,
 			value:      "123.123",
 			body:       `{"id":"name","type":"gauge","value":123.123}`,
 			headers:    JSONHeaders,
@@ -480,7 +480,7 @@ var JSONValueTests = []testReq{
 		want: want{
 			statusCode: http.StatusOK,
 			name:       "ctr",
-			valType:    metrx.CounterType,
+			valType:    models.CounterType,
 			value:      "1423",
 			body:       `{"id":"ctr","type":"counter","delta":1423}`,
 			headers:    JSONHeaders,
@@ -523,7 +523,7 @@ func TestValueJSON(t *testing.T) {
 			r.Header = test.request.headers
 			w := httptest.NewRecorder()
 			if test.want.statusCode == http.StatusOK {
-				m, err := metrx.NewMetric(
+				m, err := models.NewMetric(
 					test.want.name,
 					test.want.valType,
 					test.want.value,
@@ -740,7 +740,7 @@ func ExampleHTTPServer_Values() {
 
 func ExampleHTTPServer_UpdateJSON() {
 	addr := fmt.Sprintf("http://localhost:8080/%s", "update")
-	m, err := metrx.NewMetric("name", "gauge", "123.123")
+	m, err := models.NewMetric("name", "gauge", "123.123")
 	if err != nil {
 		// ... Handle error
 	}
@@ -762,10 +762,10 @@ func ExampleHTTPServer_UpdateJSON() {
 
 func ExampleHTTPServer_Updates() {
 	addr := fmt.Sprintf("http://localhost:8080/%s", "updates/")
-	ms := make([]metrx.Metric, 0, 10)
+	ms := make([]models.Metric, 0, 10)
 	for i := 0; i < 10; i++ {
 		val := fmt.Sprintf("%d", i)
-		m, err := metrx.NewMetric(val, "gauge", val)
+		m, err := models.NewMetric(val, "gauge", val)
 		if err != nil {
 			// ... Handle error
 		}
@@ -790,7 +790,7 @@ func ExampleHTTPServer_Updates() {
 
 func ExampleHTTPServer_ValueJSON() {
 	addr := fmt.Sprintf("http://localhost:8080/%s", "value")
-	m, err := metrx.NewMetric("name", "gauge", "123.123")
+	m, err := models.NewMetric("name", "gauge", "123.123")
 	if err != nil {
 		// ... Handle error
 	}

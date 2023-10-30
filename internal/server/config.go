@@ -1,43 +1,48 @@
 package server
 
 import (
+	"encoding/json"
 	"flag"
 	"os"
 
 	"github.com/caarlos0/env/v8"
 
-	"github.com/Nexadis/metalert/internal/storage/db"
+	"github.com/Nexadis/metalert/internal/storage"
 	"github.com/Nexadis/metalert/internal/utils/logger"
 )
 
 // Config - Конфиг сервера
 type Config struct {
-	Address         string `env:"ADDRESS"`
-	StoreInterval   int64  `env:"STORE_INTERVAL"`    // интервал сохранения данных
-	FileStoragePath string `env:"FILE_STORAGE_PATH"` // файл для сохранения базы метрик при использовании inmemory хранилища
-	Restore         bool   `env:"RESTORE"`           // восстановление данных из файл
-	Verbose         bool   `env:"VERBOSE"`           // Включить логгирование
-	SignKey         string `env:"KEY"`               // Ключ для подписи всех пакетов
-	CryptoKey       string `env:"CRYPTO_KEY"`        // Приватный ключ для расшифровки метрик
-	DB              *db.Config
+	Address   string          `env:"ADDRESS" json:"address,omitempty"`
+	Verbose   bool            `env:"VERBOSE" json:"verbose,omitempty"`       // Включить логгирование
+	SignKey   string          `env:"KEY" json:"key,omitempty"`               // Ключ для подписи всех пакетов
+	CryptoKey string          `env:"CRYPTO_KEY" json:"crypto_key,omitempty"` // Приватный ключ для расшифровки метрик
+	Config    string          `env:"CONFIG"`
+	DB        *storage.Config `json:"db,omitempty"`
 }
 
 // NewConfig() Конструктор для конфига
 func NewConfig() *Config {
-	db := db.NewConfig()
+	db := storage.NewConfig()
 	return &Config{
 		DB: db,
 	}
 }
 
+var (
+	defaultAddress   = "localhost:8080"
+	defaultVerbose   = true
+	defaultSignKey   = ""
+	defaultCryptoKey = ""
+	defaultConfig    = ""
+)
+
 func (c *Config) parseCmd(set *flag.FlagSet) {
-	set.StringVar(&c.Address, "a", "localhost:8080", "Server for metrics")
-	set.Int64Var(&c.StoreInterval, "i", 300, "Save metrics on disk with interval")
-	set.StringVar(&c.FileStoragePath, "f", "/tmp/metrics_db.json", "File for save metrics")
-	set.BoolVar(&c.Restore, "r", true, "Restore file with metrics when start server")
-	set.BoolVar(&c.Verbose, "v", true, "Verbose logging")
-	set.StringVar(&c.SignKey, "k", "", "Key to sign body")
-	set.StringVar(&c.CryptoKey, "crypto-key", "", "Path to file with private-key")
+	set.StringVar(&c.Address, "a", defaultAddress, "Server for metrics")
+	set.BoolVar(&c.Verbose, "v", defaultVerbose, "Verbose logging")
+	set.StringVar(&c.SignKey, "k", defaultSignKey, "Key to sign body")
+	set.StringVar(&c.CryptoKey, "crypto-key", defaultCryptoKey, "Path to file with private-key")
+	set.StringVar(&c.Config, "config", defaultConfig, "Path to file with config")
 }
 
 func (c *Config) parseEnv() {
@@ -47,10 +52,61 @@ func (c *Config) parseEnv() {
 	}
 }
 
-// ParseConfig() выполняет парсинг всех конфига сервера
+func (c *Config) parseFile(set *flag.FlagSet) {
+	tmp := NewConfig()
+	tmp.Config = c.Config
+	loadJSON(tmp)
+	if tmp.Address != "" {
+		if c.Address == defaultAddress {
+			c.Address = tmp.Address
+		}
+	}
+	if tmp.SignKey != "" {
+		if c.SignKey == defaultSignKey {
+			c.SignKey = tmp.SignKey
+		}
+	}
+	if tmp.CryptoKey != "" {
+		if c.CryptoKey == defaultCryptoKey {
+			c.CryptoKey = tmp.CryptoKey
+		}
+	}
+	if tmp.DB.StoreInterval != 0 {
+		if c.DB.StoreInterval == storage.DefaultStoreInterval {
+			c.DB.StoreInterval = tmp.DB.StoreInterval
+		}
+	}
+	if tmp.DB.DSN != "" {
+		if c.DB.DSN == storage.DefaultDSN {
+			c.DB.DSN = tmp.DB.DSN
+		}
+	}
+	if tmp.DB.FileStoragePath != "" {
+		if c.DB.FileStoragePath == storage.DefaultFileStoragePath {
+			c.DB.FileStoragePath = tmp.DB.FileStoragePath
+		}
+	}
+	if tmp.DB.Timeout != 0 {
+		if c.DB.Timeout == storage.DefaultTimeout {
+			c.DB.Timeout = tmp.DB.Timeout
+		}
+	}
+	if tmp.DB.Retry != 0 {
+		if c.DB.Retry == storage.DefaultRetry {
+			c.DB.Retry = tmp.DB.Retry
+		}
+	}
+	if c.DB.Restore == storage.DefaultRestore {
+		logger.Info("Restore")
+		c.DB.Restore = tmp.DB.Restore
+	}
+}
+
+// ParseConfig() выполняет парсинг всех конфигов сервера
 func (c *Config) ParseConfig() {
 	set := c.setFlags()
 	set.Parse(os.Args[1:])
+	c.parseFile(set)
 	c.parseEnv()
 	c.DB.ParseEnv()
 	if c.Verbose {
@@ -58,13 +114,25 @@ func (c *Config) ParseConfig() {
 	}
 	logger.Info("Parse config:",
 		"\nAddress", c.Address,
-		"\nStore Interval", c.StoreInterval,
-		"\nFile Storage Path", c.FileStoragePath,
-		"\nRestore", c.Restore,
 		"\nVerbose", c.Verbose,
 		"\nSign Key", c.SignKey,
 		"\nCrypto Key", c.CryptoKey,
 	)
+}
+
+func loadJSON(c *Config) {
+	if c.Config == "" {
+		return
+	}
+	data, err := os.ReadFile(c.Config)
+	if err != nil {
+		logger.Error(err)
+		return
+	}
+	err = json.Unmarshal(data, c)
+	if err != nil {
+		logger.Error(err)
+	}
 }
 
 func (c *Config) setFlags() *flag.FlagSet {
