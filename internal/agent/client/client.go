@@ -8,6 +8,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"net"
 	"time"
 
 	"github.com/go-resty/resty/v2"
@@ -74,16 +75,22 @@ func (c *httpClient) postREST(ctx context.Context, path string, m models.Metric)
 	if err != nil {
 		return err
 	}
+	realIP, err := getRealIP()
+	if err != nil {
+		return err
+	}
+
 	_, err = c.client.R().
 		SetContext(ctx).
 		SetHeader("Content-type", "text/plain").
 		SetHeader("Accept-Encoding", "gzip").
+		SetHeader("X-Real-IP", realIP.String()).
 		SetPathParams(map[string]string{
 			"valType": m.MType,
 			"name":    m.ID,
 			"value":   val,
-		}).
-		Post(path)
+		}).Post(path)
+
 	return err
 }
 
@@ -110,10 +117,16 @@ func (c *httpClient) postJSON(ctx context.Context, path string, m models.Metric)
 	if err != nil {
 		return err
 	}
+	realIP, err := getRealIP()
+	if err != nil {
+		return err
+	}
+
 	Headers := map[string]string{
 		"Content-type":     "application/json",
 		"Accept-Encoding":  "gzip",
 		"Content-Encoding": "gzip",
+		"X-Real-IP":        realIP.String(),
 	}
 	if c.signkey != "" {
 		signature, err := verifier.Sign(buf, []byte(c.signkey))
@@ -129,4 +142,20 @@ func (c *httpClient) postJSON(ctx context.Context, path string, m models.Metric)
 		SetBody(body).
 		Post(path)
 	return err
+}
+
+func getRealIP() (net.Addr, error) {
+	addrs, err := net.InterfaceAddrs()
+	if err != nil {
+		return nil, err
+	}
+	var realIP net.Addr
+	for _, a := range addrs {
+		if ipnet, ok := a.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
+			if ipnet.IP.To4() != nil {
+				realIP = a
+			}
+		}
+	}
+	return realIP, nil
 }
