@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 
 	"github.com/Nexadis/metalert/internal/utils/logger"
@@ -75,6 +76,29 @@ func WithVerify(h http.Handler, signKey string) http.HandlerFunc {
 			key:            signKey,
 		}
 
+		h.ServeHTTP(w, r)
+	}
+}
+
+func WithTrusted(h http.Handler, network *net.IPNet) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if network != nil {
+			addr := r.Header.Get("X-Real-IP")
+			if addr == "" {
+				addr = r.RemoteAddr
+			}
+			ip, _, err := net.ParseCIDR(addr)
+			if err != nil {
+				logger.Error(err)
+				http.Error(w, "", http.StatusInternalServerError)
+				return
+			}
+			if !network.Contains(ip) {
+				http.Error(w, "invalid IP", http.StatusForbidden)
+				logger.Error(fmt.Sprintf("Request from %s Rejected", addr))
+				return
+			}
+		}
 		h.ServeHTTP(w, r)
 	}
 }

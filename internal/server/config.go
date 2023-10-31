@@ -13,12 +13,13 @@ import (
 
 // Config - Конфиг сервера
 type Config struct {
-	Address   string          `env:"ADDRESS" json:"address,omitempty"`
-	Verbose   bool            `env:"VERBOSE" json:"verbose,omitempty"`       // Включить логгирование
-	SignKey   string          `env:"KEY" json:"key,omitempty"`               // Ключ для подписи всех пакетов
-	CryptoKey string          `env:"CRYPTO_KEY" json:"crypto_key,omitempty"` // Приватный ключ для расшифровки метрик
-	Config    string          `env:"CONFIG"`
-	DB        *storage.Config `json:"db,omitempty"`
+	Address       string          `env:"ADDRESS" json:"address,omitempty"`
+	Verbose       bool            `env:"VERBOSE" json:"verbose,omitempty"`       // Включить логгирование
+	SignKey       string          `env:"KEY" json:"key,omitempty"`               // Ключ для подписи всех пакетов
+	CryptoKey     string          `env:"CRYPTO_KEY" json:"crypto_key,omitempty"` // Приватный ключ для расшифровки метрик
+	Config        string          `env:"CONFIG"`
+	TrustedSubnet string          `env:"TRUSTED_SUBNET" json:"trusted_subnet,omitempty"`
+	DB            *storage.Config `json:"db,omitempty"`
 }
 
 // NewConfig() Конструктор для конфига
@@ -30,17 +31,19 @@ func NewConfig() *Config {
 }
 
 var (
-	defaultAddress   = "localhost:8080"
-	defaultVerbose   = true
-	defaultSignKey   = ""
-	defaultCryptoKey = ""
-	defaultConfig    = ""
+	defaultAddress       = "localhost:8080"
+	defaultVerbose       = true
+	defaultSignKey       = ""
+	defaultTrustedSubnet = ""
+	defaultCryptoKey     = ""
+	defaultConfig        = ""
 )
 
 func (c *Config) parseCmd(set *flag.FlagSet) {
 	set.StringVar(&c.Address, "a", defaultAddress, "Server for metrics")
 	set.BoolVar(&c.Verbose, "v", defaultVerbose, "Verbose logging")
 	set.StringVar(&c.SignKey, "k", defaultSignKey, "Key to sign body")
+	set.StringVar(&c.TrustedSubnet, "t", defaultTrustedSubnet, "CIDR of trusted subnet")
 	set.StringVar(&c.CryptoKey, "crypto-key", defaultCryptoKey, "Path to file with private-key")
 	set.StringVar(&c.Config, "config", defaultConfig, "Path to file with config")
 }
@@ -64,6 +67,11 @@ func (c *Config) parseFile(set *flag.FlagSet) {
 	if tmp.SignKey != "" {
 		if c.SignKey == defaultSignKey {
 			c.SignKey = tmp.SignKey
+		}
+	}
+	if tmp.TrustedSubnet != "" {
+		if c.TrustedSubnet == defaultTrustedSubnet {
+			c.TrustedSubnet = tmp.TrustedSubnet
 		}
 	}
 	if tmp.CryptoKey != "" {

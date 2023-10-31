@@ -223,6 +223,7 @@ func testServer() *HTTPServer {
 		storage,
 		config,
 		nil,
+		nil,
 	}
 	server.MountHandlers()
 	return server
