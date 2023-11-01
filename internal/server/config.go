@@ -17,8 +17,9 @@ type Config struct {
 	Verbose       bool            `env:"VERBOSE" json:"verbose,omitempty"`       // Включить логгирование
 	SignKey       string          `env:"KEY" json:"key,omitempty"`               // Ключ для подписи всех пакетов
 	CryptoKey     string          `env:"CRYPTO_KEY" json:"crypto_key,omitempty"` // Приватный ключ для расшифровки метрик
-	Config        string          `env:"CONFIG"`
+	Config        string          `env:"CONFIG"`                                 // Путь к json-файлу с конфигурацией
 	TrustedSubnet string          `env:"TRUSTED_SUBNET" json:"trusted_subnet,omitempty"`
+	GRPC          string          `env:"GRPC" json:"grpc,omitempty"` // Адрес для запуска grpc-сервера
 	DB            *storage.Config `json:"db,omitempty"`
 }
 
@@ -37,6 +38,7 @@ var (
 	defaultTrustedSubnet = ""
 	defaultCryptoKey     = ""
 	defaultConfig        = ""
+	defaultGRPC          = ":5533"
 )
 
 func (c *Config) parseCmd(set *flag.FlagSet) {
@@ -46,6 +48,7 @@ func (c *Config) parseCmd(set *flag.FlagSet) {
 	set.StringVar(&c.TrustedSubnet, "t", defaultTrustedSubnet, "CIDR of trusted subnet")
 	set.StringVar(&c.CryptoKey, "crypto-key", defaultCryptoKey, "Path to file with private-key")
 	set.StringVar(&c.Config, "config", defaultConfig, "Path to file with config")
+	set.StringVar(&c.GRPC, "grpc", defaultGRPC, "Run grpc server on address")
 }
 
 func (c *Config) parseEnv() {
@@ -104,6 +107,12 @@ func (c *Config) parseFile(set *flag.FlagSet) {
 			c.DB.Retry = tmp.DB.Retry
 		}
 	}
+	if tmp.GRPC != "" {
+		if c.GRPC == defaultGRPC {
+			c.GRPC = tmp.GRPC
+		}
+	}
+
 	if c.DB.Restore == storage.DefaultRestore {
 		logger.Info("Restore")
 		c.DB.Restore = tmp.DB.Restore
@@ -121,10 +130,11 @@ func (c *Config) ParseConfig() {
 		logger.Enable()
 	}
 	logger.Info("Parse config:",
-		"\nAddress", c.Address,
-		"\nVerbose", c.Verbose,
-		"\nSign Key", c.SignKey,
-		"\nCrypto Key", c.CryptoKey,
+		"\nAddress: ", c.Address,
+		"\nVerbose: ", c.Verbose,
+		"\nSign Key: ", c.SignKey,
+		"\nCrypto Key: ", c.CryptoKey,
+		"\nStart grpc: ", c.GRPC,
 	)
 }
 

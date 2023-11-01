@@ -17,6 +17,7 @@ type Config struct {
 	CryptoKey      string `env:"CRYPTO_KEY"` // ключ для шифрования трафика
 	RateLimit      int64  `env:"RATE_LIMIT"` // количество воркеров для отправки метрик
 	Verbose        bool   `env:"VERBOSE"`    // Включить логгирование
+	GRPC           string `env:"GRPC"`       // адрес grpc-сервера, для отправки метрик
 }
 
 func NewConfig() *Config {
@@ -32,6 +33,7 @@ func (c *Config) parseCmd() {
 	flag.StringVar(&c.CryptoKey, "crypto-key", "", "Path to file with public-key")
 	flag.Int64Var(&c.RateLimit, "l", 1, "Workers for report")
 	flag.BoolVar(&c.Verbose, "v", true, "Verbose logging")
+	flag.StringVar(&c.GRPC, "grpc", ":5533", "Run grpc server on address")
 	flag.Parse()
 }
 
@@ -50,8 +52,10 @@ func (c *Config) ParseConfig() {
 		logger.Enable()
 	}
 	logger.Info("Parsed Config:",
-		"Address", c.Address,
-		"ReportInterval", c.ReportInterval,
-		"PollInterval", c.PollInterval,
-		"Key", c.Key)
+		"\nAddress", c.Address,
+		"\nReportInterval", c.ReportInterval,
+		"\nPollInterval", c.PollInterval,
+		"\nKey", c.Key,
+		"\nGRPC", c.GRPC,
+	)
 }
