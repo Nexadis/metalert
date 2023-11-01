@@ -9,7 +9,7 @@ import (
 	"github.com/Nexadis/metalert/internal/models"
 )
 
-var endpoint = "http://localhost:8080"
+var endpoint = "localhost:8080"
 
 func TestPull(t *testing.T) {
 	defineRuntimes()

@@ -25,11 +25,20 @@ type TransportType string
 const (
 	RESTType TransportType = "REST"
 	JSONType TransportType = "JSON"
+	GRPCType TransportType = "GRPC"
+)
+
+// Endpoint'ы для отправки метрик.
+const (
+	UpdateURL     = "/update/{valType}/{name}/{value}"
+	JSONUpdateURL = "/update/"
+	// Для отправки сразу пачки метрик
+	JSONUpdatesURL = "/updates/"
 )
 
 // MetricPoster интерфейс для отправки метрик как через URL, так и JSON-объектами.
 type MetricPoster interface {
-	Post(ctx context.Context, path string, m models.Metric) error
+	Post(ctx context.Context, server string, m models.Metric) error
 }
 
 // httpClient отправляет метрики и подписывает их ключом key.
@@ -57,20 +66,20 @@ func NewHTTP(options ...FOption) *httpClient {
 	return client
 }
 
-func (c *httpClient) Post(ctx context.Context, path string, m models.Metric) error {
+func (c *httpClient) Post(ctx context.Context, server string, m models.Metric) error {
 	switch c.transport {
 	case RESTType:
-		return c.postREST(ctx, path, m)
+		return c.postREST(ctx, server, m)
 	case JSONType:
-		return c.postJSON(ctx, path, m)
+		return c.postJSON(ctx, server, m)
 	}
 	return fmt.Errorf("unknown transport type %s", c.transport)
 }
 
 // Post отправляет метрику через REST-запрос
 //
-// path - адрес сервера, например "http://localhost:8080/update"
-func (c *httpClient) postREST(ctx context.Context, path string, m models.Metric) error {
+// path - адрес сервера, например "localhost:8080"
+func (c *httpClient) postREST(ctx context.Context, server string, m models.Metric) error {
 	val, err := m.GetValue()
 	if err != nil {
 		return err
@@ -80,6 +89,7 @@ func (c *httpClient) postREST(ctx context.Context, path string, m models.Metric)
 		return err
 	}
 
+	query := fmt.Sprintf("http://%s%s", server, UpdateURL)
 	_, err = c.client.R().
 		SetContext(ctx).
 		SetHeader("Content-type", "text/plain").
@@ -89,13 +99,13 @@ func (c *httpClient) postREST(ctx context.Context, path string, m models.Metric)
 			"valType": m.MType,
 			"name":    m.ID,
 			"value":   val,
-		}).Post(path)
+		}).Post(query)
 
 	return err
 }
 
 // postJSON отправляет метрику в виде JSON-строки, дополнительно сжимая её с помощью gzip и подписывая с помощью httpClient.key.
-func (c *httpClient) postJSON(ctx context.Context, path string, m models.Metric) error {
+func (c *httpClient) postJSON(ctx context.Context, server string, m models.Metric) error {
 	buf, err := json.Marshal(m)
 	if err != nil {
 		return err
@@ -135,12 +145,13 @@ func (c *httpClient) postJSON(ctx context.Context, path string, m models.Metric)
 		}
 		Headers[verifier.HashHeader] = base64.StdEncoding.EncodeToString(signature)
 	}
+	query := fmt.Sprintf("http://%s%s", server, JSONUpdateURL)
 
 	_, err = c.client.R().
 		SetContext(ctx).
 		SetHeaders(Headers).
 		SetBody(body).
-		Post(path)
+		Post(query)
 	return err
 }
 

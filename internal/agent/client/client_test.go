@@ -4,7 +4,6 @@ import (
 	"compress/gzip"
 	"context"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -109,7 +108,7 @@ func TestPostREST(t *testing.T) {
 	defer s.Close()
 	c := NewHTTP(SetSignKey("test-key"), SetTransport(RESTType))
 	ctx := context.Background()
-	path := fmt.Sprintf("%s%s", s.URL, "/update/{valType}/{name}/{value}")
+	path := s.URL[len("http://"):]
 	for _, test := range postTests {
 		t.Run(test.name, func(t *testing.T) {
 			m, err := models.NewMetric(test.m.name, test.m.mtype, test.m.val)
@@ -153,7 +152,7 @@ var postObjTests = []testReq{
 		want{
 			http.MethodPost,
 			"",
-			"/update",
+			"/update/",
 			nil,
 		},
 	},
@@ -167,7 +166,7 @@ var postObjTests = []testReq{
 		want{
 			http.MethodPost,
 			"",
-			"/update",
+			"/update/",
 			nil,
 		},
 	},
@@ -214,7 +213,7 @@ func TestPostJSON(t *testing.T) {
 	assert.NoError(t, err)
 	c := NewHTTP(SetSignKey("test-key"), SetTransport(JSONType), SetPubKey(pub))
 	ctx := context.Background()
-	path := fmt.Sprintf("%s%s", s.URL, "/update")
+	path := s.URL[len("http://"):]
 	tests := prepareJSONtests(postObjTests)
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {

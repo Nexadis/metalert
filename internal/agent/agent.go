@@ -5,7 +5,6 @@ package agent
 
 import (
 	"context"
-	"fmt"
 	"math/rand"
 	"reflect"
 	"runtime"
@@ -185,16 +184,14 @@ func (ha *HTTPAgent) Pull(ctx context.Context, mchan chan models.Metric) {
 
 // Report отправляет метрики на адрес, заданный в конфигурации, всеми доступными способами
 func (ha *HTTPAgent) Report(ctx context.Context, input chan models.Metric) error {
-	path := fmt.Sprintf("http://%s%s", ha.config.Address, UpdateURL)
-	pathJSON := fmt.Sprintf("http://%s%s", ha.config.Address, JSONUpdateURL)
 	for m := range input {
 		logger.Info("Post metric", m.ID)
-		err := ha.clientREST.Post(ctx, path, m)
+		err := ha.clientREST.Post(ctx, ha.config.Address, m)
 		if err != nil {
 			logger.Error("Can't report metrics")
 			return err
 		}
-		err = ha.clientJSON.Post(ctx, pathJSON, m)
+		err = ha.clientJSON.Post(ctx, ha.config.Address, m)
 		if err != nil {
 			logger.Error("Can't report metrics", err)
 			return err
