@@ -13,7 +13,7 @@ import (
 
 type Getter interface {
 	Get(ctx context.Context, mtype, id string) (models.Metric, error)
-	GetAll(ctx context.Context) ([]models.Metric, error)
+	GetAll(ctx context.Context) (models.Metrics, error)
 }
 
 type Setter interface {

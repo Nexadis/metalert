@@ -78,8 +78,8 @@ func (ms *Storage) Get(ctx context.Context, mtype, id string) (models.Metric, er
 }
 
 // GetAll Получает все метрики из хранилища
-func (ms *Storage) GetAll(ctx context.Context) ([]models.Metric, error) {
-	m := make([]models.Metric, 0, len(ms.Gauges)+len(ms.Counters))
+func (ms *Storage) GetAll(ctx context.Context) (models.Metrics, error) {
+	m := make(models.Metrics, 0, len(ms.Gauges)+len(ms.Counters))
 	ms.mutex.RLock()
 	defer ms.mutex.RUnlock()
 	for name, value := range ms.Gauges {
