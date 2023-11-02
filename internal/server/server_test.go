@@ -27,11 +27,10 @@ func TestMain(m *testing.M) {
 	c := NewConfig()
 	c.SetDefault()
 	c.DB.Restore = false
-	s, err := NewServer(c)
+	s, err := New(c)
 	if err != nil {
 		log.Fatal(err)
 	}
-	s.MountHandlers()
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	go s.Run(ctx)
@@ -73,12 +72,12 @@ func TestNewServer(t *testing.T) {
 		DB: storage.NewConfig(),
 	}
 
-	_, err := NewServer(&c)
+	_, err := New(&c)
 	assert.NoError(t, err)
 
 	c.DB.DSN = "invalid dsn"
 
-	_, err = NewServer(&c)
+	_, err = New(&c)
 	assert.NoError(t, err)
 }
 
@@ -663,11 +662,10 @@ func ExampleNewServer() {
 	c := NewConfig()
 	c.SetDefault()
 	c.Address = ":9090"
-	s, err := NewServer(c)
+	s, err := New(c)
 	if err != nil {
 		// ... Handle error
 	}
-	s.MountHandlers()
 	go s.Run(context.Background())
 }
 

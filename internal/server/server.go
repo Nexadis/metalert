@@ -22,15 +22,26 @@ type HTTPServer struct {
 	trustedNet *net.IPNet
 }
 
+type Server struct {
+	h *HTTPServer
+	g *GRPCServer
+}
+
 // Run Запуск сервера
-func (s *HTTPServer) Run(ctx context.Context) error {
-	l, err := net.Listen("tcp", s.config.Address)
+func (s *Server) Run(ctx context.Context) error {
+	storage, err := storage.ChooseStorage(context.Background(), s.h.config.DB)
+	if err != nil {
+		return err
+	}
+	s.h.storage = storage
+	s.g.storage = storage
+	l, err := net.Listen("tcp", s.h.config.Address)
 	if err != nil {
 		return err
 	}
 	defer l.Close()
 	go func() error {
-		err = http.Serve(l, s.router)
+		err = http.Serve(l, s.h.router)
 		return err
 	}()
 
@@ -38,15 +49,12 @@ func (s *HTTPServer) Run(ctx context.Context) error {
 	return err
 }
 
-// NewServer Конструктор HTTPServer, для инциализации использует Config
-func NewServer(config *Config) (*HTTPServer, error) {
+// New Конструктор Server, для инциализации использует Config
+func New(config *Config) (*Server, error) {
+	var err error
 	if config == nil {
 		config = NewConfig()
 		config.SetDefault()
-	}
-	storage, err := storage.ChooseStorage(context.Background(), config.DB)
-	if err != nil {
-		return nil, err
 	}
 	var key []byte
 	if config.CryptoKey != "" {
@@ -62,14 +70,22 @@ func NewServer(config *Config) (*HTTPServer, error) {
 			return nil, err
 		}
 	}
-	server := &HTTPServer{
+	httpserver := &HTTPServer{
 		nil,
-		storage,
+		nil,
 		config,
 		key,
 		trusted,
 	}
-	return server, nil
+	httpserver.MountHandlers()
+	grpcserver := &GRPCServer{
+		config: config,
+	}
+	server := Server{
+		httpserver,
+		grpcserver,
+	}
+	return &server, nil
 }
 
 // MountHandlers Подключает все обработчики и middlewares к роутеру
