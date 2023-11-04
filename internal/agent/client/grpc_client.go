@@ -50,3 +50,12 @@ func (c *GRPCClient) Post(ctx context.Context, m models.Metric) error {
 	_, err = c.gc.Post(ctx, &r)
 	return err
 }
+
+func (c *GRPCClient) Get(ctx context.Context) (models.Metrics, error) {
+	var r pb.GetRequest
+	resp, err := c.gc.Get(ctx, &r)
+	if err != nil {
+		return nil, err
+	}
+	return controller.MetricsFromPB(resp.Metrics)
+}
