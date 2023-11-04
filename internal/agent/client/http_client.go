@@ -33,25 +33,22 @@ const (
 	JSONUpdatesURL = "/updates/"
 )
 
-// MetricPoster интерфейс для отправки метрик как через URL, так и JSON-объектами.
-type MetricPoster interface {
-	Post(ctx context.Context, server string, m models.Metric) error
-}
-
 // httpClient отправляет метрики и подписывает их ключом key.
 type httpClient struct {
 	client    *resty.Client
 	signkey   string
 	pubkey    []byte
 	transport httpType
+	server    string
 }
 
-func newClient(options ...FOption) *httpClient {
+func newClient(server string, options ...FOption) *httpClient {
 	client := &httpClient{
 		client: resty.New().
 			SetRetryCount(3).
 			SetRetryWaitTime(1 * time.Second).
 			SetRetryMaxWaitTime(5 * time.Second),
+		server: server,
 	}
 	for _, o := range options {
 		o(client)
@@ -62,8 +59,8 @@ func newClient(options ...FOption) *httpClient {
 // NewREST - создаёт httpClient для отправки метрик через REST, принимает в качестве аргументов функции, например:
 //
 // func SetKey(key string) func(*httpClient)
-func NewREST(options ...FOption) *httpClient {
-	c := newClient(options...)
+func NewREST(server string, options ...FOption) *httpClient {
+	c := newClient(server, options...)
 	c.transport = RESTType
 	return c
 }
@@ -71,18 +68,18 @@ func NewREST(options ...FOption) *httpClient {
 // NewJSON - создаёт httpClient для отправки метрик через REST, принимает в качестве аргументов функции, например:
 //
 // func SetKey(key string) func(*httpClient)
-func NewJSON(options ...FOption) *httpClient {
-	c := newClient(options...)
+func NewJSON(server string, options ...FOption) *httpClient {
+	c := newClient(server, options...)
 	c.transport = JSONType
 	return c
 }
 
-func (c *httpClient) Post(ctx context.Context, server string, m models.Metric) error {
+func (c *httpClient) Post(ctx context.Context, m models.Metric) error {
 	switch c.transport {
 	case RESTType:
-		return c.postREST(ctx, server, m)
+		return c.postREST(ctx, c.server, m)
 	case JSONType:
-		return c.postJSON(ctx, server, m)
+		return c.postJSON(ctx, c.server, m)
 	}
 	return fmt.Errorf("unknown transport type")
 }

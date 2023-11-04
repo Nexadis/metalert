@@ -54,7 +54,7 @@ var RuntimeNames []string
 
 // MetricPoster интерфейс для отправки метрик как через URL, так и JSON-объектами.
 type MetricPoster interface {
-	Post(ctx context.Context, server string, m models.Metric) error
+	Post(ctx context.Context, m models.Metric) error
 }
 
 // Agent собирает и отправляет метрики
@@ -77,7 +77,7 @@ func New(config *Config) *Agent {
 		client.SetSignKey(config.Key),
 		client.SetPubKey(key),
 	}
-	c := chooseClient(config.Transport, generalOps)
+	c := chooseClient(config, generalOps)
 	agent := &Agent{
 		config: config,
 		client: c,
@@ -85,13 +85,13 @@ func New(config *Config) *Agent {
 	return agent
 }
 
-func chooseClient(transport TransportType, ops []client.FOption) MetricPoster {
+func chooseClient(c *Config, ops []client.FOption) MetricPoster {
 	var choosenClient MetricPoster
-	switch transport {
+	switch c.Transport {
 	case RESTType:
-		choosenClient = client.NewREST(ops...)
+		choosenClient = client.NewREST(c.Address, ops...)
 	case JSONType:
-		choosenClient = client.NewJSON(ops...)
+		choosenClient = client.NewJSON(c.Address, ops...)
 	case GRPCType:
 	}
 	return choosenClient
@@ -211,7 +211,7 @@ func (ha *Agent) Pull(ctx context.Context, mchan chan models.Metric) {
 func (ha *Agent) Report(ctx context.Context, input chan models.Metric) error {
 	for m := range input {
 		logger.Info("Post metric", m.ID)
-		err := ha.client.Post(ctx, ha.config.Address, m)
+		err := ha.client.Post(ctx, m)
 		if err != nil {
 			logger.Error("Can't report metrics")
 			return err

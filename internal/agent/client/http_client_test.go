@@ -17,9 +17,9 @@ import (
 )
 
 func TestHTTP(t *testing.T) {
-	c := NewJSON(SetSignKey("test-key"))
+	c := NewJSON("", SetSignKey("test-key"))
 	assert.NotNil(t, c)
-	c = NewREST(SetSignKey("test-key"))
+	c = NewREST("", SetSignKey("test-key"))
 	assert.NotNil(t, c)
 }
 
@@ -108,9 +108,9 @@ func TestPostREST(t *testing.T) {
 	r := reqLogger{}
 	s := httptest.NewServer(http.HandlerFunc(r.showHandler))
 	defer s.Close()
-	c := NewREST(SetSignKey("test-key"))
+	server := s.URL[len("http://"):]
+	c := NewREST(server, SetSignKey("test-key"))
 	ctx := context.Background()
-	path := s.URL[len("http://"):]
 	for _, test := range postTests {
 		t.Run(test.name, func(t *testing.T) {
 			m, err := models.NewMetric(test.m.name, test.m.mtype, test.m.val)
@@ -119,7 +119,7 @@ func TestPostREST(t *testing.T) {
 				return
 			}
 			assert.NoError(t, err)
-			err = c.Post(ctx, path, m)
+			err = c.Post(ctx, m)
 			assert.NoError(t, err)
 			assert.Equal(t, test.want.url, r.url)
 			assert.Equal(t, test.want.body, r.body)
@@ -213,14 +213,14 @@ func TestPostJSON(t *testing.T) {
 	assert.NoError(t, err)
 	priv, err := asymcrypt.ReadPem(keyname + "_priv.pem")
 	assert.NoError(t, err)
-	c := NewJSON(SetSignKey("test-key"), SetPubKey(pub))
+	server := s.URL[len("http://"):]
+	c := NewJSON(server, SetSignKey("test-key"), SetPubKey(pub))
 	ctx := context.Background()
-	path := s.URL[len("http://"):]
 	tests := prepareJSONtests(postObjTests)
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			assert.NoError(t, err)
-			err = c.Post(ctx, path, test.metric)
+			err = c.Post(ctx, test.metric)
 			assert.NoError(t, err)
 			assert.Equal(t, test.want.url, r.url)
 			body := strings.NewReader(r.body)

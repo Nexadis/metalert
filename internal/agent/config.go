@@ -28,15 +28,14 @@ func NewConfig() *Config {
 
 // parseCmd парсит командную строку
 func (c *Config) parseCmd() {
-	flag.StringVar(&c.Address, "a", "localhost:8080", "Server for metrics")
+	flag.StringVar(&c.Address, "a", "localhost:5533", "Server for metrics (default GRPC address)")
 	flag.Int64Var(&c.PollInterval, "p", 2, "Poll Interval")
 	flag.Int64Var(&c.ReportInterval, "r", 10, "Report Interval")
 	flag.StringVar(&c.Key, "k", "", "Key to sign body")
 	flag.StringVar(&c.CryptoKey, "crypto-key", "", "Path to file with public-key")
 	flag.Int64Var(&c.RateLimit, "l", 1, "Workers for report")
 	flag.BoolVar(&c.Verbose, "v", true, "Verbose logging")
-	flag.StringVar(&c.GRPC, "grpc", "localhost:5533", "Address of grpc server")
-	flag.Var(&c.Transport, "t", fmt.Sprintf("Choose type of metric: %v", Transports))
+	flag.Var(&c.Transport, "t", fmt.Sprintf("Choose type of transport for posting metrics: %v", Transports))
 	flag.Parse()
 }
 

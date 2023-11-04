@@ -120,14 +120,12 @@ func TestPull(t *testing.T) {
 }
 
 type testClient struct {
-	path    string
 	valType string
 	name    string
 	value   string
 }
 
-func (c *testClient) Post(ctx context.Context, path string, m models.Metric) error {
-	c.path = path
+func (c *testClient) Post(ctx context.Context, m models.Metric) error {
 	c.valType = m.MType
 	c.name = m.ID
 	val, err := m.GetValue()
