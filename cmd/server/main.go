@@ -8,7 +8,6 @@ import (
 	"syscall"
 
 	"github.com/Nexadis/metalert/internal/server"
-	"github.com/Nexadis/metalert/internal/utils/logger"
 )
 
 var (
@@ -27,7 +26,6 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	logger.Info("Server", config.Address)
 	exit, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM|syscall.SIGINT|syscall.SIGQUIT)
 	defer stop()
 	err = server.Run(exit)

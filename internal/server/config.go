@@ -38,7 +38,7 @@ var (
 	defaultTrustedSubnet = ""
 	defaultCryptoKey     = ""
 	defaultConfig        = ""
-	defaultGRPC          = ":5533"
+	defaultGRPC          = "localhost:5533"
 )
 
 func (c *Config) parseCmd(set *flag.FlagSet) {

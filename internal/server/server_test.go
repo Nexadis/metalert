@@ -213,11 +213,11 @@ var valuesTests = []testReq{
 	},
 }
 
-func testServer() *HTTPServer {
+func testServer() *httpServer {
 	storage := mem.NewMetricsStorage()
 	config := NewConfig()
 	config.SignKey = "test_key"
-	server := &HTTPServer{
+	server := &httpServer{
 		nil,
 		storage,
 		config,
@@ -669,7 +669,7 @@ func ExampleNewServer() {
 	go s.Run(context.Background())
 }
 
-func ExampleHTTPServer_DBPing() {
+func ExamplehttpServer_DBPing() {
 	addr := fmt.Sprintf("http://localhost:8080/%s", "ping")
 	r, err := http.Get(addr)
 	if err != nil {
@@ -686,7 +686,7 @@ func ExampleHTTPServer_DBPing() {
 	// DB is not connected
 }
 
-func ExampleHTTPServer_Update() {
+func ExamplehttpServer_Update() {
 	addr := fmt.Sprintf("http://localhost:8080/%s", "update/gauge/name/123.123")
 	r, err := http.Post(addr, "", nil)
 	if err != nil {
@@ -703,7 +703,7 @@ func ExampleHTTPServer_Update() {
 	// Value name type gauge updated
 }
 
-func ExampleHTTPServer_Value() {
+func ExamplehttpServer_Value() {
 	addr := fmt.Sprintf("http://localhost:8080/%s", "value/gauge/name")
 	r, err := http.Get(addr)
 	if err != nil {
@@ -720,7 +720,7 @@ func ExampleHTTPServer_Value() {
 	// 123.123
 }
 
-func ExampleHTTPServer_Values() {
+func ExamplehttpServer_Values() {
 	addr := fmt.Sprintf("http://localhost:8080/%s", "value")
 	r, err := http.Get(addr)
 	if err != nil {
@@ -737,7 +737,7 @@ func ExampleHTTPServer_Values() {
 	// name=123.123
 }
 
-func ExampleHTTPServer_UpdateJSON() {
+func ExamplehttpServer_UpdateJSON() {
 	addr := fmt.Sprintf("http://localhost:8080/%s", "update")
 	m, err := models.NewMetric("name", "gauge", "123.123")
 	if err != nil {
@@ -759,7 +759,7 @@ func ExampleHTTPServer_UpdateJSON() {
 	// 200 OK
 }
 
-func ExampleHTTPServer_Updates() {
+func ExamplehttpServer_Updates() {
 	addr := fmt.Sprintf("http://localhost:8080/%s", "updates/")
 	ms := make([]models.Metric, 0, 10)
 	for i := 0; i < 10; i++ {
@@ -787,7 +787,7 @@ func ExampleHTTPServer_Updates() {
 	// 200 OK
 }
 
-func ExampleHTTPServer_ValueJSON() {
+func ExamplehttpServer_ValueJSON() {
 	addr := fmt.Sprintf("http://localhost:8080/%s", "value")
 	m, err := models.NewMetric("name", "gauge", "123.123")
 	if err != nil {
