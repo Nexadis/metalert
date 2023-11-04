@@ -2,25 +2,51 @@ package client
 
 import (
 	"context"
+	"errors"
 
 	"github.com/Nexadis/metalert/internal/models"
+	"github.com/Nexadis/metalert/internal/models/controller"
+	"github.com/Nexadis/metalert/internal/utils/logger"
 	pb "github.com/Nexadis/metalert/proto/metrics/v1"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
-type GRPCClient struct{}
+var ErrConnection = errors.New("can't connect to server")
 
-func NewGRPC(server string) (*GRPCClient, error) {
-	conn, err := grpc.Dial("")
-	if err != nil {
-		return nil, err
-	}
-	defer conn.Close()
-	c := pb.NewMetricsCollectorServiceClient(conn)
-	_ = c
-	return nil, nil
+type GRPCClient struct {
+	gc   pb.MetricsCollectorServiceClient
+	conn *grpc.ClientConn
 }
 
-func (gc *GRPCClient) Post(ctx context.Context, server string, m models.Metric) error {
-	return nil
+func NewGRPC(server string) *GRPCClient {
+	conn, err := grpc.Dial(server, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		logger.Error(err)
+		return &GRPCClient{}
+	}
+	c := pb.NewMetricsCollectorServiceClient(conn)
+	return &GRPCClient{
+		gc:   c,
+		conn: conn,
+	}
+}
+
+func (c *GRPCClient) Post(ctx context.Context, m models.Metric) error {
+	if err := ctx.Err(); err != nil {
+		c.conn.Close()
+		return err
+
+	}
+	var r pb.PostRequest
+	if c.gc == nil {
+		return ErrConnection
+	}
+	in, err := controller.MetricsToPB(models.Metrics{m})
+	if err != nil {
+		return err
+	}
+	r.Metrics = in
+	_, err = c.gc.Post(ctx, &r)
+	return err
 }

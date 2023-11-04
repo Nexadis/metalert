@@ -28,4 +28,5 @@ func main() {
 	exit, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM|syscall.SIGINT|syscall.SIGQUIT)
 	defer stop()
 	logger.Error(agent.Run(exit))
+	logger.Info("Agent is closed")
 }

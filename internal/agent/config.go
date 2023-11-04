@@ -18,12 +18,13 @@ type Config struct {
 	CryptoKey      string        `env:"CRYPTO_KEY"` // ключ для шифрования трафика
 	RateLimit      int64         `env:"RATE_LIMIT"` // количество воркеров для отправки метрик
 	Verbose        bool          `env:"VERBOSE"`    // Включить логгирование
-	GRPC           string        `env:"GRPC"`       // адрес grpc-сервера, для отправки метрик
 	Transport      TransportType `env:"TRANSPORT"`  // тип транспорта для передачи метрик
 }
 
 func NewConfig() *Config {
-	return &Config{}
+	return &Config{
+		Transport: GRPCType,
+	}
 }
 
 // parseCmd парсит командную строку
@@ -58,6 +59,6 @@ func (c *Config) ParseConfig() {
 		"\nReportInterval", c.ReportInterval,
 		"\nPollInterval", c.PollInterval,
 		"\nKey", c.Key,
-		"\nGRPC", c.GRPC,
+		"\nTransport", c.Transport,
 	)
 }

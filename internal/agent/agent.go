@@ -93,6 +93,7 @@ func chooseClient(c *Config, ops []client.FOption) MetricPoster {
 	case JSONType:
 		choosenClient = client.NewJSON(c.Address, ops...)
 	case GRPCType:
+		choosenClient = client.NewGRPC(c.Address)
 	}
 	return choosenClient
 }
@@ -113,8 +114,7 @@ func (ha *Agent) Run(ctx context.Context) error {
 		select {
 		case <-ctx.Done():
 			close(mchan)
-			err := grp.Wait()
-			return err
+			return grp.Wait()
 		case <-pullTicker.C:
 			ha.Pull(ctx, mchan)
 		}
@@ -240,10 +240,6 @@ func (t TransportType) String() string {
 }
 
 func (t *TransportType) Set(value string) error {
-	if value == "" {
-		*t = GRPCType
-		return nil
-	}
 	for _, v := range Transports {
 		if string(v) == value {
 			*t = v
