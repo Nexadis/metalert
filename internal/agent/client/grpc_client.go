@@ -20,6 +20,11 @@ type GRPCClient struct {
 }
 
 func NewGRPC(server string) *GRPCClient {
+	if server == "" {
+		logger.Error("empty address of server")
+		return &GRPCClient{}
+
+	}
 	conn, err := grpc.Dial(server, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		logger.Error(err)
@@ -33,10 +38,9 @@ func NewGRPC(server string) *GRPCClient {
 }
 
 func (c *GRPCClient) Post(ctx context.Context, m models.Metric) error {
-	if err := ctx.Err(); err != nil {
-		c.conn.Close()
+	err := c.ctxClose(ctx)
+	if err != nil {
 		return err
-
 	}
 	var r pb.PostRequest
 	if c.gc == nil {
@@ -52,10 +56,27 @@ func (c *GRPCClient) Post(ctx context.Context, m models.Metric) error {
 }
 
 func (c *GRPCClient) Get(ctx context.Context) (models.Metrics, error) {
+	err := c.ctxClose(ctx)
+	if err != nil {
+		return nil, err
+	}
 	var r pb.GetRequest
+	if c.gc == nil {
+		return nil, ErrConnection
+	}
 	resp, err := c.gc.Get(ctx, &r)
 	if err != nil {
 		return nil, err
 	}
 	return controller.MetricsFromPB(resp.Metrics)
+}
+
+func (c *GRPCClient) ctxClose(ctx context.Context) error {
+	if err := ctx.Err(); err != nil {
+		if c.conn != nil {
+			c.conn.Close()
+		}
+		return err
+	}
+	return nil
 }
