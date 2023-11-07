@@ -3,6 +3,7 @@ package agent
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 
@@ -229,4 +230,34 @@ func TestReport(t *testing.T) {
 			assert.Equal(t, test.want.value, testClient.value)
 		})
 	}
+}
+
+func TestNew(t *testing.T) {
+	c := NewConfig()
+	a := New(c)
+	assert.NotNil(t, a)
+	c.Transport = JSONType
+	a = New(c)
+	assert.NotNil(t, a)
+	c.Transport = RESTType
+	a = New(c)
+	assert.NotNil(t, a)
+}
+
+func TestRun(t *testing.T) {
+	c := NewConfig()
+	c.PollInterval = 1
+	c.RateLimit = 1
+	a := New(c)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second+100*time.Millisecond)
+	defer cancel()
+	a.Run(ctx)
+}
+
+func TestTransport(t *testing.T) {
+	tt := TransportType("")
+	err := tt.Set("invalid_transport")
+	assert.Error(t, err)
+	err = tt.Set(string(GRPCType))
+	assert.NoError(t, err)
 }
