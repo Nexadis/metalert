@@ -116,13 +116,13 @@ func (db *DB) Get(ctx context.Context, mtype, id string) (models.Metric, error) 
 }
 
 // GetAll Получает все метрики из БД.
-func (db *DB) GetAll(ctx context.Context) ([]models.Metric, error) {
+func (db *DB) GetAll(ctx context.Context) (models.Metrics, error) {
 	stmt, err := db.db.PrepareContext(ctx,
 		`SELECT * FROM Metrics`)
 	if err != nil {
 		return nil, err
 	}
-	metrics := make([]models.Metric, 0, db.size)
+	metrics := make(models.Metrics, 0, db.size)
 	var rows *sql.Rows
 	err = db.retry(func() error {
 		rows, err = stmt.QueryContext(ctx)

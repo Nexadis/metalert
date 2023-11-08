@@ -8,13 +8,6 @@ func SetSignKey(key string) FOption {
 	}
 }
 
-// SetTransport определяет тип транспорта. Например REST
-func SetTransport(transport TransportType) FOption {
-	return func(hc *httpClient) {
-		hc.transport = transport
-	}
-}
-
 // SetPubKey устанавливает публичный ключ, с помощью которого будет производиться шифрование трафика
 func SetPubKey(key []byte) FOption {
 	return func(hc *httpClient) {

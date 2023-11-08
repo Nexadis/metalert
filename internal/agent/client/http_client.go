@@ -18,38 +18,37 @@ import (
 	"github.com/Nexadis/metalert/internal/utils/verifier"
 )
 
-// TransportType создаёт тип для видов передачи метрик
-type TransportType string
+type httpType int
 
-// Константы для определения способа передачи метрик
 const (
-	RESTType TransportType = "REST"
-	JSONType TransportType = "JSON"
+	JSONType httpType = iota
+	RESTType
 )
 
-// MetricPoster интерфейс для отправки метрик как через URL, так и JSON-объектами.
-type MetricPoster interface {
-	Post(ctx context.Context, path string, m models.Metric) error
-}
+// Endpoint'ы для отправки метрик.
+const (
+	UpdateURL     = "/update/{valType}/{name}/{value}"
+	JSONUpdateURL = "/update/"
+	// Для отправки сразу пачки метрик
+	JSONUpdatesURL = "/updates/"
+)
 
 // httpClient отправляет метрики и подписывает их ключом key.
 type httpClient struct {
 	client    *resty.Client
-	transport TransportType
 	signkey   string
 	pubkey    []byte
+	transport httpType
+	server    string
 }
 
-// NewHTTP - конструктор для httpClient, принимает в качестве аргументов функции, например:
-//
-// func SetKey(key string) func(*httpClient)
-func NewHTTP(options ...FOption) *httpClient {
+func newClient(server string, options ...FOption) *httpClient {
 	client := &httpClient{
 		client: resty.New().
 			SetRetryCount(3).
 			SetRetryWaitTime(1 * time.Second).
 			SetRetryMaxWaitTime(5 * time.Second),
-		transport: RESTType,
+		server: server,
 	}
 	for _, o := range options {
 		o(client)
@@ -57,20 +56,38 @@ func NewHTTP(options ...FOption) *httpClient {
 	return client
 }
 
-func (c *httpClient) Post(ctx context.Context, path string, m models.Metric) error {
+// NewREST - создаёт httpClient для отправки метрик через REST, принимает в качестве аргументов функции, например:
+//
+// func SetKey(key string) func(*httpClient)
+func NewREST(server string, options ...FOption) *httpClient {
+	c := newClient(server, options...)
+	c.transport = RESTType
+	return c
+}
+
+// NewJSON - создаёт httpClient для отправки метрик через REST, принимает в качестве аргументов функции, например:
+//
+// func SetKey(key string) func(*httpClient)
+func NewJSON(server string, options ...FOption) *httpClient {
+	c := newClient(server, options...)
+	c.transport = JSONType
+	return c
+}
+
+func (c *httpClient) Post(ctx context.Context, m models.Metric) error {
 	switch c.transport {
 	case RESTType:
-		return c.postREST(ctx, path, m)
+		return c.postREST(ctx, c.server, m)
 	case JSONType:
-		return c.postJSON(ctx, path, m)
+		return c.postJSON(ctx, c.server, m)
 	}
-	return fmt.Errorf("unknown transport type %s", c.transport)
+	return fmt.Errorf("unknown transport type")
 }
 
 // Post отправляет метрику через REST-запрос
 //
-// path - адрес сервера, например "http://localhost:8080/update"
-func (c *httpClient) postREST(ctx context.Context, path string, m models.Metric) error {
+// path - адрес сервера, например "localhost:8080"
+func (c *httpClient) postREST(ctx context.Context, server string, m models.Metric) error {
 	val, err := m.GetValue()
 	if err != nil {
 		return err
@@ -80,6 +97,7 @@ func (c *httpClient) postREST(ctx context.Context, path string, m models.Metric)
 		return err
 	}
 
+	query := fmt.Sprintf("http://%s%s", server, UpdateURL)
 	_, err = c.client.R().
 		SetContext(ctx).
 		SetHeader("Content-type", "text/plain").
@@ -89,13 +107,13 @@ func (c *httpClient) postREST(ctx context.Context, path string, m models.Metric)
 			"valType": m.MType,
 			"name":    m.ID,
 			"value":   val,
-		}).Post(path)
+		}).Post(query)
 
 	return err
 }
 
 // postJSON отправляет метрику в виде JSON-строки, дополнительно сжимая её с помощью gzip и подписывая с помощью httpClient.key.
-func (c *httpClient) postJSON(ctx context.Context, path string, m models.Metric) error {
+func (c *httpClient) postJSON(ctx context.Context, server string, m models.Metric) error {
 	buf, err := json.Marshal(m)
 	if err != nil {
 		return err
@@ -135,12 +153,13 @@ func (c *httpClient) postJSON(ctx context.Context, path string, m models.Metric)
 		}
 		Headers[verifier.HashHeader] = base64.StdEncoding.EncodeToString(signature)
 	}
+	query := fmt.Sprintf("http://%s%s", server, JSONUpdateURL)
 
 	_, err = c.client.R().
 		SetContext(ctx).
 		SetHeaders(Headers).
 		SetBody(body).
-		Post(path)
+		Post(query)
 	return err
 }
 

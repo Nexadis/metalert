@@ -3,13 +3,14 @@ package agent
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 
 	"github.com/Nexadis/metalert/internal/models"
 )
 
-var endpoint = "http://localhost:8080"
+var endpoint = "localhost:8080"
 
 func TestPull(t *testing.T) {
 	defineRuntimes()
@@ -90,7 +91,7 @@ func TestPull(t *testing.T) {
 		PollInterval:   0,
 		ReportInterval: 0,
 	}
-	ha := &HTTPAgent{
+	ha := &Agent{
 		config:  config,
 		counter: 0,
 	}
@@ -120,14 +121,12 @@ func TestPull(t *testing.T) {
 }
 
 type testClient struct {
-	path    string
 	valType string
 	name    string
 	value   string
 }
 
-func (c *testClient) Post(ctx context.Context, path string, m models.Metric) error {
-	c.path = path
+func (c *testClient) Post(ctx context.Context, m models.Metric) error {
 	c.valType = m.MType
 	c.name = m.ID
 	val, err := m.GetValue()
@@ -214,10 +213,9 @@ func TestReport(t *testing.T) {
 				PollInterval:   0,
 				ReportInterval: 0,
 			}
-			ha := &HTTPAgent{
-				config:     config,
-				clientJSON: testClient,
-				clientREST: testClient,
+			ha := &Agent{
+				config: config,
+				client: testClient,
 			}
 			mchan := make(chan models.Metric, 1)
 			ctx := context.Background()
@@ -232,4 +230,34 @@ func TestReport(t *testing.T) {
 			assert.Equal(t, test.want.value, testClient.value)
 		})
 	}
+}
+
+func TestNew(t *testing.T) {
+	c := NewConfig()
+	a := New(c)
+	assert.NotNil(t, a)
+	c.Transport = JSONType
+	a = New(c)
+	assert.NotNil(t, a)
+	c.Transport = RESTType
+	a = New(c)
+	assert.NotNil(t, a)
+}
+
+func TestRun(t *testing.T) {
+	c := NewConfig()
+	c.PollInterval = 1
+	c.RateLimit = 1
+	a := New(c)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second+100*time.Millisecond)
+	defer cancel()
+	a.Run(ctx)
+}
+
+func TestTransport(t *testing.T) {
+	tt := TransportType("")
+	err := tt.Set("invalid_transport")
+	assert.Error(t, err)
+	err = tt.Set(string(GRPCType))
+	assert.NoError(t, err)
 }

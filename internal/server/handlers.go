@@ -15,7 +15,7 @@ import (
 )
 
 // Update Обновление метрики с помощью REST
-func (s *HTTPServer) Update(w http.ResponseWriter, r *http.Request) {
+func (s *httpServer) Update(w http.ResponseWriter, r *http.Request) {
 	mtype := chi.URLParam(r, "mtype")
 	id := chi.URLParam(r, "id")
 	value := chi.URLParam(r, "value")
@@ -42,7 +42,7 @@ func (s *HTTPServer) Update(w http.ResponseWriter, r *http.Request) {
 }
 
 // Value Получение метрики с помощью REST
-func (s *HTTPServer) Value(w http.ResponseWriter, r *http.Request) {
+func (s *httpServer) Value(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-type", "text/plain")
 	mtype := chi.URLParam(r, "mtype")
 	id := chi.URLParam(r, "id")
@@ -70,7 +70,7 @@ func (s *HTTPServer) Value(w http.ResponseWriter, r *http.Request) {
 }
 
 // Values Возвращает все значения в текстовом формате
-func (s *HTTPServer) Values(w http.ResponseWriter, r *http.Request) {
+func (s *httpServer) Values(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-type", "text/plain")
 	values, err := s.storage.GetAll(r.Context())
 	if err != nil {
@@ -94,7 +94,7 @@ func (s *HTTPServer) Values(w http.ResponseWriter, r *http.Request) {
 }
 
 // UpdateJSON Обработчик для записи одиночных метрик в JSON-формате
-func (s *HTTPServer) UpdateJSON(w http.ResponseWriter, r *http.Request) {
+func (s *httpServer) UpdateJSON(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
 	m := &models.Metric{}
 	err := decoder.Decode(m)
@@ -111,7 +111,7 @@ func (s *HTTPServer) UpdateJSON(w http.ResponseWriter, r *http.Request) {
 }
 
 // Updates Обработчик для записи списка метрик в JSON-формате
-func (s *HTTPServer) Updates(w http.ResponseWriter, r *http.Request) {
+func (s *httpServer) Updates(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
 	metrics := make([]models.Metric, 0, 50)
 	err := decoder.Decode(&metrics)
@@ -131,7 +131,7 @@ func (s *HTTPServer) Updates(w http.ResponseWriter, r *http.Request) {
 }
 
 // ValueJSON Обработчик для получения одиночных метрик в JSON-формате
-func (s *HTTPServer) ValueJSON(w http.ResponseWriter, r *http.Request) {
+func (s *httpServer) ValueJSON(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-type", "application/json")
 	decoder := json.NewDecoder(r.Body)
 	m := &models.Metric{}
@@ -155,7 +155,7 @@ func (s *HTTPServer) ValueJSON(w http.ResponseWriter, r *http.Request) {
 }
 
 // InfoPage Главная страница - заглушка
-func (s *HTTPServer) InfoPage(w http.ResponseWriter, r *http.Request) {
+func (s *httpServer) InfoPage(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-type", "text/html")
 	_, err := w.Write([]byte("<html><h1>Info page</h1></html>"))
 	if err != nil {
@@ -164,7 +164,7 @@ func (s *HTTPServer) InfoPage(w http.ResponseWriter, r *http.Request) {
 }
 
 // DBPing Проверяет состояние подключения к базе данных
-func (s *HTTPServer) DBPing(w http.ResponseWriter, r *http.Request) {
+func (s *httpServer) DBPing(w http.ResponseWriter, r *http.Request) {
 	db, ok := s.storage.(*db.DB)
 	if ok {
 		err := db.Ping()

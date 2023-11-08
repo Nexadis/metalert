@@ -5,7 +5,7 @@ package agent
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"math/rand"
 	"reflect"
 	"runtime"
@@ -21,6 +21,24 @@ import (
 	"github.com/Nexadis/metalert/internal/utils/logger"
 )
 
+// TransportType создаёт тип для видов передачи метрик
+type TransportType string
+
+// Константы для определения способа передачи метрик
+const (
+	RESTType TransportType = "REST"
+	JSONType TransportType = "JSON"
+	GRPCType TransportType = "GRPC"
+)
+
+var Transports = []TransportType{
+	RESTType,
+	JSONType,
+	GRPCType,
+}
+
+var ErrInvalidTransport = errors.New("invalid transport type")
+
 // Endpoint'ы для отправки метрик.
 const (
 	UpdateURL     = "/update/{valType}/{name}/{value}"
@@ -34,47 +52,54 @@ const MetricsBufSize = 100
 // RuntimeNames - набор Runtime метрик, список которых заполняется один раз с помощью reflect и многократно используется
 var RuntimeNames []string
 
-// HTTPAgent реализует интерфейс Watcher, собирает и отправляет метрики
-type HTTPAgent struct {
-	config     *Config
-	counter    models.Counter
-	clientREST client.MetricPoster
-	clientJSON client.MetricPoster
+// MetricPoster интерфейс для отправки метрик как через URL, так и JSON-объектами.
+type MetricPoster interface {
+	Post(ctx context.Context, m models.Metric) error
 }
 
-// New - Конструктор для HTTPAgent
-func New(config *Config) *HTTPAgent {
+// Agent собирает и отправляет метрики
+type Agent struct {
+	config  *Config
+	counter models.Counter
+	client  MetricPoster
+}
+
+// New - Конструктор для Agent
+func New(config *Config) *Agent {
 	key, err := asymcrypt.ReadPem(config.CryptoKey)
 	if err != nil {
 		logger.Error(err)
 	}
+
+	defineRuntimes()
+
 	generalOps := []client.FOption{
 		client.SetSignKey(config.Key),
 		client.SetPubKey(key),
 	}
-	defineRuntimes()
-	clientREST := client.NewHTTP(
-		append(
-			generalOps,
-			client.SetTransport(client.RESTType),
-		)...,
-	)
-	clientJSON := client.NewHTTP(
-		append(
-			generalOps,
-			client.SetTransport(client.JSONType),
-		)...,
-	)
-	agent := &HTTPAgent{
-		config:     config,
-		clientREST: clientREST,
-		clientJSON: clientJSON,
+	c := chooseClient(config, generalOps)
+	agent := &Agent{
+		config: config,
+		client: c,
 	}
 	return agent
 }
 
+func chooseClient(c *Config, ops []client.FOption) MetricPoster {
+	var choosenClient MetricPoster
+	switch c.Transport {
+	case RESTType:
+		choosenClient = client.NewREST(c.Address, ops...)
+	case JSONType:
+		choosenClient = client.NewJSON(c.Address, ops...)
+	case GRPCType:
+		choosenClient = client.NewGRPC(c.Address)
+	}
+	return choosenClient
+}
+
 // Run запускает в фоне агент, начинает собирать и отправлять метрики с заданными интервалами
-func (ha *HTTPAgent) Run(ctx context.Context) error {
+func (ha *Agent) Run(ctx context.Context) error {
 	mchan := make(chan models.Metric, MetricsBufSize)
 	grp, ctx := errgroup.WithContext(ctx)
 	for i := 1; int64(i) <= ha.config.RateLimit; i++ {
@@ -89,8 +114,7 @@ func (ha *HTTPAgent) Run(ctx context.Context) error {
 		select {
 		case <-ctx.Done():
 			close(mchan)
-			err := grp.Wait()
-			return err
+			return grp.Wait()
 		case <-pullTicker.C:
 			ha.Pull(ctx, mchan)
 		}
@@ -98,7 +122,7 @@ func (ha *HTTPAgent) Run(ctx context.Context) error {
 }
 
 // pullCustom получает нестандартные метрики, определенные разработчиком
-func (ha *HTTPAgent) pullCustom(ctx context.Context, mchan chan models.Metric) {
+func (ha *Agent) pullCustom(ctx context.Context, mchan chan models.Metric) {
 	customMetrics := make([]models.Metric, 0, 5)
 
 	randValue := models.Gauge(rand.Float64())
@@ -150,7 +174,7 @@ func (ha *HTTPAgent) pullCustom(ctx context.Context, mchan chan models.Metric) {
 }
 
 // pullRuntime получает метрики из стандартной библиотеки runtime
-func (ha *HTTPAgent) pullRuntime(ctx context.Context, mchan chan models.Metric) {
+func (ha *Agent) pullRuntime(ctx context.Context, mchan chan models.Metric) {
 	var val string
 	memStats := &runtime.MemStats{}
 	runtime.ReadMemStats(memStats)
@@ -177,26 +201,19 @@ func (ha *HTTPAgent) pullRuntime(ctx context.Context, mchan chan models.Metric) 
 }
 
 // Pull внешняя функция для получения всех метрик
-func (ha *HTTPAgent) Pull(ctx context.Context, mchan chan models.Metric) {
+func (ha *Agent) Pull(ctx context.Context, mchan chan models.Metric) {
 	ha.pullCustom(ctx, mchan)
 	ha.pullRuntime(ctx, mchan)
 	logger.Info("Metrics pulled")
 }
 
 // Report отправляет метрики на адрес, заданный в конфигурации, всеми доступными способами
-func (ha *HTTPAgent) Report(ctx context.Context, input chan models.Metric) error {
-	path := fmt.Sprintf("http://%s%s", ha.config.Address, UpdateURL)
-	pathJSON := fmt.Sprintf("http://%s%s", ha.config.Address, JSONUpdateURL)
+func (ha *Agent) Report(ctx context.Context, input chan models.Metric) error {
 	for m := range input {
 		logger.Info("Post metric", m.ID)
-		err := ha.clientREST.Post(ctx, path, m)
+		err := ha.client.Post(ctx, m)
 		if err != nil {
 			logger.Error("Can't report metrics")
-			return err
-		}
-		err = ha.clientJSON.Post(ctx, pathJSON, m)
-		if err != nil {
-			logger.Error("Can't report metrics", err)
 			return err
 		}
 	}
@@ -216,4 +233,18 @@ func defineRuntimes() {
 		value := mstruct.Type().Field(i).Name
 		RuntimeNames = append(RuntimeNames, value)
 	}
+}
+
+func (t TransportType) String() string {
+	return string(t)
+}
+
+func (t *TransportType) Set(value string) error {
+	for _, v := range Transports {
+		if string(v) == value {
+			*t = v
+			return nil
+		}
+	}
+	return ErrInvalidTransport
 }

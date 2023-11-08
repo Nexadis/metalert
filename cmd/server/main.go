@@ -8,7 +8,6 @@ import (
 	"syscall"
 
 	"github.com/Nexadis/metalert/internal/server"
-	"github.com/Nexadis/metalert/internal/utils/logger"
 )
 
 var (
@@ -23,12 +22,10 @@ func main() {
 	log.Printf("Build commit: %s", buildCommit)
 	config := server.NewConfig()
 	config.ParseConfig()
-	server, err := server.NewServer(config)
+	server, err := server.New(config)
 	if err != nil {
 		log.Fatal(err)
 	}
-	server.MountHandlers()
-	logger.Info("Server", config.Address)
 	exit, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM|syscall.SIGINT|syscall.SIGQUIT)
 	defer stop()
 	err = server.Run(exit)

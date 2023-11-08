@@ -2,6 +2,7 @@
 package logger
 
 import (
+	grpc_zap "github.com/grpc-ecosystem/go-grpc-middleware/logging/zap"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -32,7 +33,7 @@ type Log struct {
 	Zap *zap.SugaredLogger
 }
 
-func chooseLevel(level Level) zapcore.Level {
+func ConvertLevel(level Level) zapcore.Level {
 	var zapLevel zapcore.Level
 	switch level {
 	case DebugLevel:
@@ -47,7 +48,7 @@ func chooseLevel(level Level) zapcore.Level {
 
 // NewLogger Создаёт логгер на основе zap.NewDevelopment()
 func NewLogger(level Level) Logger {
-	zapLevel := chooseLevel(level)
+	zapLevel := ConvertLevel(level)
 	zap.NewAtomicLevelAt(zapLevel)
 	logger, err := zap.NewDevelopment(zap.AddCallerSkip(2))
 	if err != nil {
@@ -116,4 +117,13 @@ func Debug(args ...interface{}) {
 
 func Error(args ...interface{}) {
 	StandardLogger.Error(args...)
+}
+
+func ZapInterceptor() *zap.Logger {
+	logger, err := zap.NewDevelopment()
+	if err != nil {
+		return zap.NewNop()
+	}
+	grpc_zap.ReplaceGrpcLogger(logger)
+	return logger
 }

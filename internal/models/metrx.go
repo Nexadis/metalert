@@ -45,6 +45,9 @@ func ParseGauge(value string) (Gauge, error) {
 	return Gauge(val), err
 }
 
+// Metrics - слайс метрик
+type Metrics []Metric
+
 // Metric - Структура для хранения метрики
 type Metric struct {
 	ID    string   `json:"id"`              // имя метрики

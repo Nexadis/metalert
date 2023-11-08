@@ -1,0 +1,39 @@
+syntax = "proto3";
+package proto.metrics.v1;
+
+option go_package = "github.com/Nexadis/metalert";
+
+message Metric {
+  string id = 1;
+  enum MType {
+    M_TYPE_UNSPECIFIED = 0;
+    M_TYPE_GAUGE = 1;
+    M_TYPE_COUNTER = 2;
+  }
+  MType type = 2;
+
+  string value = 3;
+}
+
+message Metrics {
+  repeated Metric metrics = 1;
+}
+
+message GetRequest {}
+
+message GetResponse {
+  Metrics metrics = 1;
+}
+
+message PostRequest {
+  Metrics metrics = 1;
+}
+
+message PostResponse {
+  string error = 1;
+}
+
+service MetricsCollectorService {
+  rpc Get(GetRequest) returns (GetResponse);
+  rpc Post(PostRequest) returns (PostResponse);
+}
