@@ -15,10 +15,11 @@ import (
 
 // HTTPServer связывает все обработчики с базой данных
 type HTTPServer struct {
-	router  http.Handler
-	storage storage.Storage
-	config  *Config
-	privKey []byte
+	router     http.Handler
+	storage    storage.Storage
+	config     *Config
+	privKey    []byte
+	trustedNet *net.IPNet
 }
 
 // Run Запуск сервера
@@ -54,11 +55,19 @@ func NewServer(config *Config) (*HTTPServer, error) {
 			return nil, err
 		}
 	}
+	var trusted *net.IPNet = nil
+	if config.TrustedSubnet != "" {
+		_, trusted, err = net.ParseCIDR(config.TrustedSubnet)
+		if err != nil {
+			return nil, err
+		}
+	}
 	server := &HTTPServer{
 		nil,
 		storage,
 		config,
 		key,
+		trusted,
 	}
 	return server, nil
 }
@@ -81,15 +90,18 @@ func (s *HTTPServer) MountHandlers() {
 		r.Get("/ping", s.DBPing)
 	})
 
-	s.router = middlewares.WithDeflate(
-		middlewares.WithDecrypt(
-			middlewares.WithLogging(
-				middlewares.WithVerify(
-					router,
-					s.config.SignKey,
+	s.router = middlewares.WithTrusted(
+		middlewares.WithDeflate(
+			middlewares.WithDecrypt(
+				middlewares.WithLogging(
+					middlewares.WithVerify(
+						router,
+						s.config.SignKey,
+					),
 				),
+				s.privKey,
 			),
-			s.privKey,
 		),
+		s.trustedNet,
 	)
 }
