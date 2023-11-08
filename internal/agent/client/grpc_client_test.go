@@ -33,6 +33,7 @@ func TestNewGRPCClient(t *testing.T) {
 func TestPostGet(t *testing.T) {
 	c := server.NewConfig()
 	c.SetDefault()
+	c.GRPC = "localhost:3355"
 	s := mem.NewMetricsStorage()
 	gs, err := server.NewGRPCServer(c, s)
 	assert.NoError(t, err)
