@@ -3,6 +3,7 @@ package client
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/Nexadis/metalert/internal/models"
 	"github.com/Nexadis/metalert/internal/models/controller"
@@ -25,7 +26,9 @@ func NewGRPC(server string) *GRPCClient {
 		return &GRPCClient{}
 
 	}
-	conn, err := grpc.Dial(server, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	conn, err := grpc.DialContext(ctx, server, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		logger.Error(err)
 		return &GRPCClient{}
