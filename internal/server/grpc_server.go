@@ -31,15 +31,16 @@ func (s *grpcServer) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	var log grpc.ServerOption
+
+	var opts []grpc.ServerOption
 	if s.config.Verbose {
-		log = grpc.UnaryInterceptor(
+		opts = append(opts, grpc.UnaryInterceptor(
 			grpc_middleware.ChainUnaryServer(
 				grpc_zap.UnaryServerInterceptor(logger.ZapInterceptor()),
 			),
-		)
+		))
 	}
-	gs := grpc.NewServer(log)
+	gs := grpc.NewServer(opts...)
 	pb.RegisterMetricsCollectorServiceServer(gs, s)
 	go func() {
 		logger.Info("Grpc Server at ", s.config.GRPC)
