@@ -8,6 +8,8 @@ import (
 	"github.com/Nexadis/metalert/internal/storage"
 	"github.com/Nexadis/metalert/internal/utils/logger"
 	pb "github.com/Nexadis/metalert/proto/metrics/v1"
+	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
+	grpc_zap "github.com/grpc-ecosystem/go-grpc-middleware/logging/zap"
 	"google.golang.org/grpc"
 )
 
@@ -29,7 +31,15 @@ func (s *grpcServer) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	gs := grpc.NewServer()
+	var log grpc.ServerOption
+	if s.config.Verbose {
+		log = grpc.UnaryInterceptor(
+			grpc_middleware.ChainUnaryServer(
+				grpc_zap.UnaryServerInterceptor(logger.ZapInterceptor()),
+			),
+		)
+	}
+	gs := grpc.NewServer(log)
 	pb.RegisterMetricsCollectorServiceServer(gs, s)
 	go func() {
 		logger.Info("Grpc Server at ", s.config.GRPC)
