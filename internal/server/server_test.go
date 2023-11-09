@@ -26,6 +26,7 @@ import (
 func TestMain(m *testing.M) {
 	c := NewConfig()
 	c.SetDefault()
+	c.GRPC = ":1333"
 	c.DB.Restore = false
 	s, err := New(c)
 	if err != nil {
@@ -662,11 +663,14 @@ func ExampleNewServer() {
 	c := NewConfig()
 	c.SetDefault()
 	c.Address = ":9090"
+	c.GRPC = ":1333"
 	s, err := New(c)
 	if err != nil {
 		// ... Handle error
 	}
-	go s.Run(context.Background())
+	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond)
+	defer cancel()
+	go s.Run(ctx)
 }
 
 func ExamplehttpServer_DBPing() {

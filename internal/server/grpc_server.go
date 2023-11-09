@@ -44,11 +44,11 @@ func (s *grpcServer) Run(ctx context.Context) error {
 	pb.RegisterMetricsCollectorServiceServer(gs, s)
 	go func() {
 		logger.Info("Grpc Server at ", s.config.GRPC)
-		err = gs.Serve(lis)
+		gs.Serve(lis)
 	}()
 	<-ctx.Done()
 	gs.Stop()
-	return err
+	return nil
 }
 
 func (s *grpcServer) Get(ctx context.Context, r *pb.GetRequest) (*pb.GetResponse, error) {

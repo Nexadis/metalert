@@ -14,10 +14,11 @@ import (
 
 func TestNewGRPCServer(t *testing.T) {
 	c := NewConfig()
+	c.SetDefault()
 	s := mem.NewMetricsStorage()
 	gs, err := NewGRPCServer(c, s)
 	assert.NoError(t, err)
-	ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Millisecond)
 	defer cancel()
 	err = gs.Run(ctx)
 	assert.NoError(t, err)
